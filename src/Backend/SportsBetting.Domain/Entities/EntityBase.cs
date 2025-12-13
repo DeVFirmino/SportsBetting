@@ -1,3 +1,5 @@
+using System;
+
 namespace SportsBetting.Domain.Entities;
 
 public class EntityBase 

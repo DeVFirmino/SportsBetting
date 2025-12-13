@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Exceptions.ExceptionBase;
