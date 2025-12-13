@@ -193,3 +193,15 @@ FakesAssemblies/
 
 /.sonarqube
 coverage.opencover.xml
+
+# JetBrains Rider / IntelliJ
+.idea/
+**/.idea/
+*.DotSettings.user
+
+# macOS
+.DS_Store
+
+# .NET build outputs
+**/bin/
+**/obj/

@@ -1,3 +1,4 @@
+using AutoMapper;
 using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Application.Services.Cryptography;
 using SportsBetting.Communication.Requests;
@@ -12,22 +13,28 @@ public class RegisterUserUseCase
 {
     private readonly IUserWriteOnlyRepository _userWriteOnlyRepository;
     private readonly IUserReadOnlyRepository _userReadOnlyRepository; 
+    private readonly IMapper _mapper;
     
     
 
+    public RegisterUserUseCase(
+        IUserWriteOnlyRepository userWriteOnlyRepository,
+        IUserReadOnlyRepository userReadOnlyRepository,
+        IMapper mapper)
+    {
+        _userWriteOnlyRepository = userWriteOnlyRepository;
+        _userReadOnlyRepository = userReadOnlyRepository;
+        _mapper = mapper;
+    }
+
     public async Task <ResponseRegisteredUserJson> Execute(RequestRegisterUserJson request)
     {
- 
         var criptographyPassword = new PasswordEncrypter();
-        
-        var autoMapper = new AutoMapper.MapperConfiguration(options =>
-        {
-            options.AddProfile(new AutoMapping());
-        }).CreateMapper();
-        
+
         Validate(request);
-        //Validate REQUEST  
-        var user = autoMapper.Map<Domain.Entities.User>(request);
+        // Map request to domain entity via AutoMapper
+        var user = _mapper.Map<Domain.Entities.User>(request);
+        user.Active = true;
         //Criptography password
         user.Password = (criptographyPassword.Encrypt(request.Password));
  
