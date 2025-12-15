@@ -9,23 +9,16 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.User.Register;
 
-public class RegisterUserUseCase
+public class RegisterUserUseCase(
+    IUserWriteOnlyRepository userWriteOnlyRepository,
+    IUserReadOnlyRepository userReadOnlyRepository,
+    IMapper mapper)
+    : IRegisterUserUseCase
 {
-    private readonly IUserWriteOnlyRepository _userWriteOnlyRepository;
-    private readonly IUserReadOnlyRepository _userReadOnlyRepository; 
-    private readonly IMapper _mapper;
-    
-    
+    private readonly IUserWriteOnlyRepository _userWriteOnlyRepository = userWriteOnlyRepository;
+    private readonly IUserReadOnlyRepository _userReadOnlyRepository = userReadOnlyRepository; 
+    private readonly IMapper _mapper = mapper;
 
-    public RegisterUserUseCase(
-        IUserWriteOnlyRepository userWriteOnlyRepository,
-        IUserReadOnlyRepository userReadOnlyRepository,
-        IMapper mapper)
-    {
-        _userWriteOnlyRepository = userWriteOnlyRepository;
-        _userReadOnlyRepository = userReadOnlyRepository;
-        _mapper = mapper;
-    }
 
     public async Task <ResponseRegisteredUserJson> Execute(RequestRegisterUserJson request)
     {
@@ -35,9 +28,10 @@ public class RegisterUserUseCase
         // Map request to domain entity via AutoMapper
         var user = _mapper.Map<Domain.Entities.User>(request);
         user.Active = true;
+        
         //Criptography password
         user.Password = (criptographyPassword.Encrypt(request.Password));
- 
+  
         //Save on DB 
         
         await _userWriteOnlyRepository.Add(user);
