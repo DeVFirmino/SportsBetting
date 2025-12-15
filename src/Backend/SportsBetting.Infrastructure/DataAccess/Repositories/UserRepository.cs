@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Infrastructure.DataAccess;
 
 namespace SportsBetting.Infrastructure.DataAcess.Repositories;
 

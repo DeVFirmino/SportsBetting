@@ -16,11 +16,10 @@ builder.Services.AddSwaggerGen();
 
 
 
-
+builder.Logging.AddFilter("LuckyPennySoftware.AutoMapper.License", LogLevel.None);
 builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
 builder.Services.AddApplication();
-// builder.Services.AddInfrastructure();
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // // DbContext registration (InMemory by default; can be changed to SQL provider later)
 // builder.Services.AddDbContext<SportsBettingDbContext>(opt =>
@@ -55,7 +54,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection();
 
 app.MapControllers();
 

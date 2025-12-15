@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SportsBetting.Domain.Entities;
 
-namespace SportsBetting.Infrastructure.DataAcess;
+namespace SportsBetting.Infrastructure.DataAccess;
 
 public class SportsBettingDbContext : DbContext
 {

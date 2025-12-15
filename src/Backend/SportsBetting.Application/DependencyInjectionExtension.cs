@@ -3,6 +3,7 @@ using AutoMapper;
 using AutoMapper.Configuration;
 using Microsoft.Extensions.Logging;
 using SportsBetting.Application.Services.AutoMapper;
+using SportsBetting.Application.Services.Cryptography;
 using SportsBetting.Application.UseCases.User.Register;
 
 namespace SportsBetting.Application;
@@ -15,11 +16,12 @@ public static class DependencyInjectionExtension
 
     public static void AddApplication(this IServiceCollection services)
     {
+        AddPasswordEncrypter(services);
         AddAutoMapper(services);
         AddUseCases(services);
     }
 
-    private static void AddUseCases(this IServiceCollection services)
+    private static void AddUseCases(IServiceCollection services)
     {
         services.AddScoped<IRegisterUserUseCase, RegisterUserUseCase>();
     }
@@ -35,5 +37,10 @@ public static class DependencyInjectionExtension
             return new Mapper(mapperConfiguration, sp.GetService);
         });
 
+    }
+    
+    private static void AddPasswordEncrypter(IServiceCollection services)
+    {
+        services.AddScoped(options => new PasswordEncrypter());
     }
 }
