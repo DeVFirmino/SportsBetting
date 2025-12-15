@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "SportsBetting.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5055",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__DefaultConnection": "Server=localhost,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True;"
+      }
+    },
+    "SportsBetting.API: http": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5055",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__DefaultConnection": "Server=localhost,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True;"
+      }
+    }
+  }
+}
