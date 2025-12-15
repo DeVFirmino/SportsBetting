@@ -9,7 +9,7 @@ This project is being developed as a **portfolio project**, with a strong focus 
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 The solution is structured into clear layers:
 
@@ -23,7 +23,7 @@ This separation reflects how real backend teams structure maintainable systems.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 - **.NET 9 / C#**
 - **ASP.NET Core Web API**
