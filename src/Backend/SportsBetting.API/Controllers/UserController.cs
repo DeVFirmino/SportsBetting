@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Internal;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Application.UseCases.User.Register;
@@ -17,8 +18,10 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ResponseRegisteredUserJson), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Register([FromBody] RequestRegisterUserJson request)
+    [ProducesResponseType(typeof(ResponseRegisteredUserJson),
+        StatusCodes.Status201Created)]
+    public async Task<IActionResult> Register([FromServices] IRegisterUserUseCase useCase,
+        [FromBody] RequestRegisterUserJson request)
 
     {
         var response = await _useCase.Execute(request);
