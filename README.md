@@ -9,7 +9,7 @@ This project is being developed as a **portfolio project**, with a strong focus 
 
 ---
 
-##  Architecture
+#  Architecture
 
 The solution is structured into clear layers:
 
@@ -20,6 +20,20 @@ The solution is structured into clear layers:
 - **Shared** – Common communication models and exceptions
 
 This separation reflects how real backend teams structure maintainable systems.
+
+# Architecture Approach for the moment:
+
+This project currently follows a **modular monolith** architecture.
+
+The decision to start as a monolith was intentional, focusing on:
+- Clear domain boundaries
+- Transactional consistency
+- Simpler deployment and debugging
+- Easier reasoning about business rules
+
+The internal structure (Domain, Application, Infrastructure) allows future extraction
+of individual modules into independent microservices if scalability or organizational
+needs require it.
 
 ---
 
