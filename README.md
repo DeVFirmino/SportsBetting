@@ -23,17 +23,15 @@ This separation reflects how real backend teams structure maintainable systems.
 
 # Architecture Approach for the moment:
 
-This project currently follows a **modular monolith** architecture.
+Layered Architecture based on **Clean Architecture principles**
 
 The decision to start as a monolith was intentional, focusing on:
+
 - Clear domain boundaries
 - Transactional consistency
 - Simpler deployment and debugging
 - Easier reasoning about business rules
-
-The internal structure (Domain, Application, Infrastructure) allows future extraction
-of individual modules into independent microservices if scalability or organizational
-needs require it.
+ 
 
 ---
 
@@ -50,7 +48,7 @@ needs require it.
 
 ---
 
-##Features (Work in Progress)
+## Features (Work in Progress)
 
 - User registration
 - Layered architecture with DI
@@ -62,11 +60,28 @@ More features will be added incrementally.
 
 ---
 
-## ▶️ Running the project (Development)
+## Code Quality
+
+This project uses **Qodana by JetBrains Rider** for static code analysis.
+
+Qodana helps ensure:
+- Consistent coding standards
+- Early detection of potential bugs
+- Maintainable and readable codebase
+
+The analysis configuration is versioned in the repository and can be executed
+locally via JetBrains Rider or through CI workflows.
+
+This reflects a real-world development practice commonly used in professional
+.NET teams.
+
+## Running the project (Development)
 
 Requirements:
 - .NET SDK
 - SQL Server (local or container)
+
+---
 
 Run the API:
 
