@@ -1,20 +1,60 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# SportsBetting Backend API
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+Backend API for a sports betting platform, built with **C# and ASP.NET Core**, following layered architecture and clean backend practices commonly used in **iGaming / Fintech systems**.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+This project is being developed as a **portfolio project**, with a strong focus on:
+- Clean architecture
+- Transactional integrity
+- Real-world backend patterns
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+---
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+## 🏗️ Architecture
+
+The solution is structured into clear layers:
+
+- **API** – ASP.NET Core Web API (Controllers, Filters, Startup)
+- **Application** – Use cases, business logic, DTOs
+- **Domain** – Core domain entities and contracts
+- **Infrastructure** – EF Core, repositories, Unit of Work, database access
+- **Shared** – Common communication models and exceptions
+
+This separation reflects how real backend teams structure maintainable systems.
+
+---
+
+## 🛠️ Tech Stack
+
+- **.NET 9 / C#**
+- **ASP.NET Core Web API**
+- **Entity Framework Core**
+- **SQL Server**
+- **Swagger / OpenAPI**
+- **AutoMapper**
+- **Dependency Injection**
+- **Unit of Work pattern**
+
+---
+
+##Features (Work in Progress)
+
+- User registration
+- Layered architecture with DI
+- Repository + Unit of Work
+- Centralized exception handling
+- Swagger documentation
+
+More features will be added incrementally.
+
+---
+
+## ▶️ Running the project (Development)
+
+Requirements:
+- .NET SDK
+- SQL Server (local or container)
+
+Run the API:
+
+```bash
+dotnet run --project src/Backend/SportsBetting.API
