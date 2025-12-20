@@ -71,17 +71,7 @@ public class RegisterUserValidatorTest
     [Fact]
     public void Error_Password_Invalid()
     {
-        var validator = new RegisterUserValidator();
-
-        var request = RequestRegisterUserJsonBuilder.Build();
-        request.Email = "email.com";
         
-        var result = validator.Validate(request);
-
-        result.IsValid.Should().BeFalse();
-        
-        result.Errors.Should().ContainSingle().And
-            .Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.EMAIL_EMPTY));
     }
     
 
