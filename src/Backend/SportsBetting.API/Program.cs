@@ -21,24 +21,15 @@ builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)))
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// // DbContext registration (InMemory by default; can be changed to SQL provider later)
-// builder.Services.AddDbContext<SportsBettingDbContext>(opt =>
-//     opt.UseInMemoryDatabase("SportsBettingDb"));
 
-// AutoMapper registration (manual, since DI extension doesn't support  )
-// builder.Services.AddSingleton<IMapper>(sp =>
-// {
-//     var config = new MapperConfiguration(cfg =>
-//     {
-//         cfg.AddProfile(new AutoMapping());
-//     }, null);
-//     return new Mapper(config);
-// });
+ 
+// // Repositories DI
+// builder.Services.AddScoped<IUserWriteOnlyRepository, UserRepository>();
+// builder.Services.AddScoped<IUserReadOnlyRepository, UserRepository>();
 
-// Repositories DI
-builder.Services.AddScoped<IUserWriteOnlyRepository, UserRepository>();
-builder.Services.AddScoped<IUserReadOnlyRepository, UserRepository>();
-builder.Services.AddScoped<RegisterUserUseCase>();
+//UseCases
+// Use cases
+builder.Services.AddScoped<IRegisterUserUseCase, RegisterUserUseCase>();
 
 var app = builder.Build();
 
