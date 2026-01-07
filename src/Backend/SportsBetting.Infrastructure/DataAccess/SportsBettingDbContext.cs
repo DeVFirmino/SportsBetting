@@ -5,7 +5,7 @@ namespace SportsBetting.Infrastructure.DataAccess;
 
 public class SportsBettingDbContext : DbContext
 {
-    public SportsBettingDbContext(DbContextOptions options) : base(options) { }
+    public SportsBettingDbContext(DbContextOptions<SportsBettingDbContext> options) : base(options) { }
     
     public DbSet<User> Users { get; set; }
 

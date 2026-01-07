@@ -19,10 +19,10 @@
         <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
     </resheader>
     <data name="NAME_EMPTY" xml:space="preserve">
-        <value>Name cannot be null!</value>
+        <value>Name cannot be null.</value>
     </data>
     <data name="EMAIL_EMPTY" xml:space="preserve">
-        <value>Email cannot be empty</value>
+        <value>Email cannot be empty.</value>
     </data>
     <data name="EMAIL_INVALID" xml:space="preserve">
         <value>Email is not valid.</value>
@@ -31,6 +31,9 @@
         <value>Password cannot be empty.</value>
     </data>
     <data name="UNKNOWN_ERROR" xml:space="preserve">
-        <value>Error</value>
+        <value>Unknown Error.</value>
+    </data>
+    <data name="EMAIL_OR_PASSWORD_INVALID" xml:space="preserve">
+        <value>Email or password invalid.</value>
     </data>
 </root>

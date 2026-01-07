@@ -1,10 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
-using AutoMapper.Configuration;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using SportsBetting.Application.Services.AutoMapper;
-using SportsBetting.Application.Services.Cryptography;
-using SportsBetting.Application.UseCases.User.Register;
+ using SportsBetting.Application.UseCases.User.Register;
+using SportsBetting.Application.UseCases.User.Login.DoLogin;
+using SportsBetting.Application.UseCases.User.Update;
+using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.Application;
 
@@ -14,33 +15,32 @@ namespace SportsBetting.Application;
 public static class DependencyInjectionExtension
 {
 
-    public static void AddApplication(this IServiceCollection services)
+    public static void AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
-        AddPasswordEncrypter(services);
-        AddAutoMapper(services);
+         AddAutoMapper(services);
         AddUseCases(services);
     }
 
     private static void AddUseCases(IServiceCollection services)
     {
         services.AddScoped<IRegisterUserUseCase, RegisterUserUseCase>();
+        services.AddScoped<IDoLoginUseCase, DoLoginUseCase>();
+        services.AddScoped<IGetUserProfileUseCase, GetUserProfileUseCase>();
+        services.AddScoped<IUpdateUserUseCase, UpdateUserUseCase>();
+        
     }
 
     public static void AddAutoMapper(IServiceCollection services)
     {
-        services.AddSingleton<IMapper>(sp =>
+        services.AddScoped<IMapper>(sp =>
         {
-            var expression = new MapperConfigurationExpression();
-            expression.AddProfile<AutoMapping>();
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var mapperConfiguration = new MapperConfiguration(expression, loggerFactory);
-            return new Mapper(mapperConfiguration, sp.GetService);
+            var config = new MapperConfiguration(cfg =>
+            {
+                cfg.AddProfile<AutoMapping>();
+            });
+            return new Mapper(config, sp.GetService);
         });
-
     }
     
-    private static void AddPasswordEncrypter(IServiceCollection services)
-    {
-        services.AddScoped(options => new PasswordEncrypter());
-    }
+  
 }
