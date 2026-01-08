@@ -8,6 +8,8 @@ public class SportsBettingDbContext : DbContext
     public SportsBettingDbContext(DbContextOptions<SportsBettingDbContext> options) : base(options) { }
     
     public DbSet<User> Users { get; set; }
+    
+    public DbSet<Wallet> Wallets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,7 +1,7 @@
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Infrastructure.DataAccess;
 
-namespace SportsBetting.Infrastructure.DataAcess;
+namespace SportsBetting.Infrastructure.DataAccess;
 
 public class UnitOfWork : IUnitOfWork
 {

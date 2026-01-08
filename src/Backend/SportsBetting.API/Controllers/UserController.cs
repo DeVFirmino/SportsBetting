@@ -41,6 +41,7 @@ public class UserController : SportsBettingBaseController
     public async Task<IActionResult> Update([FromServices] UpdateUserUseCase useCase, [FromBody] RequestUpdateUserJson request)
     {
         await useCase.Execute(request);
+        
         return NoContent();
     }
     
