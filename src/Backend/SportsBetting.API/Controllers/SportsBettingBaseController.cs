@@ -7,6 +7,4 @@ namespace SportsBetting.API.Controllers;
 
 public class SportsBettingBaseController : ControllerBase
 {
-    
-    
 }

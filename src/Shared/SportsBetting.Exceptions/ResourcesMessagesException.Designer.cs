@@ -110,5 +110,15 @@ namespace SportsBetting.Exceptions {
                 return ResourceManager.GetString("USER_ALREADY_EXISTS", resourceCulture);
             }
         }
+
+        public static string AMOUNT_INVALID
+        {
+            get { return ResourceManager.GetString("AMOUNT_INVALID", resourceCulture); }
+        }
+        
+        public static string WALLET_NOT_FOUND
+        {
+            get { return ResourceManager.GetString("WALLET_NOT_FOUND", resourceCulture); }
+        }
     }
 }

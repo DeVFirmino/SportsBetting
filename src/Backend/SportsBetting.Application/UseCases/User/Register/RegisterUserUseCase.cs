@@ -4,6 +4,7 @@ using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -20,13 +21,15 @@ public class RegisterUserUseCase : IRegisterUserUseCase
     private readonly IPasswordEncrypter _passwordEncrypter;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccessTokenGenerator _accessTokenGenerator;
+    private readonly IWalletWriteOnlyRepository _walletWriteOnlyRepository;
 
     public RegisterUserUseCase(IUserWriteOnlyRepository userWriteOnlyRepository,
         IUserReadOnlyRepository userReadOnlyRepository,
         IMapper mapper, 
         IPasswordEncrypter passwordEncrypter,
         IUnitOfWork unitOfWork, 
-        IAccessTokenGenerator accessTokenGenerator)    
+        IAccessTokenGenerator accessTokenGenerator,
+        IWalletWriteOnlyRepository walletWriteOnlyRepository)     
     {
         _userWriteOnlyRepository = userWriteOnlyRepository;
         _userReadOnlyRepository = userReadOnlyRepository;
@@ -34,6 +37,7 @@ public class RegisterUserUseCase : IRegisterUserUseCase
         _passwordEncrypter = passwordEncrypter;
         _unitOfWork = unitOfWork;
         _accessTokenGenerator = accessTokenGenerator;
+        _walletWriteOnlyRepository = walletWriteOnlyRepository;
     }
 
     public async Task <ResponseRegisteredUserJson> Execute(RequestRegisterUserJson request)
@@ -62,6 +66,18 @@ public class RegisterUserUseCase : IRegisterUserUseCase
         //unit of work 
         await _unitOfWork.Commit();
         
+        var wallet = new Domain.Entities.Wallet()
+        {
+            UserId = user.Id,
+            Balance = 0
+        };
+        
+        await _walletWriteOnlyRepository.Add(wallet);
+
+        
+        await _unitOfWork.Commit();
+        
+         
         return new ResponseRegisteredUserJson()
         {
             Name = user.Name,
@@ -78,12 +94,13 @@ public class RegisterUserUseCase : IRegisterUserUseCase
 
         var result = validator.Validate(request);
         
-        var emailexist = await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email);
-        if(emailexist)
+        var emailExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email);
+                
+        if(emailExist)
             result.Errors.Add(new FluentValidation.Results.ValidationFailure
                 (string.Empty, ResourcesMessagesException.EMAIL_INVALID));
         
-        if (result.IsValid == false)
+        if(result.IsValid == false)
         {
             var errorMessages = result.Errors.Select(e => e.ErrorMessage).ToList();
             

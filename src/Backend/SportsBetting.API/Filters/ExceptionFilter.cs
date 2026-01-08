@@ -9,6 +9,12 @@ namespace SportsBetting.API.Filters;
 
 public class ExceptionFilter : IExceptionFilter
 {
+    private readonly ILogger<ExceptionFilter> _logger;
+
+    public ExceptionFilter(ILogger<ExceptionFilter> logger)
+    {
+        _logger = logger;
+    }
 
     public void OnException(ExceptionContext context)
     {
@@ -19,7 +25,7 @@ public class ExceptionFilter : IExceptionFilter
     }
 
 
-    private static void HandleProjectException(ExceptionContext context)
+    private void HandleProjectException(ExceptionContext context)
     {
         if (context.Exception is InvalidLoginException)
         {
@@ -36,8 +42,9 @@ public class ExceptionFilter : IExceptionFilter
 
     }
 
-    private static void ThrowUnknowException(ExceptionContext context)
+    private void ThrowUnknowException(ExceptionContext context)
         {
+            _logger.LogError(context.Exception, "Unhandled exception occurred: {Message}", context.Exception.Message);
             context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
             context.Result = new ObjectResult(new ResponseErrorJson(ResourcesMessagesException.UNKNOWN_ERROR));
         }

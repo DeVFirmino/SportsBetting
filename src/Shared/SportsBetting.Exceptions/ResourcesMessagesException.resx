@@ -36,4 +36,25 @@
     <data name="EMAIL_OR_PASSWORD_INVALID" xml:space="preserve">
         <value>Email or password invalid.</value>
     </data>
+    <data name="EMAIL_ALREADY_REGISTERED" xml:space="preserve">
+        <value>Email already registered.</value>
+    </data>
+    <data name="NO_TOKEN" xml:space="preserve">
+        <value>No token provided.</value>
+    </data>
+    <data name="NO_PERMISSION" xml:space="preserve">
+        <value>No permission.</value>
+    </data>
+    <data name="USER_NOT_FOUND" xml:space="preserve">
+        <value>User not found.</value>
+    </data>
+    <data name="USER_ALREADY_EXISTS" xml:space="preserve">
+        <value>User already exists.</value>
+    </data>
+    <data name="AMOUNT_INVALID" xml:space="preserve">
+        <value>Amount must be greater than zero.</value>
+    </data>
+    <data name="WALLET_NOT_FOUND" xml:space="preserve">
+        <value>Wallet not found.</value>
+    </data>
 </root>
