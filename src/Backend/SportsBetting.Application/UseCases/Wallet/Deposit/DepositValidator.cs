@@ -10,4 +10,6 @@ public class DepositValidator : AbstractValidator<RequestDepositJson>
     {
         RuleFor(x => x.Amount).GreaterThan(0).WithMessage(ResourcesMessagesException.AMOUNT_INVALID);
     }
+    
+     
 }

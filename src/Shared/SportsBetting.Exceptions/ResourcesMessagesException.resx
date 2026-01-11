@@ -57,4 +57,21 @@
     <data name="WALLET_NOT_FOUND" xml:space="preserve">
         <value>Wallet not found.</value>
     </data>
+    <data name="BET_AMOUNT_GREATER_THAN_ZERO" xml:space="preserve">
+        <value>Amount must be greater than 0 </value>
+    </data>
+    <data name="BET_ODDS_INVALID" xml:space="preserve">
+        <value>Bet should be greater than zero</value>
+    </data>
+    <data name="BET_EVENT_NAME_REQUIRED" xml:space="preserve">
+        <value>Event name is required.</value>
+    </data>
+    <data name="BET_TYPE_REQUIRED" xml:space="preserve">
+        <value>Please select the bet type.</value>
+    </data>
+    <data name="INSUFFICIENT_BALANCE" xml:space="preserve">
+        <value>Insufficient balance.</value>
+    </data>
+    
+    
 </root>

@@ -20,7 +20,7 @@ public class WalletController : SportsBettingBaseController
     }
 
     [HttpPost("deposit")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)] //View that later to change to 200
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [AuthenticatedUser]
     public async Task<IActionResult> Deposit([FromServices] IDepositUseCase useCase,

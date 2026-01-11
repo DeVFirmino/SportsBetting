@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SportsBetting.Infrastructure.DataAccess;
 
@@ -11,9 +12,11 @@ using SportsBetting.Infrastructure.DataAccess;
 namespace SportsBetting.Infrastructure.DataAccess.Migrations
 {
     [DbContext(typeof(SportsBettingDbContext))]
-    partial class SportsBettingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260108192429_AddBetTable")]
+    partial class AddBetTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,14 +55,8 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.Property<decimal>("Odds")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("PlacedAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<decimal>("PotentialWinning")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("SettledAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()

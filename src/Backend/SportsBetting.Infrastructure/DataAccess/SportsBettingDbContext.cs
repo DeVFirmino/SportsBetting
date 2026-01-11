@@ -10,6 +10,8 @@ public class SportsBettingDbContext : DbContext
     public DbSet<User> Users { get; set; }
     
     public DbSet<Wallet> Wallets { get; set; }
+    
+    public DbSet<Bet> Bets { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Domain.Repositories;
+using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.User;
 using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Security.Cryptography;
@@ -65,6 +66,9 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IWalletReadOnlyRepository, WalletRepository>();
         services.AddScoped<IWalletWriteOnlyRepository, WalletRepository>();
         services.AddScoped<IWalletUpdateOnlyRepository, WalletRepository>();
+        services.AddScoped<IBetReadOnlyRepository, BetRepository>();
+        services.AddScoped<IBetWriteOnlyRepository, BetRepository>();
+        services.AddScoped<IBetUpdateOnlyRepository, BetRepository>();
     }
     
     private static void AddTokens(IServiceCollection services, IConfiguration configuration)
