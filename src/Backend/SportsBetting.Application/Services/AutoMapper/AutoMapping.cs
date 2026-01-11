@@ -12,17 +12,25 @@ public class AutoMapping : Profile
           DomainToResponse();
      }
 
+     
+     
      private void RequestToDomain()
      {
           CreateMap<RequestRegisterUserJson, Domain.Entities.User>()
                .ForMember(dest => dest.Password,
                     opt => opt.Ignore())
                .ForMember(dest => dest.Active, opt => opt.MapFrom(_ => true));
+          
+          CreateMap<RequestPlaceBetJson, Domain.Entities.Bet>();
      }
      
      private void DomainToResponse()
      {
           CreateMap<Domain.Entities.User, ResponseUserProfileJson>();
+          
+          CreateMap<Domain.Entities.Bet, ResponseUserBetJson>();
+          
+          CreateMap<Domain.Entities.Bet, ResponseBetsJson>();
 
      }
 }

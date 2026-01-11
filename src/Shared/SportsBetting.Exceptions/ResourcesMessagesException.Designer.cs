@@ -120,5 +120,30 @@ namespace SportsBetting.Exceptions {
         {
             get { return ResourceManager.GetString("WALLET_NOT_FOUND", resourceCulture); }
         }
+        
+        public static string BET_AMOUNT_GREATER_THAN_ZERO
+        {
+            get { return ResourceManager.GetString("BET_AMOUNT_GREATER_THAN_ZERO", resourceCulture); }
+        }
+        
+        public static string BET_ODDS_INVALID
+        {
+            get { return ResourceManager.GetString("BET_ODDS_INVALID", resourceCulture); }
+        }
+        
+        public static string BET_EVENT_NAME_REQUIRED
+        {
+            get { return ResourceManager.GetString("BET_EVENT_NAME_REQUIRED", resourceCulture); }
+        }
+        
+        public static string BET_TYPE_REQUIRED
+        {
+            get { return ResourceManager.GetString("BET_TYPE_REQUIRED", resourceCulture); }
+        }
+        
+        public static string INSUFFICIENT_BALANCE
+        {
+            get { return ResourceManager.GetString("INSUFFICIENT_BALANCE", resourceCulture); }
+        }
     }
 }
