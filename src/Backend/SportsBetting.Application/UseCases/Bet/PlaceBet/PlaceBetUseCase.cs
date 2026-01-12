@@ -5,6 +5,7 @@ using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.WalletRepository;
+using SportsBetting.Domain.Services.ExternalApis;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -19,6 +20,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
     private readonly IWalletUpdateOnlyRepository _walletUpdateOnlyRepository;
     private readonly IWalletReadOnlyRepository _walletReadOnlyRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFootballApiService _footballApiService;
 
     public PlaceBetUseCase(
         ILoggedUser loggedUser,
@@ -26,7 +28,8 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         IBetWriteOnlyRepository betWriteOnlyRepository,
         IWalletUpdateOnlyRepository walletUpdateOnlyRepository,
         IWalletReadOnlyRepository walletReadOnlyRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IFootballApiService footballApiService)
     {
         _loggedUser = loggedUser;
         _mapper = mapper;
@@ -34,6 +37,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         _walletUpdateOnlyRepository = walletUpdateOnlyRepository;
         _walletReadOnlyRepository = walletReadOnlyRepository;
         _unitOfWork = unitOfWork;
+        _footballApiService = footballApiService;
     }
     
     
@@ -53,6 +57,14 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         if (wallet.Balance < request.Amount)
             throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
         
+        // Valida se o fixture existe
+        var fixtures = await _footballApiService.GetUpcomingFixtures();
+        
+        var fixtureExists = fixtures.Any(f => f.FixtureId == request.FixtureId);
+
+        if (!fixtureExists)
+            throw new ErrorOnValidationException([ResourcesMessagesException.FIXTURE_NOT_FOUND]);
+        
         var bet = _mapper.Map<Domain.Entities.Bet>(request);
         bet.UserId = loggedUser.Id;
         bet.Status = BetStatus.Pending;
@@ -64,6 +76,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
          _walletUpdateOnlyRepository.Update(walletToUpdate);
          
          await _betWriteOnlyRepository.Add(bet);
+         
          await _unitOfWork.Commit();
 
          return _mapper.Map<ResponseBetsJson>(bet);
