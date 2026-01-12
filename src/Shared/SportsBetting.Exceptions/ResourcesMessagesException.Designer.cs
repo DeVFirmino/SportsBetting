@@ -145,5 +145,10 @@ namespace SportsBetting.Exceptions {
         {
             get { return ResourceManager.GetString("INSUFFICIENT_BALANCE", resourceCulture); }
         }
+        
+        public static string FIXTURE_NOT_FOUND
+        {
+            get { return ResourceManager.GetString("FIXTURE_NOT_FOUND", resourceCulture); }
+        }
     }
 }

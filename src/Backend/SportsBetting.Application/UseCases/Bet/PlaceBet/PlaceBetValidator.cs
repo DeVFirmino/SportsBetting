@@ -20,6 +20,9 @@ public class PlaceBetValidator : AbstractValidator<RequestPlaceBetJson>
     
         RuleFor(x => x.BetType).NotEmpty()
             .WithMessage(ResourcesMessagesException.BET_TYPE_REQUIRED);
+
+        RuleFor(x => x.FixtureId).GreaterThan(0)
+            .WithMessage(ResourcesMessagesException.BET_AMOUNT_GREATER_THAN_ZERO);
     }
         
 }

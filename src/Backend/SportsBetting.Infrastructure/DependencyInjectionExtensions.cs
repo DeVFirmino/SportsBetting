@@ -13,11 +13,14 @@ using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Infrastructure.DataAccess;
 using SportsBetting.Infrastructure.DataAccess.Repositories;
 using SportsBetting.Infrastructure.Extensions;
+using SportsBetting.Infrastructure.ExternalServices.Football;
 using SportsBetting.Infrastructure.Security.Cryptography;
 using SportsBetting.Infrastructure.Security.Tokens.Access;
 using SportsBetting.Infrastructure.Security.Tokens.Access.Generator;
 using SportsBetting.Infrastructure.Security.Tokens.Access.Validator;
 using SportsBetting.Infrastructure.Services.LoggedUser;
+using Microsoft.Extensions.Http;
+using SportsBetting.Domain.Services.ExternalApis;
 
 namespace SportsBetting.Infrastructure;
 
@@ -27,6 +30,7 @@ public static class DependencyInjectionExtensions
     { 
         AddPasswordEncrypter(services, configuration);
         AddRepositories(services);
+        AddExternalServices(services, configuration);
         AddLoggedUser(services);
         AddTokens(services, configuration);
         
@@ -38,7 +42,7 @@ public static class DependencyInjectionExtensions
 
     
 
-    private static void AddDbContext(IServiceCollection services, IConfiguration configuration)
+    private static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.ConnectionString();
 
@@ -48,7 +52,7 @@ public static class DependencyInjectionExtensions
     }
 
     // public static void AddAutoMapper(IServiceCollection services)
-    // {
+    //{
     //     services.AddScoped(options => new AutoMapper.MapperConfiguration(options =>
     //     {
     //         options.AddProfile(new AutoMapping());
@@ -87,6 +91,17 @@ public static class DependencyInjectionExtensions
         var additionalKey = configuration.GetValue<string>("Settings:Password:AdditionalKey");
         
         services.AddScoped<IPasswordEncrypter>(options => new Sha512Encrypter(additionalKey!));
+    }
+
+    private static void AddExternalServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        var baseUrl = configuration["Settings:FootballApi:BaseUrl"];
+        
+        services.AddHttpClient<IFootballApiService, FootballApiService>(client =>
+        {
+            client.BaseAddress = new Uri(baseUrl!);
+        });
+        
     }
 }
 
