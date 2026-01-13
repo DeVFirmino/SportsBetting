@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using SportsBetting.Application.Services.AutoMapper;
+using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
 using SportsBetting.Application.UseCases.User.GetBalance;
@@ -14,7 +15,7 @@ using SportsBetting.Communication.Responses;
 namespace SportsBetting.Application;
 
 /// <summary>
-/// Provides extension meth ods for configuring dependency injection for the application layer.
+/// Provides extension methods for configuring dependency injection for the application layer.
 /// </summary>
 public static class DependencyInjectionExtension
 {
@@ -35,6 +36,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<IGetBalanceUseCase, GetBalanceUseCase>();
         services.AddScoped<IPlaceBetUseCase, PlaceBetUseCase>();
         services.AddScoped<IGetAvailableFixtureUseCase, GetAvailableFixturesUseCase>();
+        services.AddScoped<IGetUserBetsUseCase,  GetUserBetsUseCase>();
         
     }
 

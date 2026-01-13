@@ -60,6 +60,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         // Valida se o fixture existe
         var fixtures = await _footballApiService.GetUpcomingFixtures();
         
+        
         var fixtureExists = fixtures.Any(f => f.FixtureId == request.FixtureId);
 
         if (!fixtureExists)
@@ -69,6 +70,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         bet.UserId = loggedUser.Id;
         bet.Status = BetStatus.Pending;
         bet.PlacedAt = DateTime.UtcNow;
+        bet.PotentialWinning = request.Amount * request.Odds;
         
          var walletToUpdate = await _walletUpdateOnlyRepository.GetById(wallet.Id);
          walletToUpdate.Balance -= request.Amount;

@@ -8,6 +8,8 @@ public class Bet : EntityBase
 
     public User User { get; set; } = default!;
     
+    public int FixtureId { get; set; }
+    
     public decimal Amount { get; set; } 
     
     public decimal Odds { get; set; }
@@ -21,6 +23,7 @@ public class Bet : EntityBase
     public BetStatus Status { get; set; }
     
     public DateTime PlacedAt { get; set; }
+    
     
     public DateTime? SettledAt { get; set; }
  
