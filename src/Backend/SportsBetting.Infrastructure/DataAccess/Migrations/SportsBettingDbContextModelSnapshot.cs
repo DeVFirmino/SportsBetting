@@ -49,6 +49,9 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("FixtureId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("Odds")
                         .HasColumnType("decimal(18,2)");
 
@@ -70,6 +73,8 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FixtureId");
 
                     b.HasIndex("UserId");
 

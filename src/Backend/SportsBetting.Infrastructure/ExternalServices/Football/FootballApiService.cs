@@ -25,8 +25,6 @@ public class FootballApiService : IFootballApiService
             response.EnsureSuccessStatusCode();
  
              var content = await response.Content.ReadAsStringAsync();
-             // Console.WriteLine($"API Response: {content.Substring(0, Math.Min(500, content.Length))}"); // Log primeiros 500 chars
-
         
              var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiFootballResponse<ApiFixtureDto>>(
                  content, 
@@ -45,25 +43,16 @@ public class FootballApiService : IFootballApiService
                      FixtureId = f.Fixture.Id,
                      HomeTeam = f.Teams.Home.Name,
                      AwayTeam = f.Teams.Away.Name,
-                     Date = f.Fixture.Date
+                     Date = f.Fixture.Date,
+                     HomeWinOdds = 2.10m,
+                     DrawOdds = 3.40m,
+                     AwayWinOdds = 3.80m,
                  })
                  .ToList();
 
              return fixtures;
     }
 
-    public async Task<OddsData?> GetFixtureOdds(int fixtureId)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/odds?fixture={fixtureId}");
-        request.Headers.Add("x-apisports-key", _apiKey);
-
-        var response = await _httpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-
-        //todo Parse Json
-        var content = await response.Content.ReadAsStringAsync();
-
-        return null;
-    }
+     
 }
  
