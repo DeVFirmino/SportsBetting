@@ -2,6 +2,7 @@
 // using SportsBetting.Application.UseCases.User.Register;
 // using SportsBetting.Exceptions;
 // using SportsBetting.Exceptions.ExceptionBase;
+// using SportsBetting.Infrastructure.DataAccess.Repositories;
 // using SportsBetting.Tests.Common.Cryptography;
 // using SportsBetting.Tests.Common.Mapper;
 // using SportsBetting.Tests.Common.Repositories;
@@ -71,11 +72,12 @@
 //         var unitOfWork = UnitOfWorkBuilder.Build();
 //         var readRepositoryBuilder = new UserReadOnlyRepositoryBuilder(); 
 //         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
+//         var walletWriteOnlyRepository = 
 //
 //         if (string.IsNullOrEmpty(email) == false)
 //             readRepositoryBuilder.ExistActiveUserWithEmail(email);
 //             
-//         return new RegisterUserUseCase(writeRepository, readRepositoryBuilder.Build(), mapper, passwordEncrypter, unitOfWork, accessTokenGenerator); 
+//         return new RegisterUserUseCase(writeRepository, readRepositoryBuilder.Build(), mapper, passwordEncrypter, unitOfWork, accessTokenGenerator, walletWriteOnlyRepository); 
 //
 //     }
 // }

@@ -6,6 +6,9 @@ public class FixtureData
     public string HomeTeam { get; set; } = string.Empty;
     public string AwayTeam { get; set; } = string.Empty;
     public DateTime Date { get; set; }
+    public decimal? HomeWinOdds { get; set; }   
+    public decimal? DrawOdds { get; set; }      
+    public decimal? AwayWinOdds { get; set; }   
 }
 
 public class OddsData
@@ -19,5 +22,4 @@ public interface IFootballApiService
 {
     Task<List<FixtureData>> GetUpcomingFixtures();
     
-    Task<OddsData?> GetFixtureOdds(int fixtureId);
-}
+ }
