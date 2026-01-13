@@ -12,7 +12,9 @@ public class BetConfiguration : IEntityTypeConfiguration<Bet>
     {
         builder.ToTable("Bets");
         builder.HasKey(b => b.Id);
-
+        
+        builder.Property(b => b.FixtureId).IsRequired();
+ 
         builder.Property(b => b.Amount)
             .HasColumnType("decimal(18,2)")
             .IsRequired();
@@ -39,6 +41,7 @@ public class BetConfiguration : IEntityTypeConfiguration<Bet>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(b => b.UserId);
+        builder.HasIndex(b => b.FixtureId);
 
     }
     
