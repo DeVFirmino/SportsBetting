@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SportsBetting.API.Attributes;
+using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Communication.Requests;
@@ -33,8 +34,16 @@ public class BetController : SportsBettingBaseController
         return Ok(result);
         
     }
-
-
-
-
+    
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [AuthenticatedUser]
+    public async Task<IActionResult> GetBetById(
+        [FromServices] IGetBetByIdUseCase useCase,
+        [FromRoute] long id)
+    {
+        var result = await useCase.Execute(id);
+        return Ok(result);
+    }
 }

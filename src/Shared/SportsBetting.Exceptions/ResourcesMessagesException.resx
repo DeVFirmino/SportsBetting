@@ -76,6 +76,7 @@
     <data name="FIXTURE_NOT_FOUND" xml:space="preserve">
   <value>Fixture not found or not available.</value>
 </data>
-    
-    
+    <data name="BET_NOT_FOUND" xml:space="preserve">
+        <value>Bet not found.</value>
+    </data>
 </root>

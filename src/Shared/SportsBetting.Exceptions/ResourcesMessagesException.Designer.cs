@@ -150,5 +150,10 @@ namespace SportsBetting.Exceptions {
         {
             get { return ResourceManager.GetString("FIXTURE_NOT_FOUND", resourceCulture); }
         }
+        
+        public static string BET_NOT_FOUND
+        {
+            get { return ResourceManager.GetString("BET_NOT_FOUND", resourceCulture); }
+        }
     }
 }

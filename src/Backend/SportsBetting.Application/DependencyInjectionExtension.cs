@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
 using SportsBetting.Application.Services.AutoMapper;
+using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
@@ -39,6 +40,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<IGetAvailableFixtureUseCase, GetAvailableFixturesUseCase>();
          services.AddScoped<IChangePasswordUseCase, ChangePasswordUseCase>();
          services.AddScoped<IGetUserBetsUseCase,  GetUserBetsUseCase>();
+         services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>(); 
 
     }
 
