@@ -36,7 +36,7 @@ public class ChangePasswordUseCase : IChangePasswordUseCase
         _repository.Update(user);
         
         await _unitOfWork.Commit();
-}
+    }
 
     private void Validate(RequestChangePasswordJson request, Domain.Entities.User loggedUser)
     {
