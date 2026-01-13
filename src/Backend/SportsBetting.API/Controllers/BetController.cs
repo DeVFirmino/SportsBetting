@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SportsBetting.API.Attributes;
+using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
@@ -21,4 +22,19 @@ public class BetController : SportsBettingBaseController
         
         return Created(string.Empty, result);
     }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status200OK)]
+    [AuthenticatedUser]
+    public async Task<IActionResult> GetUserBets([FromServices] IGetUserBetsUseCase useCase)
+    {
+        var result = await useCase.Execute();
+        
+        return Ok(result);
+        
+    }
+
+
+
+
 }
