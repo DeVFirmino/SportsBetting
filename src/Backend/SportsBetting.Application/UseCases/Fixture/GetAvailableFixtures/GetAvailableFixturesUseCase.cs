@@ -22,10 +22,11 @@ public class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
             HomeTeam = f.HomeTeam,
             AwayTeam = f.AwayTeam,
             Date = f.Date,
-            HomeWinOdds = null,
-            DrawOdds = null,
-            AwayWinOdds = null
+            HomeWinOdds = f.HomeWinOdds,
+            DrawOdds = f.DrawOdds,
+            AwayWinOdds = f.AwayWinOdds
         }).ToList();
+        //tO DO VALIDATORS FOR BETTING
 
         return response;
     }
