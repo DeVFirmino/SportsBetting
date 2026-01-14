@@ -65,7 +65,7 @@ public class DepositUseCase : IDepositUseCase
        await _unitOfWork.Commit();
     }
 
-    public async Task Validate(RequestDepositJson request)
+    private async Task Validate(RequestDepositJson request)
     {
         var validator = new DepositValidator();
         

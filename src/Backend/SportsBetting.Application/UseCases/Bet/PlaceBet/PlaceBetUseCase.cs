@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Enums;
@@ -50,16 +51,13 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         
         var wallet = await _walletReadOnlyRepository.GetByUserId(loggedUser.Id);
         
-        //3 busca carteira
-        if (wallet is null) 
+         if (wallet is null) 
             throw new ErrorOnValidationException([ResourcesMessagesException.WALLET_NOT_FOUND]);
         
         if (wallet.Balance < request.Amount)
             throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
         
-        // Valida se o fixture existe
         var fixtures = await _footballApiService.GetUpcomingFixtures();
-        
         
         var fixtureExists = fixtures.Any(f => f.FixtureId == request.FixtureId);
 
@@ -79,8 +77,15 @@ public class PlaceBetUseCase : IPlaceBetUseCase
          
          await _betWriteOnlyRepository.Add(bet);
          
-         await _unitOfWork.Commit();
-
+         try
+         {
+             await _unitOfWork.Commit();
+         }
+         catch (DbUpdateConcurrencyException)
+         {
+             throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
+         }
+         
          return _mapper.Map<ResponseBetsJson>(bet);
 
     }
