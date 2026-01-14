@@ -13,6 +13,9 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
         builder.Property(w => w.Balance).HasColumnType("decimal(18,2)")
             .IsRequired()
             .HasDefaultValue(0);
+
+        builder.Property(w => w.RowVersion)
+            .IsRowVersion().IsRequired();
         
         builder.HasOne(w => w.User)
             .WithOne()
