@@ -20,22 +20,27 @@ public class WalletRepository : IWalletReadOnlyRepository, IWalletWriteOnlyRepos
     
     public async Task<Wallet?> GetByUserId(long userId)
     {
-        return await _context.Wallets.AsNoTracking().FirstOrDefaultAsync(w => w.UserId == userId && w.Active);
+        return await _context.Wallets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.UserId == userId && w.Active);
     }
  
     public async Task<bool> ExistWalletForUser(long userId)
     {
-        return await _context.Wallets.AnyAsync(w => w.UserId == userId && w.Active);
+        return await _context.Wallets
+            .AnyAsync(w => w.UserId == userId && w.Active);
      }
 
     public async Task<Wallet> GetById(long id)
     {
-        return await _context.Wallets.FirstAsync(w => w.Id == id);
+        return await _context.Wallets
+            .FirstAsync(w => w.Id == id);
     }
 
     public void Update(Wallet wallet)
     {
-        _context.Wallets.Update(wallet);    
+        _context.Wallets
+            .Update(wallet);    
     }
 }   
 

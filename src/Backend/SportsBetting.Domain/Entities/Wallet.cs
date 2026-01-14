@@ -6,5 +6,7 @@ public class Wallet : EntityBase
     
     public User User { get; set; } = default!;
     public decimal Balance { get; set; }
-    
+
+    public byte[] RowVersion { get; set; } = default!;
+
 }

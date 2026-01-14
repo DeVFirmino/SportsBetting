@@ -33,8 +33,8 @@ public class FootballApiService : IFootballApiService
                      PropertyNameCaseInsensitive = true 
                  });
              
-             if(apiResponse?.Response == null)
-            return new List<FixtureData>();
+             if(apiResponse?.Response == null) 
+                 return new List<FixtureData>();
              
              var fixtures = apiResponse.Response
                  .Take(10)
