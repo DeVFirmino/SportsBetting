@@ -79,4 +79,7 @@
     <data name="BET_NOT_FOUND" xml:space="preserve">
         <value>Bet not found.</value>
     </data>
+    <data name="CONCURRENT_BET_DETECTED" xml:space="preserve">
+        <value>Another bet was placed simultaneously. Please try again</value>
+    </data>
 </root>

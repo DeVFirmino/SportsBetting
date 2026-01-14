@@ -155,5 +155,12 @@ namespace SportsBetting.Exceptions {
         {
             get { return ResourceManager.GetString("BET_NOT_FOUND", resourceCulture); }
         }
+        
+        public static string CONCURRENT_BET_DETECTED
+        {
+            get { return ResourceManager.GetString("CONCURRENT_BET_DETECTED", resourceCulture); }
+        }
+         
+        
     }
 }

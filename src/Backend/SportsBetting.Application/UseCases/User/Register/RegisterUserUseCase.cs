@@ -45,26 +45,21 @@ public class RegisterUserUseCase : IRegisterUserUseCase
 
         await Validate(request);
         
-        // Check if email already exists
-        if (await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email))
+         if (await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email))
         {
             throw new ErrorOnValidationException(new List<string>
             {
                 ResourcesMessagesException.EMAIL_INVALID
             });
         }
-        // Map request to domain entity via AutoMapper
-        var user = _mapper.Map<Domain.Entities.User>(request);
+         var user = _mapper.Map<Domain.Entities.User>(request);
         
-        //Criptography password
-        user.Password = (_passwordEncrypter.Encrypt(request.Password));
+         user.Password = (_passwordEncrypter.Encrypt(request.Password));
         user.UserIdentifier = Guid.NewGuid();
         
-        //Save on DB 
-        await _userWriteOnlyRepository.Add(user);
+         await _userWriteOnlyRepository.Add(user);
         
-        //unit of work 
-        await _unitOfWork.Commit();
+         await _unitOfWork.Commit();
         
         var wallet = new Domain.Entities.Wallet()
         {
@@ -100,7 +95,7 @@ public class RegisterUserUseCase : IRegisterUserUseCase
             result.Errors.Add(new FluentValidation.Results.ValidationFailure
                 (string.Empty, ResourcesMessagesException.EMAIL_INVALID));
         
-        if(result.IsValid == false)
+        if(!result.IsValid)
         {
             var errorMessages = result.Errors.Select(e => e.ErrorMessage).ToList();
             
