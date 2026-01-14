@@ -77,6 +77,9 @@ public class PlaceBetUseCase : IPlaceBetUseCase
          
          await _betWriteOnlyRepository.Add(bet);
          
+         //Testing racing condition on Postman
+         // await Task.Delay(5000);
+         
          try
          {
              await _unitOfWork.Commit();
