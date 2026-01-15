@@ -44,53 +44,28 @@ public class PlaceBetUseCase : IPlaceBetUseCase
     
     
     public async Task<ResponseBetsJson> Execute(RequestPlaceBetJson request)
-    {
+    { 
         await Validate(request);
          
         var loggedUser = await _loggedUser.User();
         
-        var wallet = await _walletReadOnlyRepository.GetByUserId(loggedUser.Id);
-        
-         if (wallet is null) 
-            throw new ErrorOnValidationException([ResourcesMessagesException.WALLET_NOT_FOUND]);
-        
-        if (wallet.Balance < request.Amount)
-            throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
-        
-        var fixtures = await _footballApiService.GetUpcomingFixtures();
-        
-        var fixtureExists = fixtures.Any(f => f.FixtureId == request.FixtureId);
+       var wallet = await ValidateWallet(loggedUser.Id, request.Amount);
+       
+       var fixture = await GetFixture(request.FixtureId);
 
-        if (!fixtureExists)
-            throw new ErrorOnValidationException([ResourcesMessagesException.FIXTURE_NOT_FOUND]);
-        
-        var bet = _mapper.Map<Domain.Entities.Bet>(request);
-        bet.UserId = loggedUser.Id;
-        bet.Status = BetStatus.Pending;
-        bet.PlacedAt = DateTime.UtcNow;
-        bet.PotentialWinning = request.Amount * request.Odds;
-        
-         var walletToUpdate = await _walletUpdateOnlyRepository.GetById(wallet.Id);
-         walletToUpdate.Balance -= request.Amount;
-         
-         _walletUpdateOnlyRepository.Update(walletToUpdate);
-         
-         await _betWriteOnlyRepository.Add(bet);
-         
+       var bet = CreateBet(request, loggedUser.Id, fixture);
+       
+       await DeductFromWallet(wallet.Id, request.Amount);
+       
+       await _betWriteOnlyRepository.Add(bet);
+
+       await CommitTransaction();
+       
+       return _mapper.Map<ResponseBetsJson>(bet);
+    
          //Testing racing condition on Postman
          // await Task.Delay(5000);
-         
-         try
-         {
-             await _unitOfWork.Commit();
-         }
-         catch (DbUpdateConcurrencyException)
-         {
-             throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
-         }
-         
-         return _mapper.Map<ResponseBetsJson>(bet);
-
+          
     }
 
     public async Task Validate(RequestPlaceBetJson request)
@@ -106,7 +81,89 @@ public class PlaceBetUseCase : IPlaceBetUseCase
 
             throw new ErrorOnValidationException(errorMessages);
         }
-        
-        
     }
+
+    private async Task<Domain.Entities.Wallet> ValidateWallet(long userId, decimal amount)
+    {
+        var wallet = await _walletReadOnlyRepository.GetByUserId(userId);
+        
+        if (wallet is null) 
+            throw new ErrorOnValidationException([ResourcesMessagesException.WALLET_NOT_FOUND]);
+        
+        if (wallet.Balance < amount)
+            throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
+
+        return wallet;
+    }
+
+    private async Task<FixtureData> GetFixture(int fixtureId)
+    {
+        var fixtures = await _footballApiService.GetUpcomingFixtures();
+        
+        var fixture = fixtures.FirstOrDefault(f => f.FixtureId == fixtureId);
+
+        if (fixture is null)
+            throw new ErrorOnValidationException([ResourcesMessagesException.FIXTURE_NOT_FOUND]);
+        
+        return fixture;
+    }
+    
+    private void SetBetTypeAndOdds(Domain.Entities.Bet bet, string betType, FixtureData fixture)
+    {
+        if (betType == "HomeWin")
+        {
+            bet.BetType = BetType.HomeWin;
+            bet.Odds = fixture.HomeWinOdds ?? 1.0m;
+        }
+        else if (betType == "Draw")
+        {
+            bet.BetType = BetType.Draw;
+            bet.Odds = fixture.DrawOdds ?? 1.0m;
+        }
+        else if (betType == "AwayWin")
+        {
+            bet.BetType = BetType.AwayWin;
+            bet.Odds = fixture.AwayWinOdds ?? 1.0m;
+        }
+        else
+        {
+            throw new ErrorOnValidationException([ResourcesMessagesException.BET_TYPE_REQUIRED]);
+        }
+    }
+
+    private Domain.Entities.Bet CreateBet (RequestPlaceBetJson request, long userId, FixtureData fixture)
+    {
+        var bet = _mapper.Map<Domain.Entities.Bet>(request);
+        
+        bet.UserId = userId;
+        bet.Status = BetStatus.Pending;
+        bet.PlacedAt = DateTime.UtcNow;
+        bet.EventName = $"{fixture.HomeTeam} vs {fixture.AwayTeam}";
+        
+        SetBetTypeAndOdds(bet, request.BetType, fixture);
+        
+        bet.PotentialWinning = bet.Amount * bet.Odds;
+        
+        return bet;
+    }
+    
+    private async Task DeductFromWallet(long walletId, decimal amount)
+    {
+        var wallet = await _walletUpdateOnlyRepository.GetById(walletId);
+        wallet.Balance -= amount;
+        _walletUpdateOnlyRepository.Update(wallet);
+    }
+    
+    private async Task CommitTransaction()
+    {
+        try
+        {
+            await _unitOfWork.Commit();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
+        }
+    }
+    
 }
