@@ -160,6 +160,8 @@ namespace SportsBetting.Exceptions {
         {
             get { return ResourceManager.GetString("CONCURRENT_BET_DETECTED", resourceCulture); }
         }
+        
+         
          
         
     }

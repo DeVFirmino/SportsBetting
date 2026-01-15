@@ -20,8 +20,14 @@ public class AutoMapping : Profile
                .ForMember(dest => dest.Password,
                     opt => opt.Ignore())
                .ForMember(dest => dest.Active, opt => opt.MapFrom(_ => true));
-          
-          CreateMap<RequestPlaceBetJson, Domain.Entities.Bet>();
+
+          CreateMap<RequestPlaceBetJson, Domain.Entities.Bet>()
+               .ForMember(dest => dest.Odds, opt => opt.Ignore())
+               .ForMember(dest => dest.EventName, opt => opt.Ignore())
+               .ForMember(dest => dest.BetType, opt => opt.Ignore())
+               .ForMember(dest => dest.PotentialWinning, opt => opt.Ignore());
+
+
      }
      
      private void DomainToResponse()

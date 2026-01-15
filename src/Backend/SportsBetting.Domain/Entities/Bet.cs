@@ -10,16 +10,11 @@ public class Bet : EntityBase
     
     public int FixtureId { get; set; }
     
-    public decimal Amount { get; set; } 
-    
+    public decimal Amount { get; set; }
     public decimal Odds { get; set; }
-    
     public decimal PotentialWinning { get; set; }
-    
     public string EventName { get; set; } = string.Empty;
-    
-    public string BetType { get; set; } = string.Empty;
-    
+    public BetType BetType { get; set; }  
     public BetStatus Status { get; set; }
     
     public DateTime PlacedAt { get; set; }
