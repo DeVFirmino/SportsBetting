@@ -50,16 +50,7 @@ public static class DependencyInjectionExtensions
             options.UseSqlServer(connectionString));
          
     }
-
-    // public static void AddAutoMapper(IServiceCollection services)
-    //{
-    //     services.AddScoped(options => new AutoMapper.MapperConfiguration(options =>
-    //     {
-    //         options.AddProfile(new AutoMapping());
-    //     }).CreateMa
-    //
-    // }
-
+    
     private static void AddRepositories(IServiceCollection services)
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
