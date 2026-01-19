@@ -11,6 +11,10 @@
 ![xUnit](https://img.shields.io/badge/Testing-xUnit-512BD4?logo=dotnet&logoColor=white)
 ![Bogus](https://img.shields.io/badge/Bogus-Fake_Data-512BD4)
 ![FluentAssertions](https://img.shields.io/badge/FluentAssertions-Testing-512BD4)
+![Docker](https://img.shields.io/badge/Docker-Containers-512BD4?logo=docker&logoColor=white)
+![Azure](https://img.shields.io/badge/Microsoft_Azure-Cloud-512BD4?logo=microsoft-azure&logoColor=white)
+![Azure Container Apps](https://img.shields.io/badge/Azure_Container_Apps-Serverless-512BD4?logo=microsoft-azure&logoColor=white)
+![Azure SQL Database](https://img.shields.io/badge/Azure_SQL_Database-PaaS-512BD4?logo=microsoft-sql-server&logoColor=white)
 
 # SportsBetting API
 **Sports Betting Platform** built with **.NET 9** and **Clean Architecture** principles,
