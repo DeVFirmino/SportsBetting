@@ -62,14 +62,14 @@ builder.Services.AddHttpContextAccessor();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment())
 {
     // Expose OpenAPI document and Swagger UI in Development
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "SportsBetting API v1");
-        options.RoutePrefix = "swagger"; // access at /swagger
+         options.SwaggerEndpoint("v1/swagger.json", "SportsBetting API v1");
+        options.RoutePrefix = "swagger"; 
     });
 }
 

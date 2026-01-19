@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,6 +25,12 @@
       <ProjectReference Include="..\..\src\Backend\SportsBetting.Infrastructure\SportsBetting.Infrastructure.csproj" />
       <ProjectReference Include="..\CommonTestsUtilities\CommonTestsUtilities.csproj" />
       <ProjectReference Include="..\..\src\Backend\SportsBetting.Application\SportsBetting.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="..\..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
     </ItemGroup>
 
 </Project>

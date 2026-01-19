@@ -67,7 +67,7 @@
         <value>Event name is required.</value>
     </data>
     <data name="BET_TYPE_REQUIRED" xml:space="preserve">
-        <value>Please select the bet type.</value>
+        <value>Please select the bet type "HomeWin", "Draw" or "AwayWin".</value>
     </data>
     <data name="INSUFFICIENT_BALANCE" xml:space="preserve">
         <value>Insufficient balance.</value>
