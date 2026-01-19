@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <RootNamespace>SportsBetting.Tests</RootNamespace>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,6 +26,12 @@
     <ProjectReference Include="..\CommonTestsUtilities\CommonTestsUtilities.csproj" />
     <ProjectReference Include="..\..\src\Backend\SportsBetting.Application\SportsBetting.Application.csproj" />
     <ProjectReference Include="..\..\src\Backend\SportsBetting.Domain\SportsBetting.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\.dockerignore">
+      <Link>.dockerignore</Link>
+    </Content>
   </ItemGroup>
 
 </Project>
