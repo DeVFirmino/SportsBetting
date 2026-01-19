@@ -1,6 +1,5 @@
 <div align="center">
-    
- 
+
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)
 ![C#](https://img.shields.io/badge/C%23-13.0-512BD4)
 ![EF Core](https://img.shields.io/badge/EF%20Core-9.0-512BD4)
