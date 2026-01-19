@@ -1,6 +1,6 @@
 <div align="center">
-
-![Backend Developer](https://img.shields.io/badge/Backend-Developer-512BD4)
+    
+ 
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)
 ![C#](https://img.shields.io/badge/C%23-13.0-512BD4)
 ![EF Core](https://img.shields.io/badge/EF%20Core-9.0-512BD4)
@@ -19,6 +19,12 @@
 # SportsBetting API
 **Sports Betting Platform** built with **.NET 9** and **Clean Architecture** principles,
 designed to showcase enterprise level C# development skills for **.NET backend positions**.
+
+## Live Demo
+The API is currently live and can be tested via Swagger UI:
+[SportsBetting API Online](https://sportsbetting-api.salmonocean-c68fcbc3.eastus2.azurecontainerapps.io/swagger/index.html)
+
+> **Note:** Initial load might take a few seconds due to "Cold Start" (Azure scaling from zero to active).
 
 </div>
 
@@ -252,11 +258,32 @@ Postman or similar tool for API testing or it can be Swagger for better visuliza
 
 
 ## Setup Instructions
+ (Via Docker)
+## Docker & Cloud Deployment
+
+This project is fully containerized and engineered to run in scalable cloud environments.
+
+### Local Execution with Docker
+Run the API locally without needing the .NET SDK installed:
+
+```bash
+# Build the image
+docker build -t sportsbetting-api .
+
+# Run the container
+docker run -p 8080:8080 sportsbettin       g-api
+
+docker run -p 8080:8080 sportsbetting-api
+
+```
+
+
 
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/DeVFirmino/SportsBetting.git
 cd SportsBetting
+
 ```
 
 ### 2. Configure Database Connection
