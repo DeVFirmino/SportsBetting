@@ -8,7 +8,7 @@ namespace SportsBetting.Application.UseCases.Bet.GetUserBets;
 
 public class GetUserBetsUseCase : IGetUserBetsUseCase
 {
-    
+
     private readonly ILoggedUser _loggedUser;
     private readonly IBetReadOnlyRepository _repository;
     private readonly IMapper _mapper;
@@ -19,18 +19,42 @@ public class GetUserBetsUseCase : IGetUserBetsUseCase
         _repository = repository;
         _mapper = mapper;
     }
-    
-    public async Task<List<ResponseBetsJson>> Execute()
+
+    // public async Task<<ResponseUserBetsJson> Execute()
+    // {
+    // var user = await _loggedUser.User();
+    //
+    // if (user is null)
+    // {
+    //     throw new InvalidLoginException();
+    // }
+    //
+    // var bets = await _repository.GetByUserId(user.Id);
+    //
+    // var mappedBets = _mapper.Map<List<ResponseBetsJson>>(bets);
+    //
+    // return new ResponseUserBetsJson
+    // {
+    //     Bets = mappedBets
+    // };
+    // }
+
+    public async Task<ResponseUserBetsJson> Execute()
     {
         var user = await _loggedUser.User();
-        
+
         if (user is null)
         {
             throw new InvalidLoginException();
         }
- 
+
         var bets = await _repository.GetByUserId(user.Id);
-        
-        return _mapper.Map<List<ResponseBetsJson>>(bets);
+
+        var mappedBets = _mapper.Map<List<ResponseBetsJson>>(bets);
+
+        return new ResponseUserBetsJson
+        {
+            Bets = mappedBets
+        };
     }
 }

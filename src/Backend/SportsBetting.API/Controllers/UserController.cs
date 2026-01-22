@@ -12,7 +12,7 @@ namespace SportsBetting.API.Controllers;
  
 public class UserController : SportsBettingBaseController
 {
-    [HttpPost]
+    [HttpPost("register")]
     [ProducesResponseType(typeof(ResponseRegisteredUserJson), StatusCodes.Status201Created)]
     public async Task<IActionResult> Register(
         [FromServices] IRegisterUserUseCase useCase,
