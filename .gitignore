@@ -205,3 +205,6 @@ coverage.opencover.xml
 # .NET build outputs
 **/bin/
 **/obj/
+appsettings.json
+appsettings.Development.json
+appsettings.*.json
