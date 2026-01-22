@@ -10,11 +10,10 @@ namespace SportsBetting.API.Controllers;
 
 public class BetController : SportsBettingBaseController
 {
-    [HttpPost]
+    [HttpPost("place-bet")]
     [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [AuthenticatedUser]
-
     public async Task<IActionResult> PlaceBet(
         [FromServices] IPlaceBetUseCase useCase,
         [FromBody] RequestPlaceBetJson request)
@@ -24,12 +23,16 @@ public class BetController : SportsBettingBaseController
         return Created(string.Empty, result);
     }
 
-    [HttpGet]
+    [HttpGet("get-bets")]
     [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status204NoContent)]
     [AuthenticatedUser]
     public async Task<IActionResult> GetUserBets([FromServices] IGetUserBetsUseCase useCase)
     {
         var result = await useCase.Execute();
+        
+        if(result.TotalCount == 0)
+            return NoContent();
         
         return Ok(result);
         
