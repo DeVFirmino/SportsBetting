@@ -10,7 +10,7 @@ using SportsBetting.Domain.Services.ExternalApis;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
-
+ 
 namespace SportsBetting.Application.UseCases.Bet.PlaceBet;
 
 public class PlaceBetUseCase : IPlaceBetUseCase
@@ -160,7 +160,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         {
             await _unitOfWork.Commit();
         }
-        catch (DbUpdateConcurrencyException)
+        catch (ConcurrencyException)
         {
             throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
         }

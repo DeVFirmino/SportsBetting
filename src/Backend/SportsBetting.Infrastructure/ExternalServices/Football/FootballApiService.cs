@@ -52,7 +52,6 @@ public class FootballApiService : IFootballApiService
 
              return fixtures;
     }
-
-     
+ 
 }
  
