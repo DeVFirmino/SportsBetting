@@ -1,5 +1,4 @@
-using System.Runtime.InteropServices.JavaScript;
-
+ 
 namespace SportsBetting.Communication.Responses;
 
 public class ResponseErrorJson

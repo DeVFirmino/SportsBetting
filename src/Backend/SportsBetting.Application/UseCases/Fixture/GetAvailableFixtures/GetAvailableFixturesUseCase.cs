@@ -26,7 +26,7 @@ public class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
             DrawOdds = f.DrawOdds,
             AwayWinOdds = f.AwayWinOdds
         }).ToList();
-        //tO DO VALIDATORS FOR BETTING
+        //TO DO VALIDATORS FOR BETTING
 
         return response;
     }

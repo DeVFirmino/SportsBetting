@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copiar solution e todos os csproj
+# 
 COPY SportsBetting.sln ./
 COPY src/Backend/SportsBetting.API/SportsBetting.API.csproj src/Backend/SportsBetting.API/
 COPY src/Backend/SportsBetting.Application/SportsBetting.Application.csproj src/Backend/SportsBetting.Application/

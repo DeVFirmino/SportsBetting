@@ -1,5 +1,10 @@
 namespace SportsBetting.Domain.Services.ExternalApis;
 
+public interface IFootballApiService
+{
+    Task<List<FixtureData>> GetUpcomingFixtures();
+}
+
 public class FixtureData
 {
     public int FixtureId { get; set; }
@@ -18,8 +23,3 @@ public class OddsData
     public decimal AwayWin { get; set; }
 }
 
-public interface IFootballApiService
-{
-    Task<List<FixtureData>> GetUpcomingFixtures();
-    
- }

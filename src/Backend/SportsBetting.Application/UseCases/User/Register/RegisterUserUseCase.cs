@@ -45,13 +45,6 @@ public class RegisterUserUseCase : IRegisterUserUseCase
 
         await Validate(request);
         
-         if (await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email))
-        {
-            throw new ErrorOnValidationException(new List<string>
-            {
-                ResourcesMessagesException.EMAIL_INVALID
-            });
-        }
          var user = _mapper.Map<Domain.Entities.User>(request);
         
          user.Password = (_passwordEncrypter.Encrypt(request.Password));
