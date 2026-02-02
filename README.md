@@ -49,10 +49,8 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 
 ## Security
 - **JWT authentication** with token based authorization
-- Password hashing using BCrypt
 - **FluentValidation** for input sanitization
-- SQL injection prevention via EF Core parameterization
-
+ 
 ##  Testing
 - **xUnit Tests**: Use case logic validation
 - **Integration Tests**: User registration and authentication flows
