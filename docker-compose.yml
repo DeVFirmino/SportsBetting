@@ -25,10 +25,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;
-      - Settings__Jwt__SigningKey=wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww
+      - Settings__Jwt__SigningKey=YOUR_JWT_SIGNING_KEY_MIN_32_CHARACTERS
       - Settings__Jwt__ExpirationTimeMinutes=10000
       - Settings__FootballApi__BaseUrl=https://v3.football.api-sports.io
-      - Settings__FootballApi__ApiKey=1ab52048e1e2ef57063b48b4d01e524d
+      - Settings__FootballApi__ApiKey=YOUR_RAPIDAPI_KEY_HERE
     ports:
       - "8080:8080"
     depends_on:
