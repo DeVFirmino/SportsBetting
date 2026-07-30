@@ -24,18 +24,19 @@ public class BetController : SportsBettingBaseController
     }
 
     [HttpGet("get-bets")]
-    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ResponsePagedListJson<ResponseBetsJson>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [AuthenticatedUser]
-    public async Task<IActionResult> GetUserBets([FromServices] IGetUserBetsUseCase useCase)
+    public async Task<IActionResult> GetUserBets(
+        [FromServices] IGetUserBetsUseCase useCase,
+        [FromQuery] RequestFilterBetsJson request)
     {
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(request);
         
-        if(result.TotalCount == 0)
+        if (result.TotalCount == 0)
             return NoContent();
         
         return Ok(result);
-        
     }
     
     [HttpGet("{id}")]
