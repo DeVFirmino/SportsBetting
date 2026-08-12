@@ -140,7 +140,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         bet.PlacedAt = DateTime.UtcNow;
         bet.EventName = $"{fixture.HomeTeam} vs {fixture.AwayTeam}";
         
-        SetBetTypeAndOdds(bet, request.BetType, fixture);
+        SetBetTypeAndOdds(bet, request.BetType!, fixture);
         
         bet.PotentialWinning = bet.Amount * bet.Odds;
         
