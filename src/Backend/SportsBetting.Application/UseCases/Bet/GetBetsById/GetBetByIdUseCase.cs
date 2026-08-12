@@ -26,7 +26,7 @@ public class GetBetByIdUseCase : IGetBetByIdUseCase
 
         var bet = await _repository.GetById(id);
 
-        if (bet == null)
+        if (bet == null || bet.UserId != loggedUser.Id)
         {
             throw new ErrorOnValidationException([ResourcesMessagesException.BET_NOT_FOUND]);
         }

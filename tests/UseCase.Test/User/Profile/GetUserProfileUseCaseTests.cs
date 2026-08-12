@@ -1,0 +1,28 @@
+using FluentAssertions;
+using Moq;
+using SportsBetting.Communication.Responses;
+using SportsBetting.Domain.Services.LoggedUser;
+using SportsBetting.Tests.Common.Mapper;
+using Domain = SportsBetting.Domain;
+
+namespace UseCase.Test.User.Profile;
+
+public class GetUserProfileUseCaseTests
+{
+    [Fact]
+    public async Task Execute_WithLoggedUser_ReturnsMappedProfile()
+    {
+        // Arrange
+        var user = new Domain.Entities.User { Name = "Grace", Email = "grace@example.com" };
+        var loggedUser = new Mock<ILoggedUser>();
+        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        var useCase = new GetUserProfileUseCase(loggedUser.Object, MapperBuilder.Build());
+
+        // Act
+        var result = await useCase.Execute();
+
+        // Assert
+        result.Name.Should().Be(user.Name);
+        result.Email.Should().Be(user.Email);
+    }
+}
