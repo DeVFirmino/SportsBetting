@@ -50,15 +50,15 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 ## Security
 - **JWT authentication** with token based authorization
 - **FluentValidation** for input sanitization
- 
-##  Testing
+
+## Testing
 - **xUnit Tests**: Use case logic validation
 - **Integration Tests**: User registration and authentication flows
 - **Validator Tests**: FluentValidation rules
 - **Fluent Assertions**: Readable assertions
 - **Moq** - Mocking framework
 - **Bogus** - Fake data generation.
-- **Test Coverage**: 20% 
+- **Test Coverage**: 20%
 
 ### External Services
 - **RapidAPI Football API** - Sports data integration
@@ -78,8 +78,8 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 <td width="50%" valign="top">
 
 ### Wallet System
-- **Deposit funds** - **Balance management** with decimal precision (with that I get precise numbers so I used decimal...)
-- **Concurrent bet protection** - prevents negative balance from simultaneous bets (with the FluentValidation)
+- **Deposit funds** — balance management with decimal precision for accurate financial calculations
+- **Concurrent bet protection** - prevents negative balance from simultaneous bets via optimistic concurrency control
 
 </td>
 </tr>
@@ -90,11 +90,11 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 - **Place bets** on upcoming football fixtures
 - **Auto-generated event names** from Football API (example: "Manchester United vs Liverpool")
 - **Auto-fetched odds** based on bet type (HomeWin, Draw, AwayWin)
-- This was for learning purposes so I don't have real odds so I mocked on the API Service.
-- **Enum based BetType** for type safety and validation (User can only set **HomeWin, Draw, and AwayWin**)
-- **Potential winning calculation** (Amount × Odds) - Note I don't have algorithm for that, it was only simple logic here.
+- **Enum based BetType** for type safety and validation (`HomeWin`, `Draw`, `AwayWin`)
+- **Potential winning calculation** (`Amount × Odds`)
 - **Get bet by ID** with detailed information
-- **Race condition prevention** (For testing I placed two postman tabs with the same User Authorized Session and Placed bet together and tested with // await Task.Delay(5000); // on my PlaceBetUseCase)
+- **Race condition prevention** via optimistic concurrency control on the wallet
+
 > **Note:** Odds are currently mocked in the Football API service for learning purposes.
 
 </td>
@@ -110,7 +110,7 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 </tr>
 </table>
 
-##  Architecture
+## Architecture
 This project follows **Clean Architecture** with clear separation of concerns:
 ```text
 SportsBetting/
@@ -168,7 +168,7 @@ Users ||--o{ Bets : "1:N"
         datetime2 PlacedAt
     }
  ```
- 
+
 ## Concurrency Flow (Wallet Protection)
 ```mermaid
 sequenceDiagram
@@ -191,9 +191,7 @@ sequenceDiagram
         Database-->>API: 0 rows affected
         API-->>User: 409 Conflict - "Another bet was placed simultaneously"
     end
-```  
-
- 
+```
 
 ## Enum & Mappings
 
@@ -203,7 +201,6 @@ graph LR
 1(1: Draw) --- B[Draw]
 2(2: AwayWin) --- C[Away Team Victory]
 ```
- 
 
 ## Tech Stack
 
@@ -242,25 +239,24 @@ catch (DbUpdateConcurrencyException)
 - Concurrent updates trigger `DbUpdateConcurrencyException`
 - User receives: *"Another bet was placed simultaneously. Please try again."*
 
-**Testing:** Verified with simultaneous Postman requests using the same user session + `Task.Delay(5000)` to simulate race conditions.
+**Testing:** Verified with simultaneous Postman requests using the same authenticated session to simulate race conditions.
 
-**All odds and payouts are **server controlled** - users can only specify `fixtureId`, `amount`, and `betType`.**
+**All odds and payouts are server controlled** - users can only specify `fixtureId`, `amount`, and `betType`.
 
 ## Prerequisites
-.NET 9 SDK or later
-SQL Server 
-RapidAPI Account (for Football API access)
-Visual Studio  or JetBrains Rider (I used Rider for development so I suggest the Rider) 
-Postman or similar tool for API testing or it can be Swagger for better visulization.
-
+- .NET 9 SDK or later
+- SQL Server
+- RapidAPI Account (for Football API access)
+- Visual Studio or JetBrains Rider (developed with Rider, recommended for this project)
+- Postman or Swagger for API testing
 
 ## Setup Instructions
- (Via Docker)
-## Docker & Cloud Deployment
+
+### Docker & Cloud Deployment
 
 This project is fully containerized and engineered to run in scalable cloud environments.
 
-### Local Execution with Docker
+#### Local Execution with Docker
 Run the API locally without needing the .NET SDK installed:
 
 ```bash
@@ -268,13 +264,8 @@ Run the API locally without needing the .NET SDK installed:
 docker build -t sportsbetting-api .
 
 # Run the container
-docker run -p 8080:8080 sportsbettin       g-api
-
 docker run -p 8080:8080 sportsbetting-api
-
 ```
-
-
 
 ### 1. Clone Repository
 ```bash
@@ -349,7 +340,7 @@ dotnet run
 | POST | `/api/wallet/deposit` | Add funds to the user's wallet | Yes |
 | GET | `/api/wallet` | Check current wallet balance | Yes |
 
-### Please add balance before you place a bet in a fixtureId
+> **Note:** Add balance to your wallet before placing a bet on a fixture.
 
 ### Betting Operations
 > **Important:** Get a `fixtureId` from `/api/fixture` before placing bets.
@@ -366,13 +357,11 @@ dotnet run
 | :--- | :--- | :--- | :--- |
 | GET | `/api/fixture` | Get upcoming matches and  odds | Yes |
 
-##  API Bet Documentation
+## API Bet Documentation
 
 ### Authentication Endpoints
 
-**Once registered please place the JWT token on Swagger Authorize Session:
-Example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ik.....**
-
+> Once registered, place the JWT token in Swagger's Authorize dialog, e.g. `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...`
 
 **Register User**
 ```http
@@ -451,7 +440,7 @@ Authorization: Bearer {jwt_token}
 2. **Deposit funds** → Add balance to wallet
 3. **Get fixtures** → View available matches with odds
 4. **Place bet** → Select fixture, amount, and bet type
- 
+
 
 ### Error Codes
 
@@ -495,6 +484,3 @@ Authorization: Bearer {jwt_token}
 <div align="center"> <strong>
 Developed for practice & portfolio purposes</strong>
 <i>Not for commercial use</i> </div>
- 
-
-
