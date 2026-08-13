@@ -58,7 +58,7 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 - **Fluent Assertions**: Readable assertions
 - **Moq** - Mocking framework
 - **Bogus** - Fake data generation.
-- **Test Coverage**: 20%
+- **Test Coverage**: 92.9% line / 92.85% branch (`SportsBetting.Application`)
 
 ### External Services
 - **RapidAPI Football API** - Sports data integration
