@@ -85,7 +85,7 @@ public class RegisterUserValidatorTest
         result.IsValid.Should().BeFalse();
         
         result.Errors.Should().ContainSingle()
-            .And.Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.PASSWORD_EMPTY));
+            .And.Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID));
     }
     
     
