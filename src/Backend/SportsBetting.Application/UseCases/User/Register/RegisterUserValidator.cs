@@ -15,7 +15,9 @@ public class RegisterUserValidator : AbstractValidator<RequestRegisterUserJson>
     {
         RuleFor(user => user.Name).NotEmpty().WithMessage(ResourcesMessagesException.NAME_EMPTY);
         RuleFor(user => user.Email)
-            .NotEmpty().WithMessage(ResourcesMessagesException.EMAIL_EMPTY);
+            .Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage(ResourcesMessagesException.EMAIL_EMPTY)
+            .EmailAddress().WithMessage(ResourcesMessagesException.EMAIL_INVALID);
         RuleFor(user => user.Password).SetValidator(new PasswordValidator<RequestRegisterUserJson>());
          
     }

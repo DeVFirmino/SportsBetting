@@ -14,7 +14,7 @@ namespace WebApi.Test.User.Register;
 
 public class RegisterUserTest : SportsBettingClassFixture
 {
-     private readonly string method = "user";
+     private readonly string method = "user/register";
      
      public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
      

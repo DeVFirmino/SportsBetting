@@ -1,0 +1,98 @@
+using FluentAssertions;
+using Moq;
+using SportsBetting.Application.UseCases.User.ChangePassword;
+using SportsBetting.Communication.Requests;
+using SportsBetting.Domain.Repositories;
+using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Services.LoggedUser;
+using SportsBetting.Exceptions;
+using SportsBetting.Exceptions.ExceptionBase;
+using SportsBetting.Tests.Common.Cryptography;
+using Domain = SportsBetting.Domain;
+
+namespace UseCase.Test.User.ChangePassword;
+
+public class ChangePasswordUseCaseTests
+{
+    [Fact]
+    public async Task Execute_WithCorrectCurrentPassword_ChangesPassword()
+    {
+        // Arrange
+        var encrypter = PasswordEncrypterBuilder.Build();
+        var user = new Domain.Entities.User
+        {
+            Id = 7,
+            Password = encrypter.Encrypt("current-password")
+        };
+        var useCase = CreateUseCase(user);
+
+        // Act
+        await useCase.Execute(new RequestChangePasswordJson
+        {
+            Password = "current-password",
+            NewPassword = "new-password"
+        });
+
+        // Assert
+        user.Password.Should().Be(encrypter.Encrypt("new-password"));
+    }
+
+    [Fact]
+    public async Task Execute_WithIncorrectCurrentPassword_ReturnsInvalidCredentials()
+    {
+        // Arrange
+        var encrypter = PasswordEncrypterBuilder.Build();
+        var user = new Domain.Entities.User { Id = 7, Password = encrypter.Encrypt("correct-password") };
+        var useCase = CreateUseCase(user);
+
+        // Act
+        Func<Task> act = () => useCase.Execute(new RequestChangePasswordJson
+        {
+            Password = "wrong-password",
+            NewPassword = "new-password"
+        });
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
+        user.Password.Should().Be(encrypter.Encrypt("correct-password"));
+    }
+
+    [Fact]
+    public async Task Execute_WithShortNewPassword_ReturnsValidationError()
+    {
+        // Arrange
+        var encrypter = PasswordEncrypterBuilder.Build();
+        var user = new Domain.Entities.User { Id = 7, Password = encrypter.Encrypt("current-password") };
+        var useCase = CreateUseCase(user);
+
+        // Act
+        Func<Task> act = () => useCase.Execute(new RequestChangePasswordJson
+        {
+            Password = "current-password",
+            NewPassword = "12345"
+        });
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
+    }
+
+    private static ChangePasswordUseCase CreateUseCase(Domain.Entities.User user)
+    {
+        var loggedUser = new Mock<ILoggedUser>();
+        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+
+        var repository = new Mock<IUserUpdateOnlyRepository>();
+        repository.Setup(item => item.GetById(user.Id)).ReturnsAsync(user);
+
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(work => work.Commit()).Returns(Task.CompletedTask);
+
+        return new ChangePasswordUseCase(
+            loggedUser.Object,
+            repository.Object,
+            unitOfWork.Object,
+            PasswordEncrypterBuilder.Build());
+    }
+}
