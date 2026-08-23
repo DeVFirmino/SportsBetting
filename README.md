@@ -112,6 +112,11 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 
 ## Architecture
 This project follows **Clean Architecture** with clear separation of concerns:
+
+![Architecture diagram: clients call the ASP.NET Core 9 API through JWT auth; API, Application, Domain and Infrastructure layers sit inside one container, with Azure SQL below and api-sports.io queried for odds at bet time](docs/img/architecture.svg)
+
+*Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
+
 ```text
 SportsBetting/
 ├── src/
