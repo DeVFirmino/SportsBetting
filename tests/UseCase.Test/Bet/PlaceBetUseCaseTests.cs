@@ -128,16 +128,18 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WhenCommitConflicts_ReturnsConcurrentBetError()
+    public async Task Execute_WhenCommitConflicts_SurfacesTheConcurrencyConflict()
     {
         // Arrange
-        var context = CreateContext(commitException: new ConcurrencyException("conflict"));
+        var context = CreateContext(commitException: new ConcurrencyException());
 
         // Act
         Func<Task> act = () => context.UseCase.Execute(ValidRequest());
 
-        // Assert
-        await AssertSingleError(act, ResourcesMessagesException.CONCURRENT_BET_DETECTED);
+        // Assert: a lost race is not a validation error — it reaches the API as a conflict,
+        // which answers 409 and tells the client to retry.
+        await act.Should().ThrowAsync<ConcurrencyException>()
+            .WithMessage(ResourcesMessagesException.CONCURRENT_BET_DETECTED);
     }
 
     private static TestContext CreateContext(
