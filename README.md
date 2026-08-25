@@ -226,15 +226,15 @@ graph LR
 Prevents race conditions in wallet operations using **RowVersion**:
 ```csharp
 // Wallet entity with version tracking
-public byte[] RowVersion { get; set; } = default!;
+public byte[] RowVersion { get; set; } = [];
 
-// EF Core auto-updates RowVersion on every UPDATE
+// EF Core carries the token in the UPDATE's WHERE clause
 builder.Property(w => w.RowVersion).IsRowVersion();
 
-// Concurrent update detection
+// UnitOfWork translates the EF failure into a domain exception the API maps to 409
 catch (DbUpdateConcurrencyException)
 {
-    throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
+    throw new ConcurrencyException();
 }
 ```
 
@@ -242,7 +242,9 @@ catch (DbUpdateConcurrencyException)
 - SQL Server updates `RowVersion` automatically on each change
 - EF Core validates version in `WHERE` clause: `WHERE Id = X AND RowVersion = @value`
 - Concurrent updates trigger `DbUpdateConcurrencyException`
-- User receives: *"Another bet was placed simultaneously. Please try again."*
+- The loser gets `409 Conflict`: *"Another bet was placed simultaneously. Please try again"* — a retryable
+  conflict, not a validation error, and the winning balance is never overwritten
+- Covered by `UnitOfWorkConcurrencyTests`, which stages a real competing write against the database
 
 **Testing:** Verified with simultaneous Postman requests using the same authenticated session to simulate race conditions.
 

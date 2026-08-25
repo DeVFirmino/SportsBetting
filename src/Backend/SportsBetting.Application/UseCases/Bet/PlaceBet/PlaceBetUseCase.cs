@@ -57,7 +57,9 @@ public class PlaceBetUseCase : IPlaceBetUseCase
 
         await _betWriteOnlyRepository.Add(bet);
 
-        await CommitTransaction();
+        // A lost concurrency check surfaces as ConcurrencyException: the request was valid and
+        // the balance moved underneath it, so the API answers 409 and the client can retry.
+        await _unitOfWork.Commit();
 
         return _mapper.Map<ResponseBetsJson>(bet);
     }
@@ -148,15 +150,4 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         _walletUpdateOnlyRepository.Update(wallet);
     }
 
-    private async Task CommitTransaction()
-    {
-        try
-        {
-            await _unitOfWork.Commit();
-        }
-        catch (ConcurrencyException)
-        {
-            throw new ErrorOnValidationException([ResourcesMessagesException.CONCURRENT_BET_DETECTED]);
-        }
-    }
 }

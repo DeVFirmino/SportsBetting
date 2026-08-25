@@ -34,12 +34,26 @@ public class ExceptionFilter : IExceptionFilter
             context.Result = new UnauthorizedObjectResult(new ResponseErrorJson(context.Exception.Message));
         }
         
+        else if (context.Exception is ConcurrencyException)
+        {
+            // The request was valid; another write won the race for the wallet. 409 says
+            // "retry", which is what the client should do — a 400 would blame the payload.
+            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            context.Result = new ConflictObjectResult(new ResponseErrorJson(context.Exception.Message));
+        }
+
         else if (context.Exception is ErrorOnValidationException exception)
         {
             context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             context.Result = new BadRequestObjectResult(new ResponseErrorJson(exception.ErrorMessage));
         }
 
+        else
+        {
+            // Without this branch an unmapped project exception left the response empty.
+            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            context.Result = new BadRequestObjectResult(new ResponseErrorJson(context.Exception.Message));
+        }
     }
 
     private void ThrowUnknowException(ExceptionContext context)
