@@ -13,6 +13,8 @@
         <PackageReference Include="FluentAssertions" Version="7.1.0" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.1" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.11" />
+        <!-- Pinned above the transitive 2.1.10 that EF Core 9 brings in: GHSA-2m69-gcr7-jv3q -->
+        <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
         <PackageReference Include="xunit" Version="2.9.2"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
