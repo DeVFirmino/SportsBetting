@@ -120,9 +120,6 @@ This project follows **Clean Architecture** with clear separation of concerns:
 
 ![Architecture diagram: clients call the ASP.NET Core 9 API through JWT auth; API, Application, Domain and Infrastructure layers sit inside one container, with Azure SQL below and api-sports.io queried for fixture data](docs/img/architecture.svg)
 
-> **Current implementation note:** The diagram labels the external call as an odds lookup.
-> In the code, API-Football supplies fixture and team data; the adapter assigns fixed study odds.
-
 *Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
 
 ```text
