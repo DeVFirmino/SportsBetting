@@ -8,7 +8,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.User.ChangePassword;
 
-public class ChangePasswordUseCase : IChangePasswordUseCase
+public sealed class ChangePasswordUseCase : IChangePasswordUseCase
 {
     private readonly ILoggedUser _loggedUser;
     private readonly IUserUpdateOnlyRepository _repository;
@@ -23,22 +23,22 @@ public class ChangePasswordUseCase : IChangePasswordUseCase
         _passwordEncrypter = passwordEncrypter;
     }
 
-    public async Task Execute(RequestChangePasswordJson request)
+    public async Task Execute(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        var loggedUser = await _loggedUser.User();
+        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
         
         Validate(request, loggedUser);
         
-        var user = await _repository.GetById(loggedUser.Id);
+        var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
         
         user.Password = _passwordEncrypter.Encrypt(request.NewPassword);
         
         _repository.Update(user);
         
-        await _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    private void Validate(RequestChangePasswordJson request, Domain.Entities.User loggedUser)
+    private void Validate(ChangePasswordRequest request, Domain.Entities.User loggedUser)
     {
         var result = new ChangePasswordValidator().Validate(request);
         

@@ -1,8 +1,8 @@
 namespace SportsBetting.Communication.Responses;
 
-public class ResponseRegisteredUserJson
+public sealed class UserProfileResponse
 {
     public string Name { get; set; } = string.Empty;
-
-    public ResponseTokenJson Tokens { get; set; } = default!;
+    
+    public string Email { get; set; } = string.Empty;
 }

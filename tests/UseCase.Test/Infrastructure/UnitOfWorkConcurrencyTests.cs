@@ -43,7 +43,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
 
         var unitOfWork = new UnitOfWork(context);
 
-        await FluentActions.Awaiting(() => unitOfWork.Commit())
+        await FluentActions.Awaiting(() => unitOfWork.CommitAsync(CancellationToken.None))
             .Should().ThrowAsync<ConcurrencyException>()
             .WithMessage(ResourcesMessagesException.CONCURRENT_BET_DETECTED);
     }
@@ -57,7 +57,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
 
         AnotherBetSettlesFirst(newBalance: 40m);
 
-        await FluentActions.Awaiting(() => new UnitOfWork(context).Commit())
+        await FluentActions.Awaiting(() => new UnitOfWork(context).CommitAsync(CancellationToken.None))
             .Should().ThrowAsync<ConcurrencyException>();
 
         using var verification = NewContext();
@@ -72,7 +72,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
         var wallet = await context.Wallets.FirstAsync();
         wallet.Balance -= 10m;
 
-        await new UnitOfWork(context).Commit();
+        await new UnitOfWork(context).CommitAsync(CancellationToken.None);
 
         using var verification = NewContext();
         var stored = await verification.Wallets.FirstAsync();

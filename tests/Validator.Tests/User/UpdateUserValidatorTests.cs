@@ -12,7 +12,7 @@ public class UpdateUserValidatorTests
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "Ada", Email = "ada@example.com" };
+        var request = new UpdateUserRequest { Name = "Ada", Email = "ada@example.com" };
 
         // Act
         var result = validator.Validate(request);
@@ -26,7 +26,7 @@ public class UpdateUserValidatorTests
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "", Email = "ada@example.com" };
+        var request = new UpdateUserRequest { Name = "", Email = "ada@example.com" };
 
         // Act
         var result = validator.Validate(request);
@@ -41,7 +41,7 @@ public class UpdateUserValidatorTests
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "Ada", Email = "" };
+        var request = new UpdateUserRequest { Name = "Ada", Email = "" };
 
         // Act
         var result = validator.Validate(request);

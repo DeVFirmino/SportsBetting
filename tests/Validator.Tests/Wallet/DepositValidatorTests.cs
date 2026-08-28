@@ -12,7 +12,7 @@ public class DepositValidatorTests
     {
         // Arrange
         var validator = new DepositValidator();
-        var request = new RequestDepositJson { Amount = 25.50m };
+        var request = new DepositRequest { Amount = 25.50m };
 
         // Act
         var result = validator.Validate(request);
@@ -29,7 +29,7 @@ public class DepositValidatorTests
     {
         // Arrange
         var validator = new DepositValidator();
-        var request = new RequestDepositJson { Amount = amount };
+        var request = new DepositRequest { Amount = amount };
 
         // Act
         var result = validator.Validate(request);

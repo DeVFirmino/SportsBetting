@@ -13,7 +13,7 @@ using SportsBetting.Exceptions;
 
 namespace SportsBetting.Application.UseCases.User.Register;
 
-public class RegisterUserUseCase : IRegisterUserUseCase
+public sealed class RegisterUserUseCase : IRegisterUserUseCase
 {
     private readonly IUserWriteOnlyRepository _userWriteOnlyRepository;
     private readonly IUserReadOnlyRepository _userReadOnlyRepository;
@@ -40,19 +40,19 @@ public class RegisterUserUseCase : IRegisterUserUseCase
         _walletWriteOnlyRepository = walletWriteOnlyRepository;
     }
 
-    public async Task <ResponseRegisteredUserJson> Execute(RequestRegisterUserJson request)
+    public async Task<AuthenticatedUserResponse> Execute(RegisterUserRequest request, CancellationToken cancellationToken)
     {
 
-        await Validate(request);
+        await Validate(request, cancellationToken);
         
          var user = _mapper.Map<Domain.Entities.User>(request);
         
          user.Password = (_passwordEncrypter.Encrypt(request.Password));
         user.UserIdentifier = Guid.NewGuid();
         
-         await _userWriteOnlyRepository.Add(user);
+         await _userWriteOnlyRepository.AddAsync(user, cancellationToken);
         
-         await _unitOfWork.Commit();
+         await _unitOfWork.CommitAsync(cancellationToken);
         
         var wallet = new Domain.Entities.Wallet()
         {
@@ -60,29 +60,29 @@ public class RegisterUserUseCase : IRegisterUserUseCase
             Balance = 0
         };
         
-        await _walletWriteOnlyRepository.Add(wallet);
+        await _walletWriteOnlyRepository.AddAsync(wallet, cancellationToken);
 
         
-        await _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync(cancellationToken);
         
          
-        return new ResponseRegisteredUserJson()
+        return new AuthenticatedUserResponse()
         {
             Name = user.Name,
-            Tokens = new ResponseTokenJson
+            Tokens = new AccessTokenResponse
             {
                 AccessToken = _accessTokenGenerator.Generate(user.UserIdentifier)
             }        };
     }
 
-    private async Task Validate(RequestRegisterUserJson request)
+    private async Task Validate(RegisterUserRequest request, CancellationToken cancellationToken)
     {
 
         var validator = new RegisterUserValidator();
 
         var result = validator.Validate(request);
         
-        var emailExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email);
+        var emailExist = await _userReadOnlyRepository.ExistsActiveUserWithEmailAsync(request.Email, cancellationToken);
                 
         if(emailExist)
             result.Errors.Add(new FluentValidation.Results.ValidationFailure

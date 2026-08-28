@@ -3,7 +3,7 @@ using SportsBetting.Domain.Services.LoggedUser;
 
 namespace SportsBetting.Communication.Responses;
 
-public class GetUserProfileUseCase : IGetUserProfileUseCase
+public sealed class GetUserProfileUseCase : IGetUserProfileUseCase
 {
     
     private readonly ILoggedUser _loggedUser; 
@@ -14,10 +14,10 @@ public class GetUserProfileUseCase : IGetUserProfileUseCase
         _loggedUser = loggedUser;
         _mapper = mapper;
     }
-    public async Task<ResponseUserProfileJson> Execute()
+    public async Task<UserProfileResponse> Execute(CancellationToken cancellationToken)
     {
-        var user = await _loggedUser.User();
+        var user = await _loggedUser.GetUserAsync(cancellationToken);
         
-        return _mapper.Map<ResponseUserProfileJson>(user);
+        return _mapper.Map<UserProfileResponse>(user);
     }
 }

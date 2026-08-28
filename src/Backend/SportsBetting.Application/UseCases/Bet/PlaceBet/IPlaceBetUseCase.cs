@@ -5,5 +5,5 @@ namespace SportsBetting.Application.UseCases.Bet.PlaceBet;
 
 public interface IPlaceBetUseCase
 {
-    public Task<ResponseBetsJson> Execute(RequestPlaceBetJson request);
+    Task<BetResponse> Execute(PlaceBetRequest request, CancellationToken cancellationToken);
 }

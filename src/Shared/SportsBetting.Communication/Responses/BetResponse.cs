@@ -1,6 +1,6 @@
 namespace SportsBetting.Communication.Responses;
 
-public class ResponseBetsJson
+public sealed class BetResponse
 {
     public long Id { get; set; }
     
@@ -11,9 +11,9 @@ public class ResponseBetsJson
     public decimal Odds { get; set; }
     
     public decimal PotentialWinning { get; set; }
-    public string EventName { get; set; }
-    public string BetType { get; set; }
-    public string Status { get; set; } 
+    public string EventName { get; set; } = string.Empty;
+    public string BetType { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
     public DateTime PlacedAt { get; set; }
     
     

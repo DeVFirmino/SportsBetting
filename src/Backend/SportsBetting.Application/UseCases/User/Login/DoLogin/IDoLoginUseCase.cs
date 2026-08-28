@@ -5,5 +5,5 @@ namespace SportsBetting.Application.UseCases.User.Login.DoLogin;
 
 public interface IDoLoginUseCase
 {
-    public Task<ResponseRegisteredUserJson> Execute(RequestLoginJson requestLoginJson);
+    Task<AuthenticatedUserResponse> Execute(LoginRequest request, CancellationToken cancellationToken);
 }

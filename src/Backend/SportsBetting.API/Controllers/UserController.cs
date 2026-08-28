@@ -10,25 +10,30 @@ using SportsBetting.Application.UseCases.User.Update;
 namespace SportsBetting.API.Controllers;
  
  
-public class UserController : SportsBettingBaseController
+[ApiController]
+[Route("User")]
+public sealed class UserController : ControllerBase
 {
     [HttpPost("register")]
-    [ProducesResponseType(typeof(ResponseRegisteredUserJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status201Created)]
     public async Task<IActionResult> Register(
         [FromServices] IRegisterUserUseCase useCase,
-        [FromBody] RequestRegisterUserJson request)
+        [FromBody] RegisterUserRequest request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         return Created(string.Empty, response);
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(ResponseUserProfileJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [AuthenticatedUser]
 
-    public async Task<IActionResult> GetUserProfile([FromServices] IGetUserProfileUseCase useCase)
+    public async Task<IActionResult> GetUserProfile(
+        [FromServices] IGetUserProfileUseCase useCase,
+        CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(cancellationToken);
         
         return Ok(result);
     }
@@ -38,24 +43,28 @@ public class UserController : SportsBettingBaseController
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [AuthenticatedUser] 
-    public async Task<IActionResult> Update([FromServices] UpdateUserUseCase useCase, [FromBody] RequestUpdateUserJson request)
+    public async Task<IActionResult> Update(
+        [FromServices] IUpdateUserUseCase useCase,
+        [FromBody] UpdateUserRequest request,
+        CancellationToken cancellationToken)
     {
-        await useCase.Execute(request);
+        await useCase.Execute(request, cancellationToken);
         
         return NoContent();
     }
     
     [HttpPut("change-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ResponseErrorJson),StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),StatusCodes.Status400BadRequest)]
     [AuthenticatedUser] 
-    public async Task<IActionResult> ChangePassword
-        ([FromServices] IChangePasswordUseCase useCase, [FromBody] RequestChangePasswordJson request)
+    public async Task<IActionResult> ChangePassword(
+        [FromServices] IChangePasswordUseCase useCase,
+        [FromBody] ChangePasswordRequest request,
+        CancellationToken cancellationToken)
     {
-        await useCase.Execute(request);
+        await useCase.Execute(request, cancellationToken);
         
         return NoContent();
     }
 }
-
 

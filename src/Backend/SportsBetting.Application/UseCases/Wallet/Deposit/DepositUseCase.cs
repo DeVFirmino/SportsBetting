@@ -8,7 +8,7 @@ namespace SportsBetting.Application.UseCases.Wallet.Deposit;
 
 
 
-public class DepositUseCase : IDepositUseCase
+public sealed class DepositUseCase : IDepositUseCase
 {
     
     private readonly IWalletWriteOnlyRepository _walletWriteOnlyRepository;
@@ -36,13 +36,13 @@ public class DepositUseCase : IDepositUseCase
     
     
     
-    public async Task Execute(RequestDepositJson request)
+    public async Task Execute(DepositRequest request, CancellationToken cancellationToken)
     {
         await Validate(request);
             
-       var loggedUser = await _loggedUser.User();
+       var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
        
-       var wallet = await _walletReadOnlyRepository.GetByUserId(loggedUser.Id);
+       var wallet = await _walletReadOnlyRepository.GetByUserIdAsync(loggedUser.Id, cancellationToken);
 
        if (wallet is null)
        {
@@ -52,20 +52,20 @@ public class DepositUseCase : IDepositUseCase
                Balance = request.Amount
            };
            
-           await _walletWriteOnlyRepository.Add(wallet);
+           await _walletWriteOnlyRepository.AddAsync(wallet, cancellationToken);
        }
        else
        {
-           var walletToUpdate = await _walletUpdateOnlyRepository.GetById(wallet.Id);
+           var walletToUpdate = await _walletUpdateOnlyRepository.GetByIdAsync(wallet.Id, cancellationToken);
            walletToUpdate.Balance += request.Amount;
            
            _walletUpdateOnlyRepository.Update(walletToUpdate);
        }
        
-       await _unitOfWork.Commit();
+       await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    private async Task Validate(RequestDepositJson request)
+    private async Task Validate(DepositRequest request)
     {
         var validator = new DepositValidator();
         

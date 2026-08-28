@@ -4,5 +4,5 @@ namespace SportsBetting.Application.UseCases.Bet.GetBetsById;
 
 public interface IGetBetByIdUseCase
 {
-    public Task<ResponseBetsJson> Execute(long id);
+    Task<BetResponse> Execute(long id, CancellationToken cancellationToken);
 }

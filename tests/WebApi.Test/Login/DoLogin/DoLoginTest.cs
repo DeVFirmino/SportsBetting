@@ -29,7 +29,7 @@ public class DoLoginTest : SportsBettingClassFixture
     [Fact]
     public async Task Sucess()
     {
-        var request = new RequestLoginJson
+        var request = new LoginRequest
         {
             Email = _email,
             Password = _password
@@ -52,7 +52,7 @@ public class DoLoginTest : SportsBettingClassFixture
     [InlineData("en-US")]
     public async Task Error_Login_Invalid(string culture)
     {
-        var request = RequestLoginJsonBuilder.Build();
+        var request = LoginRequestBuilder.Build();
 
         var response = await DoPost(method, request, culture);
 

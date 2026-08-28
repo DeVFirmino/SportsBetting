@@ -1,7 +1,8 @@
-namespace SportsBetting.Communication.Responses;
+namespace SportsBetting.Communication.Requests;
 
-public class ResponseUserProfileJson
+public sealed class UpdateUserRequest
 {
+    
     public string Name { get; set; } = string.Empty;
     
     public string Email { get; set; } = string.Empty;

@@ -15,11 +15,11 @@ public class GetUserProfileUseCaseTests
         // Arrange
         var user = new Domain.Entities.User { Name = "Grace", Email = "grace@example.com" };
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
         var useCase = new GetUserProfileUseCase(loggedUser.Object, MapperBuilder.Build());
 
         // Act
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(CancellationToken.None);
 
         // Assert
         result.Name.Should().Be(user.Name);

@@ -10,7 +10,7 @@ public class LoggedUserBuilder
 
     public LoggedUserBuilder User(User user)
     {
-        _loggedUser.Setup(l => l.User()).ReturnsAsync(user);
+        _loggedUser.Setup(l => l.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
         return this;
     }
 

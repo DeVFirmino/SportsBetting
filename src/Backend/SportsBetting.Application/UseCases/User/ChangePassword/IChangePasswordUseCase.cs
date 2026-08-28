@@ -4,5 +4,5 @@ namespace SportsBetting.Application.UseCases.User.ChangePassword;
 
 public interface IChangePasswordUseCase
 {
-    public Task Execute(RequestChangePasswordJson request);
+    Task Execute(ChangePasswordRequest request, CancellationToken cancellationToken);
 }

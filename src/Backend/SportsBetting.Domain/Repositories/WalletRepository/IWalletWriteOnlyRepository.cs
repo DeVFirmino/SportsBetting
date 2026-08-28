@@ -2,5 +2,5 @@ namespace SportsBetting.Domain.Repositories.WalletRepository;
 
 public interface IWalletWriteOnlyRepository
 {
-    public Task Add (Entities.Wallet wallet);
+    Task AddAsync(Entities.Wallet wallet, CancellationToken cancellationToken);
 }

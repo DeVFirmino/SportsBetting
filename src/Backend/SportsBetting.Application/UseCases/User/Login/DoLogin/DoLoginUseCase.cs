@@ -7,7 +7,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.User.Login.DoLogin;
 
-public class DoLoginUseCase : IDoLoginUseCase
+public sealed class DoLoginUseCase : IDoLoginUseCase
 {
     
     private readonly IUserReadOnlyRepository _repository;
@@ -24,21 +24,21 @@ public class DoLoginUseCase : IDoLoginUseCase
         _accessTokenGenerator = accessTokenGenerator;
     }
     
-    public async Task<ResponseRegisteredUserJson> Execute(RequestLoginJson request)
+    public async Task<AuthenticatedUserResponse> Execute(LoginRequest request, CancellationToken cancellationToken)
     {
         var encryptedPassword = _passwordEncrypter.Encrypt(request.Password);
         
-        var user = await _repository.GetByEmailAndPassword(request.Email, encryptedPassword);
+        var user = await _repository.GetByEmailAndPasswordAsync(request.Email, encryptedPassword, cancellationToken);
 
         if (user is null)
         {
             throw new InvalidLoginException();
         }
         
-        return new ResponseRegisteredUserJson
+        return new AuthenticatedUserResponse
         {
             Name = user.Name,
-            Tokens = new ResponseTokenJson
+            Tokens = new AccessTokenResponse
             {
                 AccessToken = _accessTokenGenerator.Generate(user.UserIdentifier)
             }
