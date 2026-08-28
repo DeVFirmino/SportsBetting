@@ -16,8 +16,8 @@
 ![Azure SQL Database](https://img.shields.io/badge/Azure_SQL_Database-PaaS-512BD4?logo=microsoft-sql-server&logoColor=white)
 
 # SportsBetting API
-**Sports Betting Platform** built with **.NET 9** and **Clean Architecture** principles,
-designed to showcase enterprise level C# development skills for **.NET backend positions**.
+An educational sports betting API built with **.NET 9** to practise backend development,
+layered architecture, authentication, persistence, validation, and concurrency control.
 
 ## Live Demo
 The API is currently live and can be tested via Swagger UI:
@@ -29,17 +29,18 @@ The API is currently live and can be tested via Swagger UI:
 
 ## Project Overview
 
-**Educational Project** - Built to demonstrate enterprise .NET development
-> skills for backend positions. Not for production use.
+**Educational project** built to demonstrate .NET backend development skills. It is not
+intended for production use or real-money betting.
 
-Enterprise-grade sports betting platform showcasing **Clean Architecture**,
-**Concurrency control**, and **real-time sports data integration** using .NET 9
+The implemented workflow covers account management, wallet deposits, fixture lookup,
+bet placement, and bet queries. It uses API-Football for fixture and team data, while
+the betting odds are fixed study values defined in the application.
 
 ## Patterns & Principles
 
 - **SOLID Standards:** Dependency Inversion, Interface Segregation, Single Responsibility
 - **Separation of Concerns:** DTOs for API contracts, Use Cases for business logic
-- **Domain-Driven Design:** Rich domain models with business rule encapsulation
+- **Domain model:** Entities and enums for users, wallets, and bets
 - **Dependency Injection:** Full decoupling of layers via high-level abstractions
 
 **Repository Pattern (Interface Segregation):**
@@ -89,22 +90,24 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 ### Betting System
 - **Place bets** on upcoming football fixtures
 - **Auto-generated event names** from Football API (example: "Manchester United vs Liverpool")
-- **Auto-fetched odds** based on bet type (HomeWin, Draw, AwayWin)
+- **Fixed study odds** selected by bet type (HomeWin, Draw, AwayWin)
 - **Enum based BetType** for type safety and validation (`HomeWin`, `Draw`, `AwayWin`)
-- **Potential winning calculation** (`Amount × Odds`)
+- **Potential return calculation** (`Amount × Odds`)
 - **Get bet by ID** with detailed information
 - **Race condition prevention** via optimistic concurrency control on the wallet
 
-> **Note:** Odds are currently mocked in the Football API service for learning purposes.
+> **Project boundary:** Bets are created with `Pending` status. The API does not fetch
+> match results, settle bets, change them to won or lost, or credit winnings back to the
+> wallet. `PotentialWinning` is an estimate calculated when the bet is placed.
 
 </td>
 <td width="50%" valign="top">
 
 ### Football API Integration
 - Integration with **API-FOOTBALL** (RapidApi)
-- Get **upcoming fixtures** with odds
+- Get fixture IDs, dates, and home/away team names for the 2024 La Liga season
 - User can bet for **HomeWin, Draw, and AwayWin** betting markets
-- Auto-population of event details and odds
+- Fixed odds of `2.10`, `3.40`, and `3.80` are added locally for learning purposes
 
 </td>
 </tr>
@@ -113,7 +116,10 @@ Enterprise-grade sports betting platform showcasing **Clean Architecture**,
 ## Architecture
 This project follows **Clean Architecture** with clear separation of concerns:
 
-![Architecture diagram: clients call the ASP.NET Core 9 API through JWT auth; API, Application, Domain and Infrastructure layers sit inside one container, with Azure SQL below and api-sports.io queried for odds at bet time](docs/img/architecture.svg)
+![Architecture diagram: clients call the ASP.NET Core 9 API through JWT auth; API, Application, Domain and Infrastructure layers sit inside one container, with Azure SQL below and api-sports.io queried for fixture data](docs/img/architecture.svg)
+
+> **Current implementation note:** The diagram labels the external call as an odds lookup.
+> In the code, API-Football supplies fixture and team data; the adapter assigns fixed study odds.
 
 *Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
 
@@ -181,7 +187,7 @@ sequenceDiagram
     participant API
     participant Database
     
-    User->>API: POST /api/bet (Amount: €100)
+    User->>API: POST /Bet/place-bet (Amount: €100)
     API->>Database: SELECT Balance, RowVersion WHERE UserId = X
     Database-->>API: Balance: €500, RowVersion: 0x001
     
@@ -217,7 +223,7 @@ graph LR
 - **FluentValidation** - Request validation
 - **JWT** - Authentication
 - **Swagger** - API documentation
-- **RapidAPI Football API** - External sports data
+- **RapidAPI Football API** - External fixture and team data
 
 
 ## Technical Highlights (Betting - Wallet)
@@ -248,7 +254,8 @@ catch (DbUpdateConcurrencyException)
 
 **Testing:** Verified with simultaneous Postman requests using the same authenticated session to simulate race conditions.
 
-**All odds and payouts are server controlled** - users can only specify `fixtureId`, `amount`, and `betType`.
+**Fixture details and fixed study odds are server controlled** - users can only specify
+`fixtureId`, `amount`, and `betType`. There is no payout or settlement workflow.
 
 ## Prerequisites
 - .NET 9 SDK or later
@@ -336,33 +343,33 @@ dotnet run
 ### Authentication
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/user/register` | Register a new user account | No |
-| POST | `/api/user/login` | Authenticate and retrieve JWT token | No |
-| GET | `/api/user/profile` | Retrieve the authenticated user profile | Yes |
-| PUT | `/api/user/change-password` | Update account password | Yes |
+| POST | `/User/register` | Register a new user account | No |
+| POST | `/Login` | Authenticate and retrieve JWT token | No |
+| GET | `/User` | Retrieve the authenticated user profile | Yes |
+| PUT | `/User/change-password` | Update account password | Yes |
 
 ### Wallet Management
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/wallet/deposit` | Add funds to the user's wallet | Yes |
-| GET | `/api/wallet` | Check current wallet balance | Yes |
+| POST | `/Wallet/deposit` | Add funds to the user's wallet | Yes |
+| GET | `/Wallet` | Check current wallet balance | Yes |
 
 > **Note:** Add balance to your wallet before placing a bet on a fixture.
 
 ### Betting Operations
-> **Important:** Get a `fixtureId` from `/api/fixture` before placing bets.
+> **Important:** Get a `fixtureId` from `/Fixtures` before placing bets.
 
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| POST | `/api/bet` | Place a new bet on a fixture | Yes |
-| GET | `/api/bet` | Retrieve all bets placed by the user | Yes |
-| GET | `/api/bet/{id}` | Retrieve details of a specific bet | Yes |
+| POST | `/Bet/place-bet` | Place a new bet on a fixture | Yes |
+| GET | `/Bet/get-bets` | Retrieve all bets placed by the user | Yes |
+| GET | `/Bet/{id}` | Retrieve details of a specific bet | Yes |
 
 ### Fixtures and Odds
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| GET | `/api/fixture` | Get upcoming matches and  odds | Yes |
+| GET | `/Fixtures` | Get fixture data with fixed study odds | Yes |
 
 ## API Bet Documentation
 
@@ -372,7 +379,7 @@ dotnet run
 
 **Register User**
 ```http
-POST /api/user/register
+POST /User/register
 Content-Type: application/json
 
 {
@@ -384,7 +391,7 @@ Content-Type: application/json
 
 **Login**
 ```http
-POST /api/user/login
+POST /Login
 Content-Type: application/json
 
 {
@@ -397,7 +404,7 @@ Content-Type: application/json
 
 **Deposit Funds**
 ```http
-POST /api/wallet/deposit
+POST /Wallet/deposit
 Authorization: Bearer {jwt_token}
 
 { "amount": 959.00 }
@@ -405,7 +412,7 @@ Authorization: Bearer {jwt_token}
 
 **Get Balance**
 ```http
-GET /api/wallet
+GET /Wallet
 Authorization: Bearer {jwt_token}
 ```
 
@@ -413,13 +420,13 @@ Authorization: Bearer {jwt_token}
 
 **Get Fixtures**
 ```http
-GET /api/fixture
+GET /Fixtures
 Authorization: Bearer {jwt_token}
 ```
 
 **Place Bet**
 ```http
-POST /api/bet
+POST /Bet/place-bet
 Authorization: Bearer {jwt_token}
 
 {
@@ -431,13 +438,13 @@ Authorization: Bearer {jwt_token}
 
 **Get User Bets**
 ```http
-GET /api/bet
+GET /Bet/get-bets
 Authorization: Bearer {jwt_token}
 ```
 
 **Get Bet by ID**
 ```http
-GET /api/bet/{id}
+GET /Bet/{id}
 Authorization: Bearer {jwt_token}
 ```
 
