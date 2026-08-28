@@ -1,16 +1,36 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using SportsBetting.API.Filters;
 using SportsBetting.API.Converters;
 using SportsBetting.API.Token;
 using SportsBetting.Application;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Infrastructure;
- 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)))
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));
+
+// Every failure the application raises goes out as ErrorResponse; without this override,
+// a body that fails model binding answered with ValidationProblemDetails instead, so a
+// client parsing "errors" as a list met an object. One contract for every 400.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState.Values
+            .SelectMany(entry => entry.Errors)
+            .Select(error => error.ErrorMessage)
+            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .ToList();
+
+        return new BadRequestObjectResult(new ErrorResponse(errors));
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
