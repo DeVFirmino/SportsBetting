@@ -11,9 +11,9 @@ using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Application.UseCases.User.GetBalance;
 using SportsBetting.Application.UseCases.User.Register;
 using SportsBetting.Application.UseCases.User.Login.DoLogin;
+using SportsBetting.Application.UseCases.User.Profile;
 using SportsBetting.Application.UseCases.User.Update;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
-using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.Application;
 

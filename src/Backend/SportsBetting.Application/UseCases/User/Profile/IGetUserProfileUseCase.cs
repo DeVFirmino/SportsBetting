@@ -1,4 +1,6 @@
-namespace SportsBetting.Communication.Responses;
+using SportsBetting.Communication.Responses;
+
+namespace SportsBetting.Application.UseCases.User.Profile;
 
 public interface IGetUserProfileUseCase
 {

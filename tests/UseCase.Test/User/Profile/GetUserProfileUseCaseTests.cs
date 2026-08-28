@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Moq;
-using SportsBetting.Communication.Responses;
+using SportsBetting.Application.UseCases.User.Profile;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Tests.Common.Mapper;
 using Domain = SportsBetting.Domain;

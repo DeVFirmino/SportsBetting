@@ -2,7 +2,7 @@ using Moq;
 using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Services.LoggedUser;
 
-namespace CommonTestsUtilities.LoggedUser;
+namespace SportsBetting.Tests.Common.LoggedUser;
 
 public class LoggedUserBuilder
 {

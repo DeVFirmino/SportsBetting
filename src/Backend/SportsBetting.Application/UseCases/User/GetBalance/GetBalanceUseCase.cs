@@ -25,13 +25,9 @@ public sealed class GetBalanceUseCase : IGetBalanceUseCase
         
          var wallet = await _walletRepository.GetByUserIdAsync(loggedUser.Id, cancellationToken);
 
-        // 3. Se não existir, erro
         return new WalletBalanceResponse
         {
             Balance = wallet?.Balance ?? 0
         };
-
- 
-
-     }
+    }
 }

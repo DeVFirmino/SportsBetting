@@ -1,6 +1,5 @@
 using AutoMapper;
-using SportsBetting.Application.Services.AutoMapper;
- using SportsBetting.Communication.Requests;
+using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
