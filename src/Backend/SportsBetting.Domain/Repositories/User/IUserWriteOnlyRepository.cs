@@ -1,7 +1,6 @@
 namespace SportsBetting.Domain.Repositories.User;
 
 public interface IUserWriteOnlyRepository
-
 {
-    public Task Add(Entities.User user);
+    Task AddAsync(Entities.User user, CancellationToken cancellationToken);
 }

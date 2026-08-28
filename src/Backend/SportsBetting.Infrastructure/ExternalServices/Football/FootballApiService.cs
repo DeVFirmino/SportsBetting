@@ -4,7 +4,7 @@ using SportsBetting.Infrastructure.ExternalServices.DTOs;
 
 namespace SportsBetting.Infrastructure.ExternalServices.Football;
 
-public class FootballApiService : IFootballApiService
+public sealed class FootballApiService : IFootballApiService
 {
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
@@ -15,16 +15,16 @@ public class FootballApiService : IFootballApiService
         _apiKey = configuration["Settings:FootballApi:ApiKey"]!;
     }
 
-    public async Task<List<FixtureData>> GetUpcomingFixtures()
+    public async Task<List<FixtureData>> GetUpcomingFixturesAsync(CancellationToken cancellationToken)
     {
         var request = new HttpRequestMessage(
             HttpMethod.Get, "/fixtures?season=2024&league=140");
             request.Headers.Add("x-apisports-key", _apiKey);
 
-            var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
             response.EnsureSuccessStatusCode();
  
-             var content = await response.Content.ReadAsStringAsync();
+             var content = await response.Content.ReadAsStringAsync(cancellationToken);
         
              var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiFootballResponse<ApiFixtureDto>>(
                  content, 

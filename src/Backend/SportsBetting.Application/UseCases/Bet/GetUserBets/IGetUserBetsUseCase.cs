@@ -5,5 +5,5 @@ namespace SportsBetting.Application.UseCases.Bet.GetUserBets;
 
 public interface IGetUserBetsUseCase
 {
-    Task<ResponsePagedListJson<ResponseBetsJson>> Execute(RequestFilterBetsJson request);
+    Task<PagedResponse<BetResponse>> Execute(GetUserBetsRequest request, CancellationToken cancellationToken);
 }

@@ -19,9 +19,9 @@ public class RegisterUserTest : SportsBettingClassFixture
      public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
      
      [Fact]
-     public async Task Sucess()
+     public async Task ShouldRegisterUserWhenRequestIsValid()
      {
-          var request = RequestRegisterUserJsonBuilder.Build();
+          var request = RegisterUserRequestBuilder.Build();
 
           var response = await DoPost(method, request);
 
@@ -39,9 +39,9 @@ public class RegisterUserTest : SportsBettingClassFixture
      
      [Theory]
      [InlineData("en-US")]
-     public async Task Error_Empty_Name(string culture)
+     public async Task ShouldReturnBadRequestWhenNameIsEmpty(string culture)
      {
-          var request = RequestRegisterUserJsonBuilder.Build();
+          var request = RegisterUserRequestBuilder.Build();
           request.Name = string.Empty;
           
           var response = await DoPost(method, request, culture);
@@ -57,5 +57,30 @@ public class RegisterUserTest : SportsBettingClassFixture
           var expectedMessage = ResourcesMessagesException.ResourceManager.GetString("NAME_EMPTY", new CultureInfo(culture));
           
           errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
+     }
+
+     [Fact]
+     public async Task ShouldAnswerWithTheErrorContractWhenNameIsNotAString()
+     {
+          var request = RegisterUserRequestBuilder.Build();
+
+          var response = await DoPost(method, new
+          {
+               name = 12345,
+               email = request.Email,
+               password = request.Password
+          });
+
+          response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+          await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+          var responseData = await JsonDocument.ParseAsync(responseBody);
+
+          // The whole API answers failures with one shape: "errors" as a list of messages.
+          // A body that fails model binding must not fall back to a different contract.
+          var errors = responseData.RootElement.GetProperty("errors");
+          errors.ValueKind.Should().Be(JsonValueKind.Array);
+          errors.EnumerateArray().Should().NotBeEmpty();
      }
 }

@@ -14,15 +14,15 @@ namespace UseCase.Test.User.Update;
 public class UpdateUserUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithValidData_UpdatesNameAndEmail()
+    public async Task ShouldUpdateNameAndEmailWhenDataIsValid()
     {
         // Arrange
         var user = User();
         var useCase = CreateUseCase(user);
-        var request = new RequestUpdateUserJson { Name = "New name", Email = "new@example.com" };
+        var request = new UpdateUserRequest { Name = "New name", Email = "new@example.com" };
 
         // Act
-        await useCase.Execute(request);
+        await useCase.Execute(request, CancellationToken.None);
 
         // Assert
         user.Name.Should().Be(request.Name);
@@ -30,14 +30,16 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithSameEmail_UpdatesProfile()
+    public async Task ShouldUpdateProfileWhenEmailIsUnchanged()
     {
         // Arrange
         var user = User();
         var useCase = CreateUseCase(user, emailAlreadyExists: true);
 
         // Act
-        await useCase.Execute(new RequestUpdateUserJson { Name = "New name", Email = user.Email });
+        await useCase.Execute(
+            new UpdateUserRequest { Name = "New name", Email = user.Email },
+            CancellationToken.None);
 
         // Assert
         user.Name.Should().Be("New name");
@@ -45,18 +47,18 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithEmailUsedByAnotherUser_ReturnsValidationError()
+    public async Task ShouldReturnValidationErrorWhenEmailBelongsToAnotherUser()
     {
         // Arrange
         var user = User();
         var useCase = CreateUseCase(user, emailAlreadyExists: true);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new RequestUpdateUserJson
+        Func<Task> act = () => useCase.Execute(new UpdateUserRequest
         {
             Name = "New name",
             Email = "registered@example.com"
-        });
+        }, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -65,14 +67,14 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithEmptyFields_ReturnsBothValidationErrors()
+    public async Task ShouldReturnBothValidationErrorsWhenFieldsAreEmpty()
     {
         // Arrange
         var user = User();
         var useCase = CreateUseCase(user);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new RequestUpdateUserJson());
+        Func<Task> act = () => useCase.Execute(new UpdateUserRequest(), CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -84,17 +86,19 @@ public class UpdateUserUseCaseTests
     private static UpdateUserUseCase CreateUseCase(Domain.Entities.User user, bool emailAlreadyExists = false)
     {
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var updateRepository = new Mock<IUserUpdateOnlyRepository>();
-        updateRepository.Setup(repository => repository.GetById(user.Id)).ReturnsAsync(user);
+        updateRepository.Setup(repository => repository.GetByIdAsync(
+            user.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var readRepository = new Mock<IUserReadOnlyRepository>();
-        readRepository.Setup(repository => repository.ExistActiveUserWithEmail(It.IsAny<string>()))
+        readRepository.Setup(repository => repository.ExistsActiveUserWithEmailAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(emailAlreadyExists);
 
         var unitOfWork = new Mock<IUnitOfWork>();
-        unitOfWork.Setup(work => work.Commit()).Returns(Task.CompletedTask);
+        unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         return new UpdateUserUseCase(
             loggedUser.Object,

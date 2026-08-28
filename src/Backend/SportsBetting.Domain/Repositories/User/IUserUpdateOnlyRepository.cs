@@ -2,7 +2,7 @@ namespace SportsBetting.Domain.Repositories.User;
 
 public interface IUserUpdateOnlyRepository
 {
-    public Task<Entities.User> GetById(long id);
+    Task<Entities.User> GetByIdAsync(long id, CancellationToken cancellationToken);
     
-    public void Update(Entities.User user);
+    void Update(Entities.User user);
 }

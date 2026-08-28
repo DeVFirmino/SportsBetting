@@ -4,11 +4,11 @@ using SportsBetting.Communication.Requests;
 
 namespace SportsBetting.Application.UseCases.User.ChangePassword;
 
-public class ChangePasswordValidator : AbstractValidator<RequestChangePasswordJson>
+public class ChangePasswordValidator : AbstractValidator<ChangePasswordRequest>
 {
      public ChangePasswordValidator()
      {
          RuleFor(x => x.NewPassword).SetValidator
-             (new PasswordValidator<RequestChangePasswordJson>());
+             (new PasswordValidator<ChangePasswordRequest>());
      }
 }

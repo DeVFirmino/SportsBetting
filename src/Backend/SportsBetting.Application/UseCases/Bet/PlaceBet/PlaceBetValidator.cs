@@ -4,7 +4,7 @@ using SportsBetting.Exceptions;
 
 namespace SportsBetting.Application.UseCases.Bet.PlaceBet;
 
-public class PlaceBetValidator : AbstractValidator<RequestPlaceBetJson>
+public class PlaceBetValidator : AbstractValidator<PlaceBetRequest>
 {
     public PlaceBetValidator()
     {

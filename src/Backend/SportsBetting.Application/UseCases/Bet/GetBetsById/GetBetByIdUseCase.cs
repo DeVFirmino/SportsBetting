@@ -7,7 +7,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.Bet.GetBetsById;
 
-public class GetBetByIdUseCase : IGetBetByIdUseCase
+public sealed class GetBetByIdUseCase : IGetBetByIdUseCase
 {
     private readonly IBetReadOnlyRepository _repository;
     private readonly IMapper  _mapper;
@@ -20,18 +20,18 @@ public class GetBetByIdUseCase : IGetBetByIdUseCase
         _loggedUser = loggedUser;
     }
     
-    public async Task<ResponseBetsJson> Execute(long id)
+    public async Task<BetResponse> Execute(long id, CancellationToken cancellationToken)
     {
-        var loggedUser = await _loggedUser.User();
+        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
-        var bet = await _repository.GetById(id);
+        var bet = await _repository.GetByIdAsync(id, cancellationToken);
 
         if (bet == null || bet.UserId != loggedUser.Id)
         {
             throw new ErrorOnValidationException([ResourcesMessagesException.BET_NOT_FOUND]);
         }
 
-        return _mapper.Map<ResponseBetsJson>(bet);
+        return _mapper.Map<BetResponse>(bet);
     }
 
     }

@@ -8,7 +8,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.Bet.GetUserBets;
 
-public class GetUserBetsUseCase : IGetUserBetsUseCase
+public sealed class GetUserBetsUseCase : IGetUserBetsUseCase
 {
     private readonly ILoggedUser _loggedUser;
     private readonly IBetReadOnlyRepository _repository;
@@ -21,9 +21,9 @@ public class GetUserBetsUseCase : IGetUserBetsUseCase
         _mapper = mapper;
     }
 
-    public async Task<ResponsePagedListJson<ResponseBetsJson>> Execute(RequestFilterBetsJson request)
+    public async Task<PagedResponse<BetResponse>> Execute(GetUserBetsRequest request, CancellationToken cancellationToken)
     {
-        var user = await _loggedUser.User();
+        var user = await _loggedUser.GetUserAsync(cancellationToken);
 
         if (user is null)
         {
@@ -38,17 +38,18 @@ public class GetUserBetsUseCase : IGetUserBetsUseCase
             parsedStatus = status;
         }
 
-        var (bets, totalCount) = await _repository.GetPagedByUserId(
+        var (bets, totalCount) = await _repository.GetPagedByUserIdAsync(
             user.Id,
             pageNumber,
             request.PageSize,
             parsedStatus,
             request.StartDate,
-            request.EndDate);
+            request.EndDate,
+            cancellationToken);
 
-        var mappedBets = _mapper.Map<List<ResponseBetsJson>>(bets);
+        var mappedBets = _mapper.Map<List<BetResponse>>(bets);
 
-        return new ResponsePagedListJson<ResponseBetsJson>(
+        return new PagedResponse<BetResponse>(
             mappedBets,
             totalCount,
             pageNumber,

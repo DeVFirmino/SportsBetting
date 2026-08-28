@@ -8,11 +8,11 @@ namespace SportsBetting.Tests.User.Update;
 public class UpdateUserValidatorTests
 {
     [Fact]
-    public void Validate_WithNameAndEmail_IsValid()
+    public void ShouldBeValidWhenNameAndEmailAreProvided()
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "Ada", Email = "ada@example.com" };
+        var request = new UpdateUserRequest { Name = "Ada", Email = "ada@example.com" };
 
         // Act
         var result = validator.Validate(request);
@@ -22,11 +22,11 @@ public class UpdateUserValidatorTests
     }
 
     [Fact]
-    public void Validate_WithEmptyName_ReturnsNameEmpty()
+    public void ShouldReturnNameEmptyWhenNameIsEmpty()
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "", Email = "ada@example.com" };
+        var request = new UpdateUserRequest { Name = "", Email = "ada@example.com" };
 
         // Act
         var result = validator.Validate(request);
@@ -37,11 +37,11 @@ public class UpdateUserValidatorTests
     }
 
     [Fact]
-    public void Validate_WithEmptyEmail_ReturnsEmailEmpty()
+    public void ShouldReturnEmailEmptyWhenEmailIsEmpty()
     {
         // Arrange
         var validator = new UpdateUserValidator();
-        var request = new RequestUpdateUserJson { Name = "Ada", Email = "" };
+        var request = new UpdateUserRequest { Name = "Ada", Email = "" };
 
         // Act
         var result = validator.Validate(request);

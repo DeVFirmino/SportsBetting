@@ -8,30 +8,34 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
 
-public class BetController : SportsBettingBaseController
+[ApiController]
+[Route("Bet")]
+public sealed class BetController : ControllerBase
 {
     [HttpPost("place-bet")]
-    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BetResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [AuthenticatedUser]
     public async Task<IActionResult> PlaceBet(
         [FromServices] IPlaceBetUseCase useCase,
-        [FromBody] RequestPlaceBetJson request)
+        [FromBody] PlaceBetRequest request,
+        CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(request);
+        var result = await useCase.Execute(request, cancellationToken);
         
         return Created(string.Empty, result);
     }
 
     [HttpGet("get-bets")]
-    [ProducesResponseType(typeof(ResponsePagedListJson<ResponseBetsJson>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<BetResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [AuthenticatedUser]
     public async Task<IActionResult> GetUserBets(
         [FromServices] IGetUserBetsUseCase useCase,
-        [FromQuery] RequestFilterBetsJson request)
+        [FromQuery] GetUserBetsRequest request,
+        CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(request);
+        var result = await useCase.Execute(request, cancellationToken);
         
         if (result.TotalCount == 0)
             return NoContent();
@@ -40,14 +44,15 @@ public class BetController : SportsBettingBaseController
     }
     
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ResponseBetsJson), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BetResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [AuthenticatedUser]
     public async Task<IActionResult> GetBetById(
         [FromServices] IGetBetByIdUseCase useCase,
-        [FromRoute] long id)
+        [FromRoute] long id,
+        CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(id);
+        var result = await useCase.Execute(id, cancellationToken);
         return Ok(result);
     }
 }

@@ -4,7 +4,7 @@ using SportsBetting.Exceptions;
 
 namespace SportsBetting.Application.UseCases.Wallet.Deposit;
 
-public class DepositValidator : AbstractValidator<RequestDepositJson>
+public class DepositValidator : AbstractValidator<DepositRequest>
 {
     public DepositValidator()
     {

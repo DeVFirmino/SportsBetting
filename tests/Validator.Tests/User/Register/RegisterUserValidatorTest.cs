@@ -8,11 +8,11 @@ namespace SportsBetting.Tests.User.Register;
 public class RegisterUserValidatorTest
 {
     [Fact]
-    public void Success()
+    public void ShouldBeValidWhenRequestIsValid()
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         
         
         var result = validator.Validate(request);
@@ -21,11 +21,11 @@ public class RegisterUserValidatorTest
     } 
     
     [Fact]
-    public void Error_Name_Empty()
+    public void ShouldReturnErrorWhenNameIsEmpty()
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
         
         var result = validator.Validate(request);
@@ -37,11 +37,11 @@ public class RegisterUserValidatorTest
     
     
     [Fact]
-    public void Error_Email_Empty()
+    public void ShouldReturnErrorWhenEmailIsEmpty()
         {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Email = string.Empty;
         
         var result = validator.Validate(request);
@@ -53,11 +53,11 @@ public class RegisterUserValidatorTest
     } 
     
     [Fact]
-    public void Error_Email_Invalid()
+    public void ShouldReturnErrorWhenEmailIsInvalid()
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Email = "email.com";
         
         var result = validator.Validate(request);
@@ -74,11 +74,11 @@ public class RegisterUserValidatorTest
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
-    public void Error_Password_Invalid(int passwordLength)
+    public void ShouldReturnErrorWhenPasswordIsInvalid(int passwordLength)
     {
         var validator = new RegisterUserValidator();
         
-        var request = RequestRegisterUserJsonBuilder.Build(passwordLength);
+        var request = RegisterUserRequestBuilder.Build(passwordLength);
         
         var result = validator.Validate(request);
         

@@ -14,17 +14,17 @@ namespace UseCase.Test.Login.DoLogin;
 public class DoLoginUseCaseTest
 {
     [Fact]
-    public async Task Sucess()
+    public async Task ShouldReturnTokensWhenCredentialsAreValid()
     {
         (var user, var password) = UserBuilder.Build();
 
         var userCase = CreateUseCase(user);
 
-        var result = await userCase.Execute(new RequestLoginJson
+        var result = await userCase.Execute(new LoginRequest
         {
             Email = user.Email,
             Password = password
-        });
+        }, CancellationToken.None);
         
         result.Should().NotBeNull();
         result.Tokens.Should().NotBeNull();
@@ -35,13 +35,13 @@ public class DoLoginUseCaseTest
 
 
     [Fact]
-    public async Task Error_Invalid_User()
+    public async Task ShouldThrowInvalidLoginWhenCredentialsAreInvalid()
     {
-        var request = RequestLoginJsonBuilder.Build();
+        var request = LoginRequestBuilder.Build();
 
         var useCase = CreateUseCase();
         
-        Func<Task> action = async () => await useCase.Execute(request);
+        Func<Task> action = async () => await useCase.Execute(request, CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidLoginException>()
             .Where(e => e.Message.Equals(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID));
@@ -54,7 +54,7 @@ public class DoLoginUseCaseTest
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
         
         if(user is not null)
-            userReadOnlyRepositoryBuilder.GetByEmailAndPassword(user);
+            userReadOnlyRepositoryBuilder.GetByEmailAndPasswordAsync(user);
         
         return new DoLoginUseCase(userReadOnlyRepositoryBuilder.Build(), passwordEncrypter, accessTokenGenerator);
     }

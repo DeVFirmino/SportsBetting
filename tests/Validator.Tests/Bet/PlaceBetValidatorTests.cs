@@ -11,7 +11,7 @@ public class PlaceBetValidatorTests
     [InlineData("HomeWin")]
     [InlineData("Draw")]
     [InlineData("AwayWin")]
-    public void Validate_WithSupportedBetType_IsValid(string betType)
+    public void ShouldBeValidWhenBetTypeIsSupported(string betType)
     {
         // Arrange
         var validator = new PlaceBetValidator();
@@ -30,7 +30,7 @@ public class PlaceBetValidatorTests
     [InlineData("")]
     [InlineData("DoubleChance")]
     [InlineData("homewin")]
-    public void Validate_WithUnsupportedBetType_ReturnsBetTypeRequired(string? betType)
+    public void ShouldReturnBetTypeRequiredWhenBetTypeIsUnsupported(string? betType)
     {
         // Arrange
         var validator = new PlaceBetValidator();
@@ -49,7 +49,7 @@ public class PlaceBetValidatorTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Validate_WithNonPositiveAmount_ReturnsAmountError(decimal amount)
+    public void ShouldReturnAmountErrorWhenAmountIsNotPositive(decimal amount)
     {
         // Arrange
         var validator = new PlaceBetValidator();
@@ -67,7 +67,7 @@ public class PlaceBetValidatorTests
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
-    public void Validate_WithInvalidFixtureId_ReturnsFixtureNotFound(int fixtureId)
+    public void ShouldReturnFixtureNotFoundWhenFixtureIdIsInvalid(int fixtureId)
     {
         // Arrange
         var validator = new PlaceBetValidator();
@@ -82,7 +82,7 @@ public class PlaceBetValidatorTests
             error.ErrorMessage == ResourcesMessagesException.FIXTURE_NOT_FOUND);
     }
 
-    private static RequestPlaceBetJson ValidRequest() => new()
+    private static PlaceBetRequest ValidRequest() => new()
     {
         FixtureId = 123,
         Amount = 20m,

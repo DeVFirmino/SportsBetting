@@ -7,7 +7,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.User.Update;
 
-public class UpdateUserUseCase : IUpdateUserUseCase
+public sealed class UpdateUserUseCase : IUpdateUserUseCase
 {
     private readonly ILoggedUser _loggedUser;
     private readonly IUserUpdateOnlyRepository _repository;
@@ -25,23 +25,23 @@ public class UpdateUserUseCase : IUpdateUserUseCase
         _unitOfWork = unitOfWork;
     }
 
-    public async Task Execute(RequestUpdateUserJson request)
+    public async Task Execute(UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var loggedUser = await _loggedUser.User();
+        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
-        await Validate(request, loggedUser.Email);
+        await Validate(request, loggedUser.Email, cancellationToken);
 
-    var user = await _repository.GetById(loggedUser.Id);
+    var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
 
     user.Name = request.Name;
     user.Email = request.Email;
 
     _repository.Update(user);
 
-    await _unitOfWork.Commit();
+    await _unitOfWork.CommitAsync(cancellationToken);
 }
     
-    private async Task Validate(RequestUpdateUserJson request, string currentEmail)
+    private async Task Validate(UpdateUserRequest request, string currentEmail, CancellationToken cancellationToken)
     {
         var validator = new UpdateUserValidator();
 
@@ -49,7 +49,7 @@ public class UpdateUserUseCase : IUpdateUserUseCase
 
         if (!request.Email.Equals(currentEmail))
         {
-            var userExist = await _userReadOnlyRepository.ExistActiveUserWithEmail(request.Email);
+            var userExist = await _userReadOnlyRepository.ExistsActiveUserWithEmailAsync(request.Email, cancellationToken);
             if (userExist)
                 result.Errors.Add(new FluentValidation.Results.ValidationFailure("email", ResourcesMessagesException.EMAIL_ALREADY_REGISTERED));
         }

@@ -10,7 +10,7 @@ public class JwtTokenValidatorTest
     private const string SigningKey = "a-signing-key-that-is-at-least-32-bytes-long";
 
     [Fact]
-    public void ValidateAndGetUserIdentifier_WithValidToken_ReturnsIdentifier()
+    public void ShouldReturnIdentifierWhenTokenIsValid()
     {
         // Arrange
         var identifier = Guid.NewGuid();
@@ -25,7 +25,7 @@ public class JwtTokenValidatorTest
     }
 
     [Fact]
-    public void ValidateAndGetUserIdentifier_WithDifferentSigningKey_RejectsToken()
+    public void ShouldRejectTokenWhenSigningKeyDiffers()
     {
         // Arrange
         var token = new JwtTokenGenerator(5, SigningKey).Generate(Guid.NewGuid());
@@ -39,7 +39,7 @@ public class JwtTokenValidatorTest
     }
 
     [Fact]
-    public void ValidateAndGetUserIdentifier_WithMalformedToken_RejectsToken()
+    public void ShouldRejectTokenWhenTokenIsMalformed()
     {
         // Arrange
         var validator = new JwtTokenValidator(SigningKey);

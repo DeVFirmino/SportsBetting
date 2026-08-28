@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
@@ -10,9 +11,9 @@ using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Application.UseCases.User.GetBalance;
 using SportsBetting.Application.UseCases.User.Register;
 using SportsBetting.Application.UseCases.User.Login.DoLogin;
+using SportsBetting.Application.UseCases.User.Profile;
 using SportsBetting.Application.UseCases.User.Update;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
-using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.Application;
 
@@ -43,17 +44,21 @@ public static class DependencyInjectionExtension
         services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>(); 
     }
 
-    public static void AddAutoMapper(IServiceCollection services)
+    private static void AddAutoMapper(IServiceCollection services)
     {
-        services.AddScoped<IMapper>(sp =>
+        // The configuration compiles every mapping plan, so it is built once for the whole
+        // application; only the Mapper itself stays scoped so resolvers can use scoped services.
+        services.AddSingleton(sp =>
         {
-            var config = new MapperConfiguration(cfg =>
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+
+            return new MapperConfiguration(cfg =>
             {
                 cfg.AddProfile<AutoMapping>();
-            });
-            return new Mapper(config, sp.GetService);
+            }, loggerFactory);
         });
+
+        services.AddScoped<IMapper>(sp =>
+            new Mapper(sp.GetRequiredService<MapperConfiguration>(), sp.GetService));
     }
-    
-  
 }

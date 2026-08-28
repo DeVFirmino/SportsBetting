@@ -10,7 +10,7 @@ namespace UseCase.Test.ExternalServices;
 public class FootballApiServiceTests
 {
     [Fact]
-    public async Task GetUpcomingFixtures_WithSuccessfulResponse_MapsFixturesAndSendsApiKey()
+    public async Task ShouldMapFixturesAndSendApiKeyWhenResponseSucceeds()
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
@@ -24,7 +24,7 @@ public class FootballApiServiceTests
         var service = CreateService(handler);
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().ContainSingle();
@@ -38,11 +38,11 @@ public class FootballApiServiceTests
             AwayWinOdds = (decimal?)3.80m
         });
         capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/fixtures?season=2024&league=140");
-        capturedRequest.Headers.GetValues("x-apisports-key").Should().ContainSingle("test-api-key");
+        capturedRequest.Headers.GetValues("x-apisports-key").Should().ContainSingle().Which.Should().Be("test-api-key");
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithMoreThanTenFixtures_ReturnsFirstTen()
+    public async Task ShouldReturnFirstTenWhenMoreThanTenFixturesExist()
     {
         // Arrange
         var payload = new
@@ -60,7 +60,7 @@ public class FootballApiServiceTests
         var service = CreateService(new StubHandler(_ => JsonResponse(JsonSerializer.Serialize(payload))));
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().HaveCount(10);
@@ -68,26 +68,26 @@ public class FootballApiServiceTests
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithNullResponse_ReturnsEmptyCollection()
+    public async Task ShouldReturnEmptyCollectionWhenResponseIsNull()
     {
         // Arrange
         var service = CreateService(new StubHandler(_ => JsonResponse("{\"response\":null}")));
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithFailureStatus_ThrowsHttpRequestException()
+    public async Task ShouldThrowHttpRequestExceptionWhenResponseFails()
     {
         // Arrange
         var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
 
         // Act
-        Func<Task> act = () => service.GetUpcomingFixtures();
+        Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();

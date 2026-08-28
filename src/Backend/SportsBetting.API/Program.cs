@@ -1,18 +1,36 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi.Models;
 using SportsBetting.API.Filters;
 using SportsBetting.API.Converters;
 using SportsBetting.API.Token;
 using SportsBetting.Application;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Infrastructure;
-using SportsBetting.Infrastructure.DataAccess;
-using SportsBetting.Infrastructure.Extensions;
- 
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));
+builder.Services
+    .AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)))
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));
+
+// Every failure the application raises goes out as ErrorResponse; without this override,
+// a body that fails model binding answered with ValidationProblemDetails instead, so a
+// client parsing "errors" as a list met an object. One contract for every 400.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState.Values
+            .SelectMany(entry => entry.Errors)
+            .Select(error => error.ErrorMessage)
+            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .ToList();
+
+        return new BadRequestObjectResult(new ErrorResponse(errors));
+    };
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
@@ -48,7 +66,6 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Logging.AddFilter("LuckyPennySoftware.AutoMapper.License", LogLevel.None);
-builder.Services.AddMvc(options => options.Filters.Add(typeof(ExceptionFilter)));
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<ITokenProvider, HttpContextTokenValue>();
@@ -71,10 +88,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    // Expose OpenAPI document and Swagger UI in Development
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -92,22 +107,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-await MigrateDatabase();
-
-async Task MigrateDatabase()
-{
-    if (app.Environment.IsEnvironment("Testing") || builder.Configuration.IsUnitTestEnvironment())
-        return;
-
-    var serviceScope = app.Services.GetRequiredService<IServiceScopeFactory>().CreateScope();
-
-    var dbContext = serviceScope.ServiceProvider.GetRequiredService<SportsBettingDbContext>();
-    await dbContext.Database.MigrateAsync();
-}
-
 await app.RunAsync();
 
 
 public partial class Program
 {
- }
+}
