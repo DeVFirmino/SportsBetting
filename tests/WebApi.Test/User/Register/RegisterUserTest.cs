@@ -58,4 +58,29 @@ public class RegisterUserTest : SportsBettingClassFixture
           
           errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
      }
+
+     [Fact]
+     public async Task ShouldAnswerWithTheErrorContractWhenNameIsNotAString()
+     {
+          var request = RegisterUserRequestBuilder.Build();
+
+          var response = await DoPost(method, new
+          {
+               name = 12345,
+               email = request.Email,
+               password = request.Password
+          });
+
+          response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+          await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+          var responseData = await JsonDocument.ParseAsync(responseBody);
+
+          // The whole API answers failures with one shape: "errors" as a list of messages.
+          // A body that fails model binding must not fall back to a different contract.
+          var errors = responseData.RootElement.GetProperty("errors");
+          errors.ValueKind.Should().Be(JsonValueKind.Array);
+          errors.EnumerateArray().Should().NotBeEmpty();
+     }
 }
