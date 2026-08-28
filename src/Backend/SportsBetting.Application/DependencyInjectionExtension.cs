@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using AutoMapper;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
@@ -47,10 +48,11 @@ public static class DependencyInjectionExtension
     {
         services.AddScoped<IMapper>(sp =>
         {
+            ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
             var config = new MapperConfiguration(cfg =>
             {
                 cfg.AddProfile<AutoMapping>();
-            });
+            }, loggerFactory);
             return new Mapper(config, sp.GetService);
         });
     }
