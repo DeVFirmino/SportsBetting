@@ -345,9 +345,8 @@ dotnet run
 ```
 
 **URLs:**
-- **HTTP**: `http://localhost:5051` *(Recommended)*
-- **HTTPS**: `https://localhost:7051`
-- **Swagger**: `http://localhost:5051/swagger`
+- **HTTP**: `http://localhost:5055` (the launch profile serves HTTP only)
+- **Swagger**: `http://localhost:5055/swagger`
 ---
 
 ## API Endpoints  
