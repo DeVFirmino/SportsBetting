@@ -3,11 +3,11 @@ using SportsBetting.Communication.Requests;
 
 namespace SportsBetting.Tests.Common.Requests;
 
-public class RequestLoginJsonBuilder
+public class LoginRequestBuilder
 {
-    public static RequestLoginJson Build()
+    public static LoginRequest Build()
     {
-        return new Faker<RequestLoginJson>()
+        return new Faker<LoginRequest>()
             .RuleFor(user => user.Email, (f) => f.Internet.Email())
             .RuleFor(user => user.Password, (f) => f.Internet.Password())
             .Generate();

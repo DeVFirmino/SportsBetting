@@ -32,7 +32,7 @@ public class GetBetByIdUseCaseTests
         var useCase = CreateUseCase(bet);
 
         // Act
-        var result = await useCase.Execute(bet.Id);
+        var result = await useCase.Execute(bet.Id, CancellationToken.None);
 
         // Assert
         result.Id.Should().Be(bet.Id);
@@ -47,7 +47,7 @@ public class GetBetByIdUseCaseTests
         var useCase = CreateUseCase(null);
 
         // Act
-        Func<Task> act = () => useCase.Execute(999);
+        Func<Task> act = () => useCase.Execute(999, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -63,7 +63,7 @@ public class GetBetByIdUseCaseTests
         var useCase = CreateUseCase(bet);
 
         // Act
-        Func<Task> act = () => useCase.Execute(bet.Id);
+        Func<Task> act = () => useCase.Execute(bet.Id, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -74,10 +74,10 @@ public class GetBetByIdUseCaseTests
     private static GetBetByIdUseCase CreateUseCase(Domain.Entities.Bet? bet)
     {
         var repository = new Mock<IBetReadOnlyRepository>();
-        repository.Setup(item => item.GetById(It.IsAny<long>())).ReturnsAsync(bet);
+        repository.Setup(item => item.GetByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>())).ReturnsAsync(bet);
 
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(new Domain.Entities.User { Id = 1 });
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Domain.Entities.User { Id = 1 });
 
         return new GetBetByIdUseCase(repository.Object, MapperBuilder.Build(), loggedUser.Object);
     }

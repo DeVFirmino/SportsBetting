@@ -4,7 +4,7 @@ using SportsBetting.Exceptions;
 
 namespace SportsBetting.Application.UseCases.User.Update;
 
-public class UpdateUserValidator : AbstractValidator<RequestUpdateUserJson>
+public class UpdateUserValidator : AbstractValidator<UpdateUserRequest>
 {
     public UpdateUserValidator()
     {

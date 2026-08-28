@@ -17,7 +17,7 @@ public class GetUserBetsUseCaseTest
     {
         (var user, _) = UserBuilder.Build();
         var bets = BetBuilder.Collection(5, user.Id);
-        var request = new RequestFilterBetsJson
+        var request = new GetUserBetsRequest
         {
             PageNumber = 1,
             PageSize = 10,
@@ -26,7 +26,7 @@ public class GetUserBetsUseCaseTest
 
         var useCase = CreateUseCase(user, bets, totalCount: 15);
 
-        var result = await useCase.Execute(request);
+        var result = await useCase.Execute(request, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.Items.Should().HaveCount(5);
@@ -41,10 +41,10 @@ public class GetUserBetsUseCaseTest
     [Fact]
     public async Task Error_Invalid_User()
     {
-        var request = new RequestFilterBetsJson();
+        var request = new GetUserBetsRequest();
         var useCase = CreateUseCase(user: null);
 
-        Func<Task> action = async () => await useCase.Execute(request);
+        Func<Task> action = async () => await useCase.Execute(request, CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidLoginException>();
     }
@@ -65,7 +65,7 @@ public class GetUserBetsUseCaseTest
 
         if (bets is not null)
         {
-            repositoryBuilder.GetPagedByUserId(bets, totalCount);
+            repositoryBuilder.GetPagedByUserIdAsync(bets, totalCount);
         }
 
         return new GetUserBetsUseCase(loggedUserBuilder.Build(), repositoryBuilder.Build(), mapper);

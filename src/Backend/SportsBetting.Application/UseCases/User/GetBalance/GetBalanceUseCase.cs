@@ -5,7 +5,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.User.GetBalance;
 
-public class GetBalanceUseCase : IGetBalanceUseCase
+public sealed class GetBalanceUseCase : IGetBalanceUseCase
 {
     
     private readonly IWalletReadOnlyRepository _walletRepository;
@@ -19,14 +19,14 @@ public class GetBalanceUseCase : IGetBalanceUseCase
     }
     
     
-    public async Task<ResponseWalletJson> Execute()
+    public async Task<WalletBalanceResponse> Execute(CancellationToken cancellationToken)
     {
-         var loggedUser = await _loggedUser.User();
+         var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
         
-         var wallet = await _walletRepository.GetByUserId(loggedUser.Id);
+         var wallet = await _walletRepository.GetByUserIdAsync(loggedUser.Id, cancellationToken);
 
         // 3. Se não existir, erro
-        return new ResponseWalletJson
+        return new WalletBalanceResponse
         {
             Balance = wallet?.Balance ?? 0
         };

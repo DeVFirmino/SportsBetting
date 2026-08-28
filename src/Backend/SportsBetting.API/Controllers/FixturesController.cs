@@ -6,15 +6,18 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
 
-public class FixturesController : SportsBettingBaseController
+[ApiController]
+[Route("Fixtures")]
+public sealed class FixturesController : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(List<ResponseFixtureJson>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<FixtureResponse>), StatusCodes.Status200OK)]
     [AuthenticatedUser]
     public async Task<IActionResult> GetAvailableFixtures(
-        [FromServices] IGetAvailableFixtureUseCase useCase)
+        [FromServices] IGetAvailableFixtureUseCase useCase,
+        CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(cancellationToken);
         return Ok(result);
     }
     

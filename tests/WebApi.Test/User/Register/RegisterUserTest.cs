@@ -21,7 +21,7 @@ public class RegisterUserTest : SportsBettingClassFixture
      [Fact]
      public async Task Sucess()
      {
-          var request = RequestRegisterUserJsonBuilder.Build();
+          var request = RegisterUserRequestBuilder.Build();
 
           var response = await DoPost(method, request);
 
@@ -41,7 +41,7 @@ public class RegisterUserTest : SportsBettingClassFixture
      [InlineData("en-US")]
      public async Task Error_Empty_Name(string culture)
      {
-          var request = RequestRegisterUserJsonBuilder.Build();
+          var request = RegisterUserRequestBuilder.Build();
           request.Name = string.Empty;
           
           var response = await DoPost(method, request, culture);

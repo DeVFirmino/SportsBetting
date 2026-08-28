@@ -36,7 +36,7 @@ public class PlaceBetUseCaseTests
         var request = ValidRequest(requestedType);
 
         // Act
-        var result = await context.UseCase.Execute(request);
+        var result = await context.UseCase.Execute(request, CancellationToken.None);
 
         // Assert
         context.PersistedBet.Should().NotBeNull();
@@ -60,7 +60,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(fixture: fixture);
 
         // Act
-        var result = await context.UseCase.Execute(ValidRequest("HomeWin"));
+        var result = await context.UseCase.Execute(ValidRequest("HomeWin"), CancellationToken.None);
 
         // Assert
         context.PersistedBet!.Odds.Should().Be(1m);
@@ -74,7 +74,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(walletExists: false);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest());
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.WALLET_NOT_FOUND);
@@ -88,7 +88,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(balance: 10m);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest());
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
@@ -102,7 +102,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(fixtureExists: false);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest());
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.FIXTURE_NOT_FOUND);
@@ -120,7 +120,7 @@ public class PlaceBetUseCaseTests
         request.Amount = amount;
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(request);
+        Func<Task> act = () => context.UseCase.Execute(request, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -134,7 +134,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(commitException: new ConcurrencyException());
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest());
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
 
         // Assert: a lost race is not a validation error — it reaches the API as a conflict,
         // which answers 409 and tells the client to retry.
@@ -153,27 +153,33 @@ public class PlaceBetUseCaseTests
         var wallet = new SportsBetting.Domain.Entities.Wallet { Id = 31, UserId = user.Id, Balance = balance };
 
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var walletReadRepository = new Mock<IWalletReadOnlyRepository>();
-        walletReadRepository.Setup(repository => repository.GetByUserId(user.Id))
+        walletReadRepository.Setup(repository => repository.GetByUserIdAsync(
+                user.Id,
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(walletExists ? wallet : null!);
 
         var walletUpdateRepository = new Mock<IWalletUpdateOnlyRepository>();
-        walletUpdateRepository.Setup(repository => repository.GetById(wallet.Id)).ReturnsAsync(wallet);
+        walletUpdateRepository.Setup(repository => repository.GetByIdAsync(
+            wallet.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
 
         SportsBetting.Domain.Entities.Bet? persistedBet = null;
         var betRepository = new Mock<IBetWriteOnlyRepository>();
-        betRepository.Setup(repository => repository.Add(It.IsAny<SportsBetting.Domain.Entities.Bet>()))
-            .Callback<SportsBetting.Domain.Entities.Bet>(bet => persistedBet = bet)
+        betRepository.Setup(repository => repository.AddAsync(
+                It.IsAny<SportsBetting.Domain.Entities.Bet>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<SportsBetting.Domain.Entities.Bet, CancellationToken>((bet, _) => persistedBet = bet)
             .Returns(Task.CompletedTask);
 
         var footballApi = new Mock<IFootballApiService>();
         var fixtures = fixtureExists ? new List<FixtureData> { fixture ?? Fixture() } : [];
-        footballApi.Setup(service => service.GetUpcomingFixtures()).ReturnsAsync(fixtures);
+        footballApi.Setup(service => service.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixtures);
 
         var unitOfWork = new Mock<IUnitOfWork>();
-        var commit = unitOfWork.Setup(work => work.Commit());
+        var commit = unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>()));
         if (commitException is null)
         {
             commit.Returns(Task.CompletedTask);
@@ -195,7 +201,7 @@ public class PlaceBetUseCaseTests
         return new TestContext(useCase, user, wallet, () => persistedBet);
     }
 
-    private static RequestPlaceBetJson ValidRequest(string betType = "HomeWin") => new()
+    private static PlaceBetRequest ValidRequest(string betType = "HomeWin") => new()
     {
         FixtureId = 101,
         Amount = 20m,
@@ -218,15 +224,25 @@ public class PlaceBetUseCaseTests
         exception.Which.ErrorMessage.Should().ContainSingle().Which.Should().Be(expectedError);
     }
 
-    private sealed class TestContext(
-        PlaceBetUseCase useCase,
-        SportsBetting.Domain.Entities.User user,
-        SportsBetting.Domain.Entities.Wallet wallet,
-        Func<SportsBetting.Domain.Entities.Bet?> persistedBet)
+    private sealed class TestContext
     {
-        public PlaceBetUseCase UseCase { get; } = useCase;
-        public SportsBetting.Domain.Entities.User User { get; } = user;
-        public SportsBetting.Domain.Entities.Wallet Wallet { get; } = wallet;
-        public SportsBetting.Domain.Entities.Bet? PersistedBet => persistedBet();
+        private readonly Func<SportsBetting.Domain.Entities.Bet?> _persistedBet;
+
+        public TestContext(
+            PlaceBetUseCase useCase,
+            SportsBetting.Domain.Entities.User user,
+            SportsBetting.Domain.Entities.Wallet wallet,
+            Func<SportsBetting.Domain.Entities.Bet?> persistedBet)
+        {
+            UseCase = useCase;
+            User = user;
+            Wallet = wallet;
+            _persistedBet = persistedBet;
+        }
+
+        public PlaceBetUseCase UseCase { get; }
+        public SportsBetting.Domain.Entities.User User { get; }
+        public SportsBetting.Domain.Entities.Wallet Wallet { get; }
+        public SportsBetting.Domain.Entities.Bet? PersistedBet => _persistedBet();
     }
 }

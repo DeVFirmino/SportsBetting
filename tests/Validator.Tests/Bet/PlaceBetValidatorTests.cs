@@ -82,7 +82,7 @@ public class PlaceBetValidatorTests
             error.ErrorMessage == ResourcesMessagesException.FIXTURE_NOT_FOUND);
     }
 
-    private static RequestPlaceBetJson ValidRequest() => new()
+    private static PlaceBetRequest ValidRequest() => new()
     {
         FixtureId = 123,
         Amount = 20m,

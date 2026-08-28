@@ -5,7 +5,7 @@ using SportsBetting.Infrastructure.DataAccess;
 
 namespace SportsBetting.Infrastructure.DataAccess.Repositories;
 
-public class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepository, IUserUpdateOnlyRepository
+public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepository, IUserUpdateOnlyRepository
 {
     private readonly SportsBettingDbContext _context;
     
@@ -14,34 +14,40 @@ public class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepository,
         _context = context;
     }
 
-    public async Task Add(User user) => await _context.Users.AddAsync(user);
+    public async Task AddAsync(User user, CancellationToken cancellationToken) =>
+        await _context.Users.AddAsync(user, cancellationToken);
 
-    public async Task<bool>ExistActiveUserWithEmail(string email)
+    public async Task<bool> ExistsActiveUserWithEmailAsync(string email, CancellationToken cancellationToken)
     {
-       return await _context.Users.AnyAsync(u => u.Email.Equals(email) && u.Active);
+       return await _context.Users.AnyAsync(u => u.Email.Equals(email) && u.Active, cancellationToken);
     }
 
-    public async Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier)
+    public async Task<bool> ExistsActiveUserWithIdentifierAsync(
+        Guid userIdentifier,
+        CancellationToken cancellationToken)
     {
         return await _context
             .Users.AnyAsync(user => user
                 .UserIdentifier.Equals(userIdentifier) && user
-                .Active);
+                .Active, cancellationToken);
         
     }
-    public async Task<User?> GetByEmailAndPassword(string email, string password)
+    public async Task<User?> GetByEmailAndPasswordAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken)
     {
         return await _context
             .Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Active && u.Email
                 .Equals(email) && u.Password
-                .Equals(password));
+                .Equals(password), cancellationToken);
      }
 
-    public async Task<User> GetById(long id)
+    public async Task<User> GetByIdAsync(long id, CancellationToken cancellationToken)
     {
-        return await _context.Users.FirstAsync(u => u.Id == id);
+        return await _context.Users.FirstAsync(u => u.Id == id, cancellationToken);
     }
 
     public void Update(User user)

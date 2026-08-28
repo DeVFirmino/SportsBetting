@@ -9,7 +9,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.API.Filters;
 
-public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
+public sealed class AuthenticatedUserFilter : IAsyncAuthorizationFilter
 {
     private readonly IAccessTokenValidator _accessTokenValidator;
     private readonly IUserReadOnlyRepository _repository;
@@ -29,25 +29,40 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
 
             var userIdentifier = _accessTokenValidator.ValidateAndGetUserIdentifier(token);
         
-            var exist = await _repository.ExistActiveUserWithIdentifier(userIdentifier);
+            var exist = await _repository.ExistsActiveUserWithIdentifierAsync(
+                userIdentifier,
+                context.HttpContext.RequestAborted);
             if (exist == false)
             {
                 throw new SportsBettingException(ResourcesMessagesException.NO_PERMISSION);
             }
-        } catch (SecurityTokenExpiredException ex)
+        }
+        catch (SecurityTokenExpiredException)
         {
-            context.Result = new UnauthorizedObjectResult(new ResponseErrorJson("TokenIsExpired")
+            context.Result = new UnauthorizedObjectResult(new ErrorResponse("TokenIsExpired")
             {
                 TokenIsExpired = true,
             });
         }
         catch (SportsBettingException ex)
         {
-            context.Result = new UnauthorizedObjectResult(new ResponseErrorJson(ex.Message));
+            context.Result = new UnauthorizedObjectResult(new ErrorResponse(ex.Message));
         }
-        catch (Exception ex)
+        catch (SecurityTokenException)
         {
-            context.Result = new UnauthorizedObjectResult(new ResponseErrorJson(ResourcesMessagesException.NO_PERMISSION));
+            SetUnauthorized(context);
+        }
+        catch (InvalidOperationException)
+        {
+            SetUnauthorized(context);
+        }
+        catch (FormatException)
+        {
+            SetUnauthorized(context);
+        }
+        catch (ArgumentException)
+        {
+            SetUnauthorized(context);
         }
     }
 
@@ -61,5 +76,11 @@ public class AuthenticatedUserFilter : IAsyncAuthorizationFilter
         }
 
         return authentication["Bearer".Length..].Trim();
-    } 
+    }
+
+    private static void SetUnauthorized(AuthorizationFilterContext context)
+    {
+        context.Result = new UnauthorizedObjectResult(
+            new ErrorResponse(ResourcesMessagesException.NO_PERMISSION));
+    }
 }

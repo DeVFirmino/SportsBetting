@@ -5,5 +5,5 @@ namespace SportsBetting.Application.UseCases.User.Register;
 
 public interface IRegisterUserUseCase
 {
-    public Task <ResponseRegisteredUserJson> Execute(RequestRegisterUserJson request);
+    Task<AuthenticatedUserResponse> Execute(RegisterUserRequest request, CancellationToken cancellationToken);
 }

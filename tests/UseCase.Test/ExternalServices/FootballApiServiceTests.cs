@@ -24,7 +24,7 @@ public class FootballApiServiceTests
         var service = CreateService(handler);
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().ContainSingle();
@@ -60,7 +60,7 @@ public class FootballApiServiceTests
         var service = CreateService(new StubHandler(_ => JsonResponse(JsonSerializer.Serialize(payload))));
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().HaveCount(10);
@@ -74,7 +74,7 @@ public class FootballApiServiceTests
         var service = CreateService(new StubHandler(_ => JsonResponse("{\"response\":null}")));
 
         // Act
-        var result = await service.GetUpcomingFixtures();
+        var result = await service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         result.Should().BeEmpty();
@@ -87,7 +87,7 @@ public class FootballApiServiceTests
         var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
 
         // Act
-        Func<Task> act = () => service.GetUpcomingFixtures();
+        Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<HttpRequestException>();

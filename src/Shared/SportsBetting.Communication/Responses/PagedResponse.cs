@@ -1,6 +1,6 @@
 namespace SportsBetting.Communication.Responses;
 
-public class ResponsePagedListJson<T>
+public sealed class PagedResponse<T>
 {
     public List<T> Items { get; set; } = [];
     public int PageNumber { get; set; }
@@ -10,9 +10,9 @@ public class ResponsePagedListJson<T>
     public bool HasPreviousPage => PageNumber > 1;
     public bool HasNextPage => PageNumber < TotalPages;
 
-    public ResponsePagedListJson() { }
+    public PagedResponse() { }
 
-    public ResponsePagedListJson(List<T> items, int totalCount, int pageNumber, int pageSize)
+    public PagedResponse(List<T> items, int totalCount, int pageNumber, int pageSize)
     {
         Items = items;
         TotalCount = totalCount;

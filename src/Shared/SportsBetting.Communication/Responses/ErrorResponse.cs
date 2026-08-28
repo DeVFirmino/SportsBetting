@@ -1,18 +1,18 @@
  
 namespace SportsBetting.Communication.Responses;
 
-public class ResponseErrorJson
+public sealed class ErrorResponse
 {
     public IList<string> Errors { get; set; }
     
     public bool TokenIsExpired { get; set; }
 
     
-    public ResponseErrorJson(IList<string> errors)
+    public ErrorResponse(IList<string> errors)
     {
         Errors = errors;
     }
-    public ResponseErrorJson(string error)
+    public ErrorResponse(string error)
     {
      
         Errors = new List<string>

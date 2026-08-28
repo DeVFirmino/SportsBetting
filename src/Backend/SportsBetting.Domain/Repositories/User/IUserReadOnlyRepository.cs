@@ -2,10 +2,15 @@ namespace SportsBetting.Domain.Repositories.User;
 
 public interface IUserReadOnlyRepository
 {
-    public Task<bool> ExistActiveUserWithEmail(string email);
+    Task<bool> ExistsActiveUserWithEmailAsync(string email, CancellationToken cancellationToken);
     
-    public Task<Entities.User?> GetByEmailAndPassword(string email, string password);
+    Task<Entities.User?> GetByEmailAndPasswordAsync(
+        string email,
+        string password,
+        CancellationToken cancellationToken);
 
-    public Task<bool> ExistActiveUserWithIdentifier(Guid userIdentifier);
+    Task<bool> ExistsActiveUserWithIdentifierAsync(
+        Guid userIdentifier,
+        CancellationToken cancellationToken);
       
-} 
+}

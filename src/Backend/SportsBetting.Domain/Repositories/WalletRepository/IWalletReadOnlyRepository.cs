@@ -1,9 +1,8 @@
 namespace SportsBetting.Domain.Repositories.WalletRepository;
 
-public interface IWalletReadOnlyRepository 
+public interface IWalletReadOnlyRepository
 {
-    public Task <Entities.Wallet> GetByUserId (long userId);
-    
-    public Task<bool> ExistWalletForUser(long userId);
-    
+    Task<Entities.Wallet?> GetByUserIdAsync(long userId, CancellationToken cancellationToken);
+
+    Task<bool> ExistsWalletForUserAsync(long userId, CancellationToken cancellationToken);
 }

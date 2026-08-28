@@ -17,11 +17,11 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task Sucess()
     {
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         
         var userCase = CreateUseCase();
  
-       var result = await userCase.Execute(request);
+       var result = await userCase.Execute(request, CancellationToken.None);
        
        result.Should().NotBeNull();
        result.Tokens.Should().NotBeNull();
@@ -34,11 +34,11 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task Error_Email_Already_Exist()
     {
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         
         var userCase = CreateUseCase(request.Email);
         
-        Func<Task> act = async () => await userCase.Execute(request);
+        Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
         (await act.Should().ThrowAsync<ErrorOnValidationException>())
             .Where(e => e.ErrorMessage.Count == 1 && e.ErrorMessage.Contains(ResourcesMessagesException.EMAIL_INVALID));
@@ -49,12 +49,12 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task Error_Name_Empty()
     {
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
         
         var userCase = CreateUseCase();
         
-        Func<Task> act = async () => await userCase.Execute(request);
+        Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
         (await act.Should().ThrowAsync<ErrorOnValidationException>())
             .Where(e => e.ErrorMessage.Count == 1 && e.ErrorMessage.Contains(ResourcesMessagesException.NAME_EMPTY));
@@ -75,7 +75,7 @@ public class RegisterUserCaseTest
         var walletWriteOnlyRepository = WalletWriteOnlyRepositoryBuilder.Build();
 
         if (string.IsNullOrEmpty(email) == false)
-            readRepositoryBuilder.ExistActiveUserWithEmail(email);
+            readRepositoryBuilder.ExistsActiveUserWithEmailAsync(email);
             
         return new RegisterUserUseCase(writeRepository, readRepositoryBuilder.Build(), mapper, passwordEncrypter, unitOfWork, accessTokenGenerator, walletWriteOnlyRepository); 
 

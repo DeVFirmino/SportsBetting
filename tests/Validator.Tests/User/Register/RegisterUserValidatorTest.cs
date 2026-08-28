@@ -12,7 +12,7 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         
         
         var result = validator.Validate(request);
@@ -25,7 +25,7 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
         
         var result = validator.Validate(request);
@@ -41,7 +41,7 @@ public class RegisterUserValidatorTest
         {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Email = string.Empty;
         
         var result = validator.Validate(request);
@@ -57,7 +57,7 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RequestRegisterUserJsonBuilder.Build();
+        var request = RegisterUserRequestBuilder.Build();
         request.Email = "email.com";
         
         var result = validator.Validate(request);
@@ -78,7 +78,7 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
         
-        var request = RequestRegisterUserJsonBuilder.Build(passwordLength);
+        var request = RegisterUserRequestBuilder.Build(passwordLength);
         
         var result = validator.Validate(request);
         
