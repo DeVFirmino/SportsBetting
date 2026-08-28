@@ -3,7 +3,7 @@
 ![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)
 ![C#](https://img.shields.io/badge/C%23-13.0-512BD4)
 ![EF Core](https://img.shields.io/badge/EF%20Core-9.0-512BD4)
-![Fluent Validation](https://img.shields.io/badge/Fluent_Validation-11.0-512BD4)
+![Fluent Validation](https://img.shields.io/badge/Fluent_Validation-12.0-512BD4)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-2022-512BD4?logo=microsoft-sql-server&logoColor=white)
 ![SOLID](https://img.shields.io/badge/Principles-SOLID-512BD4)
 ![JWT](https://img.shields.io/badge/JWT-Token-512BD4?logo=JSON%20web%20tokens&logoColor=white)
@@ -20,10 +20,12 @@ An educational sports betting API built with **.NET 9** to practise backend deve
 layered architecture, authentication, persistence, validation, and concurrency control.
 
 ## Live Demo
-The API is currently live and can be tested via Swagger UI:
+A hosted instance runs on Azure Container Apps:
 [SportsBetting API Online](https://sportsbetting-api.salmonocean-c68fcbc3.eastus2.azurecontainerapps.io/swagger/index.html)
 
 > **Note:** Initial load might take a few seconds due to "Cold Start" (Azure scaling from zero to active).
+> In this codebase Swagger UI is enabled in the Development environment; when running locally
+> the interactive docs live at `/swagger`.
 
 </div>
 
@@ -50,7 +52,7 @@ the betting odds are fixed study values defined in the application.
 
 ## Security
 - **JWT authentication** with token based authorization
-- **FluentValidation** for input sanitization
+- **FluentValidation** for input validation
 
 ## Testing
 - **xUnit Tests**: Use case logic validation
@@ -62,7 +64,7 @@ the betting odds are fixed study values defined in the application.
 - **Test Coverage**: 92.9% line / 92.85% branch (`SportsBetting.Application`)
 
 ### External Services
-- **RapidAPI Football API** - Sports data integration
+- **API-Football (api-sports.io)** - Sports data integration
 
 ## Features
 
@@ -88,7 +90,7 @@ the betting odds are fixed study values defined in the application.
 <td width="50%" valign="top">
 
 ### Betting System
-- **Place bets** on upcoming football fixtures
+- **Place bets** on fixtures from the configured league season (2024 La Liga by default)
 - **Auto-generated event names** from Football API (example: "Manchester United vs Liverpool")
 - **Fixed study odds** selected by bet type (HomeWin, Draw, AwayWin)
 - **Enum based BetType** for type safety and validation (`HomeWin`, `Draw`, `AwayWin`)
@@ -104,7 +106,7 @@ the betting odds are fixed study values defined in the application.
 <td width="50%" valign="top">
 
 ### Football API Integration
-- Integration with **API-FOOTBALL** (RapidApi)
+- Integration with **API-FOOTBALL** (api-sports.io)
 - Get fixture IDs, dates, and home/away team names for the 2024 La Liga season
 - User can bet for **HomeWin, Draw, and AwayWin** betting markets
 - Fixed odds of `2.10`, `3.40`, and `3.80` are added locally for learning purposes
@@ -193,7 +195,7 @@ sequenceDiagram
     
     Note over API: Check: €500 >= €100 ✓
     
-    API->>Database: UPDATE Wallets SET Balance = €400WHERE UserId = X AND RowVersion = 0x001
+    API->>Database: UPDATE Wallets SET Balance = €400 WHERE UserId = X AND RowVersion = 0x001
     
     alt RowVersion Matched
         Database-->>API: Success (RowVersion now 0x002)
@@ -223,7 +225,7 @@ graph LR
 - **FluentValidation** - Request validation
 - **JWT** - Authentication
 - **Swagger** - API documentation
-- **RapidAPI Football API** - External fixture and team data
+- **API-Football (api-sports.io)** - External fixture and team data
 
 
 ## Technical Highlights (Betting - Wallet)
@@ -247,6 +249,9 @@ catch (DbUpdateConcurrencyException)
 **How it works:**
 - SQL Server updates `RowVersion` automatically on each change
 - EF Core validates version in `WHERE` clause: `WHERE Id = X AND RowVersion = @value`
+- The balance is re-checked on the tracked read immediately before the deduction, so a bet
+  that arrives after another request spent the balance is refused with `400` insufficient
+  balance instead of driving the wallet negative
 - Concurrent updates trigger `DbUpdateConcurrencyException`
 - The loser gets `409 Conflict`: *"Another bet was placed simultaneously. Please try again"* — a retryable
   conflict, not a validation error, and the winning balance is never overwritten
@@ -260,7 +265,7 @@ catch (DbUpdateConcurrencyException)
 ## Prerequisites
 - .NET 9 SDK or later
 - SQL Server
-- RapidAPI Account (for Football API access)
+- API-Football account and key from [api-sports.io](https://api-sports.io) (direct plan, not the RapidAPI gateway)
 - Visual Studio or JetBrains Rider (developed with Rider, recommended for this project)
 - Postman or Swagger for API testing
 
@@ -289,7 +294,7 @@ cd SportsBetting
 ```
 
 ### 2. Configure Database Connection
-Edit `src/Backend/SportsBetting.API/appsettings.Development.json`:
+Create `src/Backend/SportsBetting.API/appsettings.Development.json` (the file is gitignored):
 ```json
 {
   "ConnectionStrings": {
@@ -298,17 +303,24 @@ Edit `src/Backend/SportsBetting.API/appsettings.Development.json`:
 }
 ```
 
-### 3. Configure Football API
-Get your API key from [RapidAPI](https://rapidapi.com/api-sports/api/api-football) and update `appsettings.Development.json`:
+### 3. Configure Secrets and Football API
+Get your API key from [API-Football](https://api-sports.io) (the code calls the direct
+`v3.football.api-sports.io` endpoint with the `x-apisports-key` header) and add a `Settings`
+section to `appsettings.Development.json`:
 ```json
 {
-  "FootballApi": {
-    "BaseUrl": "https://api-football-v1.p.rapidapi.com/v3",
-    "ApiKey": "YOUR_RAPIDAPI_KEY_HERE"
-  },
-  "Jwt": {
-    "SigningKey": "your-secret-key-min-32-characters-long",
-    "ExpirationMinutes": 60
+  "Settings": {
+    "Password": {
+      "AdditionalKey": "any-random-string-mixed-into-password-hashing"
+    },
+    "Jwt": {
+      "SigningKey": "your-secret-key-min-32-characters-long",
+      "ExpirationTimeMinutes": 60
+    },
+    "FootballApi": {
+      "BaseUrl": "https://v3.football.api-sports.io",
+      "ApiKey": "YOUR_API_FOOTBALL_KEY_HERE"
+    }
   }
 }
 ```
@@ -346,6 +358,7 @@ dotnet run
 | POST | `/User/register` | Register a new user account | No |
 | POST | `/Login` | Authenticate and retrieve JWT token | No |
 | GET | `/User` | Retrieve the authenticated user profile | Yes |
+| PUT | `/User` | Update the authenticated user's name and email | Yes |
 | PUT | `/User/change-password` | Update account password | Yes |
 
 ### Wallet Management
@@ -458,10 +471,10 @@ Authorization: Bearer {jwt_token}
 
 ### Error Codes
 
-- `400` - Validation error or insufficient balance
-- `401` - Unauthorized (invalid/missing token)
-- `404` - Resource not found
+- `400` - Validation error, insufficient balance, or bet/fixture/wallet not found
+- `401` - Unauthorized (invalid/missing token or invalid login)
 - `409` - Concurrent bet conflict
+- `500` - Unexpected server error
 
 ---
 
