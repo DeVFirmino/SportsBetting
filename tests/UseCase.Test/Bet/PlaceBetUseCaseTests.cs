@@ -96,6 +96,21 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
+    public async Task Execute_WithBalanceDroppedSinceValidation_ReturnsInsufficientBalance()
+    {
+        // Arrange: the no-tracking check saw enough balance, but by the time the tracked
+        // wallet is read for the deduction another request has already spent it.
+        var context = CreateContext(balance: 100m, balanceAtDeduction: 5m);
+
+        // Act
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+
+        // Assert
+        await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
+        context.PersistedBet.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Execute_WithUnknownFixture_ReturnsFixtureNotFound()
     {
         // Arrange
@@ -144,6 +159,7 @@ public class PlaceBetUseCaseTests
 
     private static TestContext CreateContext(
         decimal balance = 100m,
+        decimal? balanceAtDeduction = null,
         bool walletExists = true,
         bool fixtureExists = true,
         FixtureData? fixture = default,
@@ -161,10 +177,21 @@ public class PlaceBetUseCaseTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(walletExists ? wallet : null!);
 
+        // When balanceAtDeduction is set, the tracked read sees a different balance than the
+        // earlier no-tracking snapshot — the race the use case must re-check for.
+        var trackedWallet = balanceAtDeduction is null
+            ? wallet
+            : new SportsBetting.Domain.Entities.Wallet
+            {
+                Id = wallet.Id,
+                UserId = user.Id,
+                Balance = balanceAtDeduction.Value
+            };
+
         var walletUpdateRepository = new Mock<IWalletUpdateOnlyRepository>();
         walletUpdateRepository.Setup(repository => repository.GetByIdAsync(
             wallet.Id,
-            It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+            It.IsAny<CancellationToken>())).ReturnsAsync(trackedWallet);
 
         SportsBetting.Domain.Entities.Bet? persistedBet = null;
         var betRepository = new Mock<IBetWriteOnlyRepository>();
