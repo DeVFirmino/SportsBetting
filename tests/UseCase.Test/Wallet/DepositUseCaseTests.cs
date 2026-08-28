@@ -15,7 +15,7 @@ namespace UseCase.Test.Wallet;
 public class DepositUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithoutExistingWallet_CreatesWalletWithDepositedBalance()
+    public async Task ShouldCreateWalletWithDepositedBalanceWhenWalletDoesNotExist()
     {
         // Arrange
         var user = User();
@@ -38,7 +38,7 @@ public class DepositUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithExistingWallet_AddsAmountToBalance()
+    public async Task ShouldAddAmountToBalanceWhenWalletExists()
     {
         // Arrange
         var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
@@ -54,7 +54,7 @@ public class DepositUseCaseTests
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
-    public async Task Execute_WithInvalidAmount_ReturnsValidationError(decimal amount)
+    public async Task ShouldReturnValidationErrorWhenAmountIsInvalid(decimal amount)
     {
         // Arrange
         var useCase = CreateUseCase(User(), null);

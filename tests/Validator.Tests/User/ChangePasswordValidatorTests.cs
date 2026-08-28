@@ -8,7 +8,7 @@ namespace SportsBetting.Tests.User.ChangePassword;
 public class ChangePasswordValidatorTests
 {
     [Fact]
-    public void Validate_WithValidNewPassword_IsValid()
+    public void ShouldBeValidWhenNewPasswordIsValid()
     {
         // Arrange
         var validator = new ChangePasswordValidator();
@@ -24,7 +24,7 @@ public class ChangePasswordValidatorTests
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void Validate_WithEmptyNewPassword_ReturnsPasswordEmpty(string password)
+    public void ShouldReturnPasswordEmptyWhenNewPasswordIsEmpty(string password)
     {
         // Arrange
         var validator = new ChangePasswordValidator();
@@ -41,7 +41,7 @@ public class ChangePasswordValidatorTests
     [Theory]
     [InlineData("1")]
     [InlineData("12345")]
-    public void Validate_WithShortNewPassword_ReturnsInvalidCredentials(string password)
+    public void ShouldReturnInvalidCredentialsWhenNewPasswordIsTooShort(string password)
     {
         // Arrange
         var validator = new ChangePasswordValidator();

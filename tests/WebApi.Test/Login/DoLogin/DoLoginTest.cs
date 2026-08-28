@@ -27,7 +27,7 @@ public class DoLoginTest : SportsBettingClassFixture
     }
 
     [Fact]
-    public async Task Sucess()
+    public async Task ShouldLoginWhenCredentialsAreValid()
     {
         var request = new LoginRequest
         {
@@ -50,7 +50,7 @@ public class DoLoginTest : SportsBettingClassFixture
     
     [Theory]
     [InlineData("en-US")]
-    public async Task Error_Login_Invalid(string culture)
+    public async Task ShouldReturnUnauthorizedWhenCredentialsAreInvalid(string culture)
     {
         var request = LoginRequestBuilder.Build();
 

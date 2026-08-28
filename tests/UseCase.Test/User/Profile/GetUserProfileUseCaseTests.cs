@@ -10,7 +10,7 @@ namespace UseCase.Test.User.Profile;
 public class GetUserProfileUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithLoggedUser_ReturnsMappedProfile()
+    public async Task ShouldReturnMappedProfileWhenUserIsLoggedIn()
     {
         // Arrange
         var user = new Domain.Entities.User { Name = "Grace", Email = "grace@example.com" };

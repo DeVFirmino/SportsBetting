@@ -8,7 +8,7 @@ namespace SportsBetting.Tests.User.Update;
 public class UpdateUserValidatorTests
 {
     [Fact]
-    public void Validate_WithNameAndEmail_IsValid()
+    public void ShouldBeValidWhenNameAndEmailAreProvided()
     {
         // Arrange
         var validator = new UpdateUserValidator();
@@ -22,7 +22,7 @@ public class UpdateUserValidatorTests
     }
 
     [Fact]
-    public void Validate_WithEmptyName_ReturnsNameEmpty()
+    public void ShouldReturnNameEmptyWhenNameIsEmpty()
     {
         // Arrange
         var validator = new UpdateUserValidator();
@@ -37,7 +37,7 @@ public class UpdateUserValidatorTests
     }
 
     [Fact]
-    public void Validate_WithEmptyEmail_ReturnsEmailEmpty()
+    public void ShouldReturnEmailEmptyWhenEmailIsEmpty()
     {
         // Arrange
         var validator = new UpdateUserValidator();

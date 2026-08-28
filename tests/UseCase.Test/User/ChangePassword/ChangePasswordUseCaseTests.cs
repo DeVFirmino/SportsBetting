@@ -15,7 +15,7 @@ namespace UseCase.Test.User.ChangePassword;
 public class ChangePasswordUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithCorrectCurrentPassword_ChangesPassword()
+    public async Task ShouldChangePasswordWhenCurrentPasswordIsCorrect()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();
@@ -38,7 +38,7 @@ public class ChangePasswordUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithIncorrectCurrentPassword_ReturnsInvalidCredentials()
+    public async Task ShouldReturnInvalidCredentialsWhenCurrentPasswordIsIncorrect()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();
@@ -59,7 +59,7 @@ public class ChangePasswordUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithShortNewPassword_ReturnsValidationError()
+    public async Task ShouldReturnValidationErrorWhenNewPasswordIsTooShort()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();

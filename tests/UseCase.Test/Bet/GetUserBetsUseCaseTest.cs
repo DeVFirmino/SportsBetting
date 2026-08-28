@@ -12,7 +12,7 @@ namespace UseCase.Test.Bet;
 public class GetUserBetsUseCaseTest
 {
     [Fact]
-    public async Task Success()
+    public async Task ShouldReturnPagedBetsWhenUserIsLoggedIn()
     {
         (var user, _) = UserBuilder.Build();
         var bets = BetBuilder.Collection(5, user.Id);
@@ -38,7 +38,7 @@ public class GetUserBetsUseCaseTest
     }
 
     [Fact]
-    public async Task Error_Invalid_User()
+    public async Task ShouldThrowInvalidLoginWhenUserIsUnknown()
     {
         var request = new GetUserBetsRequest();
         var useCase = CreateUseCase(user: null);

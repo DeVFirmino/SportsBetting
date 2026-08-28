@@ -10,7 +10,7 @@ namespace UseCase.Test.ExternalServices;
 public class FootballApiServiceTests
 {
     [Fact]
-    public async Task GetUpcomingFixtures_WithSuccessfulResponse_MapsFixturesAndSendsApiKey()
+    public async Task ShouldMapFixturesAndSendApiKeyWhenResponseSucceeds()
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
@@ -42,7 +42,7 @@ public class FootballApiServiceTests
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithMoreThanTenFixtures_ReturnsFirstTen()
+    public async Task ShouldReturnFirstTenWhenMoreThanTenFixturesExist()
     {
         // Arrange
         var payload = new
@@ -68,7 +68,7 @@ public class FootballApiServiceTests
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithNullResponse_ReturnsEmptyCollection()
+    public async Task ShouldReturnEmptyCollectionWhenResponseIsNull()
     {
         // Arrange
         var service = CreateService(new StubHandler(_ => JsonResponse("{\"response\":null}")));
@@ -81,7 +81,7 @@ public class FootballApiServiceTests
     }
 
     [Fact]
-    public async Task GetUpcomingFixtures_WithFailureStatus_ThrowsHttpRequestException()
+    public async Task ShouldThrowHttpRequestExceptionWhenResponseFails()
     {
         // Arrange
         var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
