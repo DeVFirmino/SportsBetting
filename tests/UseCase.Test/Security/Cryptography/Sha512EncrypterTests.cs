@@ -6,7 +6,7 @@ namespace UseCase.Test.Security.Cryptography;
 public class Sha512EncrypterTests
 {
     [Fact]
-    public void Encrypt_WithSamePasswordAndKey_ReturnsStableHash()
+    public void ShouldReturnStableHashWhenPasswordAndKeyAreSame()
     {
         // Arrange
         var encrypter = new Sha512Encrypter("additional-key");
@@ -21,7 +21,7 @@ public class Sha512EncrypterTests
     }
 
     [Fact]
-    public void Encrypt_WithDifferentAdditionalKey_ReturnsDifferentHash()
+    public void ShouldReturnDifferentHashWhenAdditionalKeyDiffers()
     {
         // Arrange
         var firstEncrypter = new Sha512Encrypter("first-key");

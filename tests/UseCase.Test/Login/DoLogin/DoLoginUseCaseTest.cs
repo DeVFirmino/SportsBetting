@@ -14,7 +14,7 @@ namespace UseCase.Test.Login.DoLogin;
 public class DoLoginUseCaseTest
 {
     [Fact]
-    public async Task Sucess()
+    public async Task ShouldReturnTokensWhenCredentialsAreValid()
     {
         (var user, var password) = UserBuilder.Build();
 
@@ -35,7 +35,7 @@ public class DoLoginUseCaseTest
 
 
     [Fact]
-    public async Task Error_Invalid_User()
+    public async Task ShouldThrowInvalidLoginWhenCredentialsAreInvalid()
     {
         var request = LoginRequestBuilder.Build();
 

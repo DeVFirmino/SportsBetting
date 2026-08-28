@@ -19,7 +19,7 @@ public class RegisterUserTest : SportsBettingClassFixture
      public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
      
      [Fact]
-     public async Task Sucess()
+     public async Task ShouldRegisterUserWhenRequestIsValid()
      {
           var request = RegisterUserRequestBuilder.Build();
 
@@ -39,7 +39,7 @@ public class RegisterUserTest : SportsBettingClassFixture
      
      [Theory]
      [InlineData("en-US")]
-     public async Task Error_Empty_Name(string culture)
+     public async Task ShouldReturnBadRequestWhenNameIsEmpty(string culture)
      {
           var request = RegisterUserRequestBuilder.Build();
           request.Name = string.Empty;

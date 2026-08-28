@@ -33,7 +33,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
     }
 
     [Fact]
-    public async Task Commit_WhenAnotherWriterMovedTheWallet_ThrowsConcurrencyException()
+    public async Task ShouldThrowConcurrencyExceptionWhenAnotherWriterMovedTheWallet()
     {
         using var context = NewContext();
         var wallet = await context.Wallets.FirstAsync();
@@ -49,7 +49,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
     }
 
     [Fact]
-    public async Task Commit_WhenAnotherWriterMovedTheWallet_LeavesTheWinningBalanceIntact()
+    public async Task ShouldLeaveTheWinningBalanceIntactWhenAnotherWriterMovedTheWallet()
     {
         using var context = NewContext();
         var wallet = await context.Wallets.FirstAsync();
@@ -66,7 +66,7 @@ public class UnitOfWorkConcurrencyTests : IDisposable
     }
 
     [Fact]
-    public async Task Commit_WhenNobodyElseTouchedTheWallet_Persists()
+    public async Task ShouldPersistWhenNobodyElseTouchedTheWallet()
     {
         using var context = NewContext();
         var wallet = await context.Wallets.FirstAsync();

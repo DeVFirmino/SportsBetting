@@ -10,7 +10,7 @@ namespace UseCase.Test.User.GetBalance;
 public class GetBalanceUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithWallet_ReturnsCurrentBalance()
+    public async Task ShouldReturnCurrentBalanceWhenWalletExists()
     {
         // Arrange
         var useCase = CreateUseCase(new Domain.Entities.Wallet { UserId = 5, Balance = 345.67m });
@@ -23,7 +23,7 @@ public class GetBalanceUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithoutWallet_ReturnsZeroBalance()
+    public async Task ShouldReturnZeroBalanceWhenWalletDoesNotExist()
     {
         // Arrange
         var useCase = CreateUseCase(null);

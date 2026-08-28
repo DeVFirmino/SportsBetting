@@ -8,7 +8,7 @@ namespace UseCase.Test.Fixture;
 public class GetAvailableFixturesUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithUpcomingFixtures_ReturnsAllMappedFields()
+    public async Task ShouldReturnAllMappedFieldsWhenFixturesAreAvailable()
     {
         // Arrange
         var date = new DateTime(2026, 8, 20, 19, 45, 0, DateTimeKind.Utc);
@@ -34,7 +34,7 @@ public class GetAvailableFixturesUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithoutUpcomingFixtures_ReturnsEmptyCollection()
+    public async Task ShouldReturnEmptyCollectionWhenNoFixturesAreAvailable()
     {
         // Arrange
         var service = new Mock<IFootballApiService>();

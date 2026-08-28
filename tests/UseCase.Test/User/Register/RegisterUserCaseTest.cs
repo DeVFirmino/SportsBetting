@@ -15,7 +15,7 @@ namespace UseCase.Test.User.Register;
 public class RegisterUserCaseTest
 {
     [Fact]
-    public async Task Sucess()
+    public async Task ShouldRegisterUserWhenRequestIsValid()
     {
         var request = RegisterUserRequestBuilder.Build();
         
@@ -32,7 +32,7 @@ public class RegisterUserCaseTest
     }
     
     [Fact]
-    public async Task Error_Email_Already_Exist()
+    public async Task ShouldReturnErrorWhenEmailAlreadyExists()
     {
         var request = RegisterUserRequestBuilder.Build();
         
@@ -47,7 +47,7 @@ public class RegisterUserCaseTest
     }
     
     [Fact]
-    public async Task Error_Name_Empty()
+    public async Task ShouldReturnErrorWhenNameIsEmpty()
     {
         var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;

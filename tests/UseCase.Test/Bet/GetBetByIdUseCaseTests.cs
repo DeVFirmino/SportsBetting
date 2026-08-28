@@ -14,7 +14,7 @@ namespace UseCase.Test.Bet;
 public class GetBetByIdUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithExistingBet_ReturnsMappedBet()
+    public async Task ShouldReturnMappedBetWhenBetExists()
     {
         // Arrange
         var bet = new Domain.Entities.Bet
@@ -41,7 +41,7 @@ public class GetBetByIdUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithMissingBet_ReturnsBetNotFound()
+    public async Task ShouldReturnBetNotFoundWhenBetIsMissing()
     {
         // Arrange
         var useCase = CreateUseCase(null);
@@ -56,7 +56,7 @@ public class GetBetByIdUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithBetOwnedByAnotherUser_ReturnsBetNotFound()
+    public async Task ShouldReturnBetNotFoundWhenBetBelongsToAnotherUser()
     {
         // Arrange
         var bet = new Domain.Entities.Bet { Id = 11, UserId = 99 };

@@ -8,7 +8,7 @@ namespace SportsBetting.Tests.User.Register;
 public class RegisterUserValidatorTest
 {
     [Fact]
-    public void Success()
+    public void ShouldBeValidWhenRequestIsValid()
     {
         var validator = new RegisterUserValidator();
 
@@ -21,7 +21,7 @@ public class RegisterUserValidatorTest
     } 
     
     [Fact]
-    public void Error_Name_Empty()
+    public void ShouldReturnErrorWhenNameIsEmpty()
     {
         var validator = new RegisterUserValidator();
 
@@ -37,7 +37,7 @@ public class RegisterUserValidatorTest
     
     
     [Fact]
-    public void Error_Email_Empty()
+    public void ShouldReturnErrorWhenEmailIsEmpty()
         {
         var validator = new RegisterUserValidator();
 
@@ -53,7 +53,7 @@ public class RegisterUserValidatorTest
     } 
     
     [Fact]
-    public void Error_Email_Invalid()
+    public void ShouldReturnErrorWhenEmailIsInvalid()
     {
         var validator = new RegisterUserValidator();
 
@@ -74,7 +74,7 @@ public class RegisterUserValidatorTest
     [InlineData(3)]
     [InlineData(4)]
     [InlineData(5)]
-    public void Error_Password_Invalid(int passwordLength)
+    public void ShouldReturnErrorWhenPasswordIsInvalid(int passwordLength)
     {
         var validator = new RegisterUserValidator();
         

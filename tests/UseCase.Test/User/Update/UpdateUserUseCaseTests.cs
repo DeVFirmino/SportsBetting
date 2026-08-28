@@ -14,7 +14,7 @@ namespace UseCase.Test.User.Update;
 public class UpdateUserUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithValidData_UpdatesNameAndEmail()
+    public async Task ShouldUpdateNameAndEmailWhenDataIsValid()
     {
         // Arrange
         var user = User();
@@ -30,7 +30,7 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithSameEmail_UpdatesProfile()
+    public async Task ShouldUpdateProfileWhenEmailIsUnchanged()
     {
         // Arrange
         var user = User();
@@ -47,7 +47,7 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithEmailUsedByAnotherUser_ReturnsValidationError()
+    public async Task ShouldReturnValidationErrorWhenEmailBelongsToAnotherUser()
     {
         // Arrange
         var user = User();
@@ -67,7 +67,7 @@ public class UpdateUserUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithEmptyFields_ReturnsBothValidationErrors()
+    public async Task ShouldReturnBothValidationErrorsWhenFieldsAreEmpty()
     {
         // Arrange
         var user = User();

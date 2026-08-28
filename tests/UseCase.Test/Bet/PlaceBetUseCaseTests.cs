@@ -26,7 +26,7 @@ public class PlaceBetUseCaseTests
 
     [Theory]
     [MemberData(nameof(SupportedBetTypes))]
-    public async Task Execute_WithValidBet_PersistsBetAndDeductsBalance(
+    public async Task ShouldPersistBetAndDeductBalanceWhenBetIsValid(
         string requestedType,
         BetType expectedType,
         decimal expectedOdds)
@@ -52,7 +52,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithMissingOdds_UsesEvenOddsFallback()
+    public async Task ShouldUseEvenOddsWhenFixtureOddsAreMissing()
     {
         // Arrange
         var fixture = Fixture();
@@ -68,7 +68,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithoutWallet_ReturnsWalletNotFound()
+    public async Task ShouldReturnWalletNotFoundWhenWalletDoesNotExist()
     {
         // Arrange
         var context = CreateContext(walletExists: false);
@@ -82,7 +82,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithInsufficientBalance_ReturnsInsufficientBalance()
+    public async Task ShouldReturnInsufficientBalanceWhenBalanceIsTooLow()
     {
         // Arrange
         var context = CreateContext(balance: 10m);
@@ -96,7 +96,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithBalanceDroppedSinceValidation_ReturnsInsufficientBalance()
+    public async Task ShouldReturnInsufficientBalanceWhenBalanceDropsBeforeDeduction()
     {
         // Arrange: the no-tracking check saw enough balance, but by the time the tracked
         // wallet is read for the deduction another request has already spent it.
@@ -111,7 +111,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithUnknownFixture_ReturnsFixtureNotFound()
+    public async Task ShouldReturnFixtureNotFoundWhenFixtureIsUnknown()
     {
         // Arrange
         var context = CreateContext(fixtureExists: false);
@@ -127,7 +127,7 @@ public class PlaceBetUseCaseTests
     [Theory]
     [InlineData(0, "HomeWin")]
     [InlineData(20, "Invalid")]
-    public async Task Execute_WithInvalidRequest_ReturnsValidationError(decimal amount, string betType)
+    public async Task ShouldReturnValidationErrorWhenRequestIsInvalid(decimal amount, string betType)
     {
         // Arrange
         var context = CreateContext();
@@ -143,7 +143,7 @@ public class PlaceBetUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WhenCommitConflicts_SurfacesTheConcurrencyConflict()
+    public async Task ShouldSurfaceConcurrencyConflictWhenCommitLosesTheRace()
     {
         // Arrange
         var context = CreateContext(commitException: new ConcurrencyException());
