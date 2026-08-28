@@ -1,12 +1,11 @@
-using CommonTestsUtilities.Entities;
-using CommonTestsUtilities.LoggedUser;
-using CommonTestsUtilities.Repositories;
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Entities;
+using SportsBetting.Tests.Common.LoggedUser;
 using SportsBetting.Tests.Common.Mapper;
+using SportsBetting.Tests.Common.Repositories;
 
 namespace UseCase.Test.Bet;
 

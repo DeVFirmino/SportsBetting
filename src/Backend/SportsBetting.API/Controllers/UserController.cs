@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Internal;
 using SportsBetting.API.Attributes;
 using SportsBetting.Application.UseCases.User.ChangePassword;
-using SportsBetting.Communication.Requests;
-using SportsBetting.Communication.Responses;
+using SportsBetting.Application.UseCases.User.Profile;
 using SportsBetting.Application.UseCases.User.Register;
 using SportsBetting.Application.UseCases.User.Update;
+using SportsBetting.Communication.Requests;
+using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
  

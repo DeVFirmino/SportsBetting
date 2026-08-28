@@ -1,7 +1,8 @@
 using AutoMapper;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Services.LoggedUser;
 
-namespace SportsBetting.Communication.Responses;
+namespace SportsBetting.Application.UseCases.User.Profile;
 
 public sealed class GetUserProfileUseCase : IGetUserProfileUseCase
 {

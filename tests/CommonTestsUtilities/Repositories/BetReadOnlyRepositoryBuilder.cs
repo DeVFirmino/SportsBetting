@@ -3,7 +3,7 @@ using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories.BetRepository;
 
-namespace CommonTestsUtilities.Repositories;
+namespace SportsBetting.Tests.Common.Repositories;
 
 public class BetReadOnlyRepositoryBuilder
 {

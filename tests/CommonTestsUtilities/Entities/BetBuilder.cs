@@ -2,7 +2,7 @@ using Bogus;
 using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Enums;
 
-namespace CommonTestsUtilities.Entities;
+namespace SportsBetting.Tests.Common.Entities;
 
 public class BetBuilder
 {
