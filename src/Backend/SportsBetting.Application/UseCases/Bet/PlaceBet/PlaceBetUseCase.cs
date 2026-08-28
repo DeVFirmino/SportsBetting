@@ -149,6 +149,14 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
     private async Task DeductFromWallet(long walletId, decimal amount, CancellationToken cancellationToken)
     {
         var wallet = await _walletUpdateOnlyRepository.GetByIdAsync(walletId, cancellationToken);
+
+        // ValidateWallet checked a no-tracking snapshot, and the fixture lookup between the two
+        // reads is an external HTTP call, so the balance may have moved. This tracked instance is
+        // the one the UPDATE is computed from; only a check here keeps the balance from going
+        // negative, because the rowversion cannot flag a write based on a fresh read.
+        if (wallet.Balance < amount)
+            throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
+
         wallet.Balance -= amount;
         _walletUpdateOnlyRepository.Update(wallet);
     }
