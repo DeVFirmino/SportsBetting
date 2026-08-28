@@ -38,7 +38,7 @@ public class FootballApiServiceTests
             AwayWinOdds = (decimal?)3.80m
         });
         capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/fixtures?season=2024&league=140");
-        capturedRequest.Headers.GetValues("x-apisports-key").Should().ContainSingle("test-api-key");
+        capturedRequest.Headers.GetValues("x-apisports-key").Should().ContainSingle().Which.Should().Be("test-api-key");
     }
 
     [Fact]
