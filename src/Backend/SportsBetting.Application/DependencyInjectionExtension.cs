@@ -44,18 +44,21 @@ public static class DependencyInjectionExtension
         services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>(); 
     }
 
-    public static void AddAutoMapper(IServiceCollection services)
+    private static void AddAutoMapper(IServiceCollection services)
     {
-        services.AddScoped<IMapper>(sp =>
+        // The configuration compiles every mapping plan, so it is built once for the whole
+        // application; only the Mapper itself stays scoped so resolvers can use scoped services.
+        services.AddSingleton(sp =>
         {
-            ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-            var config = new MapperConfiguration(cfg =>
+            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+
+            return new MapperConfiguration(cfg =>
             {
                 cfg.AddProfile<AutoMapping>();
             }, loggerFactory);
-            return new Mapper(config, sp.GetService);
         });
+
+        services.AddScoped<IMapper>(sp =>
+            new Mapper(sp.GetRequiredService<MapperConfiguration>(), sp.GetService));
     }
-    
-  
 }
