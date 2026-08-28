@@ -1,6 +1,6 @@
 namespace SportsBetting.Communication.Requests;
 
-public class RequestDepositJson
+public sealed class DepositRequest
 {
      public decimal Amount { get; set; }
 }

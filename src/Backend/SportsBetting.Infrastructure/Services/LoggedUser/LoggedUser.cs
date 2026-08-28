@@ -8,7 +8,7 @@ using SportsBetting.Infrastructure.DataAccess;
 
 namespace SportsBetting.Infrastructure.Services.LoggedUser;
 
-public class LoggedUser : ILoggedUser
+public sealed class LoggedUser : ILoggedUser
 {
     private readonly SportsBettingDbContext _dbContext;
     private readonly ITokenProvider _tokenProvider;
@@ -19,7 +19,7 @@ public class LoggedUser : ILoggedUser
         _tokenProvider = tokenProvider;
     }
 
-    public async Task<User> User()
+    public async Task<User> GetUserAsync(CancellationToken cancellationToken)
     {
         var token = _tokenProvider.Value();
 
@@ -32,6 +32,6 @@ public class LoggedUser : ILoggedUser
         var userIdentifier = Guid.Parse(identifier);
 
         return await _dbContext.Users.AsNoTracking()
-            .FirstAsync(user => user.Active && user.UserIdentifier == userIdentifier);
+            .FirstAsync(user => user.Active && user.UserIdentifier == userIdentifier, cancellationToken);
     }   
 }

@@ -15,7 +15,7 @@ namespace UseCase.Test.User.ChangePassword;
 public class ChangePasswordUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithCorrectCurrentPassword_ChangesPassword()
+    public async Task ShouldChangePasswordWhenCurrentPasswordIsCorrect()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();
@@ -27,18 +27,18 @@ public class ChangePasswordUseCaseTests
         var useCase = CreateUseCase(user);
 
         // Act
-        await useCase.Execute(new RequestChangePasswordJson
+        await useCase.Execute(new ChangePasswordRequest
         {
             Password = "current-password",
             NewPassword = "new-password"
-        });
+        }, CancellationToken.None);
 
         // Assert
         user.Password.Should().Be(encrypter.Encrypt("new-password"));
     }
 
     [Fact]
-    public async Task Execute_WithIncorrectCurrentPassword_ReturnsInvalidCredentials()
+    public async Task ShouldReturnInvalidCredentialsWhenCurrentPasswordIsIncorrect()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();
@@ -46,11 +46,11 @@ public class ChangePasswordUseCaseTests
         var useCase = CreateUseCase(user);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new RequestChangePasswordJson
+        Func<Task> act = () => useCase.Execute(new ChangePasswordRequest
         {
             Password = "wrong-password",
             NewPassword = "new-password"
-        });
+        }, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -59,7 +59,7 @@ public class ChangePasswordUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithShortNewPassword_ReturnsValidationError()
+    public async Task ShouldReturnValidationErrorWhenNewPasswordIsTooShort()
     {
         // Arrange
         var encrypter = PasswordEncrypterBuilder.Build();
@@ -67,11 +67,11 @@ public class ChangePasswordUseCaseTests
         var useCase = CreateUseCase(user);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new RequestChangePasswordJson
+        Func<Task> act = () => useCase.Execute(new ChangePasswordRequest
         {
             Password = "current-password",
             NewPassword = "12345"
-        });
+        }, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -81,13 +81,15 @@ public class ChangePasswordUseCaseTests
     private static ChangePasswordUseCase CreateUseCase(Domain.Entities.User user)
     {
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var repository = new Mock<IUserUpdateOnlyRepository>();
-        repository.Setup(item => item.GetById(user.Id)).ReturnsAsync(user);
+        repository.Setup(item => item.GetByIdAsync(
+            user.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var unitOfWork = new Mock<IUnitOfWork>();
-        unitOfWork.Setup(work => work.Commit()).Returns(Task.CompletedTask);
+        unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         return new ChangePasswordUseCase(
             loggedUser.Object,

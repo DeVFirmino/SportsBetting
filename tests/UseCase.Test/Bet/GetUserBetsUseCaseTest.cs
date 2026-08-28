@@ -1,23 +1,22 @@
-using CommonTestsUtilities.Entities;
-using CommonTestsUtilities.LoggedUser;
-using CommonTestsUtilities.Repositories;
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Entities;
+using SportsBetting.Tests.Common.LoggedUser;
 using SportsBetting.Tests.Common.Mapper;
+using SportsBetting.Tests.Common.Repositories;
 
 namespace UseCase.Test.Bet;
 
 public class GetUserBetsUseCaseTest
 {
     [Fact]
-    public async Task Success()
+    public async Task ShouldReturnPagedBetsWhenUserIsLoggedIn()
     {
         (var user, _) = UserBuilder.Build();
         var bets = BetBuilder.Collection(5, user.Id);
-        var request = new RequestFilterBetsJson
+        var request = new GetUserBetsRequest
         {
             PageNumber = 1,
             PageSize = 10,
@@ -26,7 +25,7 @@ public class GetUserBetsUseCaseTest
 
         var useCase = CreateUseCase(user, bets, totalCount: 15);
 
-        var result = await useCase.Execute(request);
+        var result = await useCase.Execute(request, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.Items.Should().HaveCount(5);
@@ -39,12 +38,12 @@ public class GetUserBetsUseCaseTest
     }
 
     [Fact]
-    public async Task Error_Invalid_User()
+    public async Task ShouldThrowInvalidLoginWhenUserIsUnknown()
     {
-        var request = new RequestFilterBetsJson();
+        var request = new GetUserBetsRequest();
         var useCase = CreateUseCase(user: null);
 
-        Func<Task> action = async () => await useCase.Execute(request);
+        Func<Task> action = async () => await useCase.Execute(request, CancellationToken.None);
 
         await action.Should().ThrowAsync<InvalidLoginException>();
     }
@@ -65,7 +64,7 @@ public class GetUserBetsUseCaseTest
 
         if (bets is not null)
         {
-            repositoryBuilder.GetPagedByUserId(bets, totalCount);
+            repositoryBuilder.GetPagedByUserIdAsync(bets, totalCount);
         }
 
         return new GetUserBetsUseCase(loggedUserBuilder.Build(), repositoryBuilder.Build(), mapper);

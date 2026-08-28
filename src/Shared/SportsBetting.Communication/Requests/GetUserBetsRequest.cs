@@ -1,6 +1,6 @@
 namespace SportsBetting.Communication.Requests;
 
-public class RequestFilterBetsJson
+public sealed class GetUserBetsRequest
 {
     private const int MaxPageSize = 50;
     private int _pageSize = 10;

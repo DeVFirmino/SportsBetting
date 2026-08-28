@@ -8,7 +8,7 @@ namespace UseCase.Test.Fixture;
 public class GetAvailableFixturesUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithUpcomingFixtures_ReturnsAllMappedFields()
+    public async Task ShouldReturnAllMappedFieldsWhenFixturesAreAvailable()
     {
         // Arrange
         var date = new DateTime(2026, 8, 20, 19, 45, 0, DateTimeKind.Utc);
@@ -23,26 +23,26 @@ public class GetAvailableFixturesUseCaseTests
             AwayWinOdds = 4.1m
         };
         var service = new Mock<IFootballApiService>();
-        service.Setup(api => api.GetUpcomingFixtures()).ReturnsAsync([fixture]);
+        service.Setup(api => api.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([fixture]);
         var useCase = new GetAvailableFixturesUseCase(service.Object);
 
         // Act
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(CancellationToken.None);
 
         // Assert
         result.Should().ContainSingle().Which.Should().BeEquivalentTo(fixture);
     }
 
     [Fact]
-    public async Task Execute_WithoutUpcomingFixtures_ReturnsEmptyCollection()
+    public async Task ShouldReturnEmptyCollectionWhenNoFixturesAreAvailable()
     {
         // Arrange
         var service = new Mock<IFootballApiService>();
-        service.Setup(api => api.GetUpcomingFixtures()).ReturnsAsync([]);
+        service.Setup(api => api.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var useCase = new GetAvailableFixturesUseCase(service.Object);
 
         // Act
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(CancellationToken.None);
 
         // Assert
         result.Should().BeEmpty();

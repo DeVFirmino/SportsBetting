@@ -1,6 +1,6 @@
 namespace SportsBetting.Communication.Responses;
 
-public class ResponseWalletJson
+public sealed class WalletBalanceResponse
 {
     public decimal Balance { get; set; }
 }

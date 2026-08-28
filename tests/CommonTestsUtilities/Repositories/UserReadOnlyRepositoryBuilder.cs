@@ -13,14 +13,19 @@ public class UserReadOnlyRepositoryBuilder
         _repository = new Mock<IUserReadOnlyRepository>();
     }
 
-    public void ExistActiveUserWithEmail(string email)
+    public void ExistsActiveUserWithEmailAsync(string email)
     {
-        _repository.Setup(r => r.ExistActiveUserWithEmail(email)).ReturnsAsync(true);
+        _repository.Setup(r => r.ExistsActiveUserWithEmailAsync(
+            email,
+            It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
     
-    public void GetByEmailAndPassword(User user)
+    public void GetByEmailAndPasswordAsync(User user)
     {
-        _repository.Setup(r => r.GetByEmailAndPassword(user.Email, user.Password)).ReturnsAsync(user);
+        _repository.Setup(r => r.GetByEmailAndPasswordAsync(
+            user.Email,
+            user.Password,
+            It.IsAny<CancellationToken>())).ReturnsAsync(user);
     }
     public IUserReadOnlyRepository Build()
     {

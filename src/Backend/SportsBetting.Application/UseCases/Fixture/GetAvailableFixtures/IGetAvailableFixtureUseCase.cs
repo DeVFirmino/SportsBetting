@@ -4,5 +4,5 @@ namespace SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
 
 public interface IGetAvailableFixtureUseCase
 {
-    Task<List<ResponseFixtureJson>> Execute();
+    Task<List<FixtureResponse>> Execute(CancellationToken cancellationToken);
 }

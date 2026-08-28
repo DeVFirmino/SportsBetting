@@ -13,7 +13,7 @@ using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.Bet.PlaceBet;
 
-public class PlaceBetUseCase : IPlaceBetUseCase
+public sealed class PlaceBetUseCase : IPlaceBetUseCase
 {
     private readonly ILoggedUser _loggedUser;
     private readonly IMapper _mapper;
@@ -41,30 +41,30 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         _footballApiService = footballApiService;
     }
 
-    public async Task<ResponseBetsJson> Execute(RequestPlaceBetJson request)
+    public async Task<BetResponse> Execute(PlaceBetRequest request, CancellationToken cancellationToken)
     {
-        await Validate(request);
+        Validate(request);
 
-        var loggedUser = await _loggedUser.User();
+        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
-        var wallet = await ValidateWallet(loggedUser.Id, request.Amount);
+        var wallet = await ValidateWallet(loggedUser.Id, request.Amount, cancellationToken);
 
-        var fixture = await GetFixture(request.FixtureId);
+        var fixture = await GetFixture(request.FixtureId, cancellationToken);
 
         var bet = CreateBet(request, loggedUser.Id, fixture);
 
-        await DeductFromWallet(wallet.Id, request.Amount);
+        await DeductFromWallet(wallet.Id, request.Amount, cancellationToken);
 
-        await _betWriteOnlyRepository.Add(bet);
+        await _betWriteOnlyRepository.AddAsync(bet, cancellationToken);
 
         // A lost concurrency check surfaces as ConcurrencyException: the request was valid and
         // the balance moved underneath it, so the API answers 409 and the client can retry.
-        await _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync(cancellationToken);
 
-        return _mapper.Map<ResponseBetsJson>(bet);
+        return _mapper.Map<BetResponse>(bet);
     }
 
-    public async Task Validate(RequestPlaceBetJson request)
+    private static void Validate(PlaceBetRequest request)
     {
         var validator = new PlaceBetValidator();
 
@@ -79,9 +79,12 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         }
     }
 
-    private async Task<Domain.Entities.Wallet> ValidateWallet(long userId, decimal amount)
+    private async Task<Domain.Entities.Wallet> ValidateWallet(
+        long userId,
+        decimal amount,
+        CancellationToken cancellationToken)
     {
-        var wallet = await _walletReadOnlyRepository.GetByUserId(userId);
+        var wallet = await _walletReadOnlyRepository.GetByUserIdAsync(userId, cancellationToken);
 
         if (wallet is null)
             throw new ErrorOnValidationException([ResourcesMessagesException.WALLET_NOT_FOUND]);
@@ -92,9 +95,9 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         return wallet;
     }
 
-    private async Task<FixtureData> GetFixture(int fixtureId)
+    private async Task<FixtureData> GetFixture(int fixtureId, CancellationToken cancellationToken)
     {
-        var fixtures = await _footballApiService.GetUpcomingFixtures();
+        var fixtures = await _footballApiService.GetUpcomingFixturesAsync(cancellationToken);
 
         var fixture = fixtures.FirstOrDefault(f => f.FixtureId == fixtureId);
 
@@ -127,7 +130,7 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         }
     }
 
-    private Domain.Entities.Bet CreateBet(RequestPlaceBetJson request, long userId, FixtureData fixture)
+    private Domain.Entities.Bet CreateBet(PlaceBetRequest request, long userId, FixtureData fixture)
     {
         var bet = _mapper.Map<Domain.Entities.Bet>(request);
 
@@ -143,9 +146,17 @@ public class PlaceBetUseCase : IPlaceBetUseCase
         return bet;
     }
 
-    private async Task DeductFromWallet(long walletId, decimal amount)
+    private async Task DeductFromWallet(long walletId, decimal amount, CancellationToken cancellationToken)
     {
-        var wallet = await _walletUpdateOnlyRepository.GetById(walletId);
+        var wallet = await _walletUpdateOnlyRepository.GetByIdAsync(walletId, cancellationToken);
+
+        // ValidateWallet checked a no-tracking snapshot, and the fixture lookup between the two
+        // reads is an external HTTP call, so the balance may have moved. This tracked instance is
+        // the one the UPDATE is computed from; only a check here keeps the balance from going
+        // negative, because the rowversion cannot flag a write based on a fresh read.
+        if (wallet.Balance < amount)
+            throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
+
         wallet.Balance -= amount;
         _walletUpdateOnlyRepository.Update(wallet);
     }

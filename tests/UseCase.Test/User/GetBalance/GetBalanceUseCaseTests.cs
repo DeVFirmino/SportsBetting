@@ -10,26 +10,26 @@ namespace UseCase.Test.User.GetBalance;
 public class GetBalanceUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithWallet_ReturnsCurrentBalance()
+    public async Task ShouldReturnCurrentBalanceWhenWalletExists()
     {
         // Arrange
         var useCase = CreateUseCase(new Domain.Entities.Wallet { UserId = 5, Balance = 345.67m });
 
         // Act
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(CancellationToken.None);
 
         // Assert
         result.Balance.Should().Be(345.67m);
     }
 
     [Fact]
-    public async Task Execute_WithoutWallet_ReturnsZeroBalance()
+    public async Task ShouldReturnZeroBalanceWhenWalletDoesNotExist()
     {
         // Arrange
         var useCase = CreateUseCase(null);
 
         // Act
-        var result = await useCase.Execute();
+        var result = await useCase.Execute(CancellationToken.None);
 
         // Assert
         result.Balance.Should().Be(0m);
@@ -39,10 +39,12 @@ public class GetBalanceUseCaseTests
     {
         var user = new Domain.Entities.User { Id = 5 };
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var repository = new Mock<IWalletReadOnlyRepository>();
-        repository.Setup(item => item.GetByUserId(user.Id)).ReturnsAsync(wallet!);
+        repository.Setup(item => item.GetByUserIdAsync(
+            user.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(wallet!);
 
         return new GetBalanceUseCase(repository.Object, loggedUser.Object);
     }

@@ -7,26 +7,32 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
 
-public class WalletController : SportsBettingBaseController
+[ApiController]
+[Route("Wallet")]
+public sealed class WalletController : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(ResponseWalletJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(WalletBalanceResponse), StatusCodes.Status200OK)]
     [AuthenticatedUser]
-    public async Task<IActionResult> GetBalance([FromServices] IGetBalanceUseCase useCase)
+    public async Task<IActionResult> GetBalance(
+        [FromServices] IGetBalanceUseCase useCase,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute();
+        var response = await useCase.Execute(cancellationToken);
         
         return Ok(response);
     }
 
     [HttpPost("deposit")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)] //View that later to change to 200
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [AuthenticatedUser]
-    public async Task<IActionResult> Deposit([FromServices] IDepositUseCase useCase,
-        [FromBody] RequestDepositJson request)
+    public async Task<IActionResult> Deposit(
+        [FromServices] IDepositUseCase useCase,
+        [FromBody] DepositRequest request,
+        CancellationToken cancellationToken)
     {
-        await useCase.Execute(request);
+        await useCase.Execute(request, cancellationToken);
         
         return NoContent();
     }

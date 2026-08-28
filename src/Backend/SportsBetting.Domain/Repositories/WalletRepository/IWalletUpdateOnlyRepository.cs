@@ -2,7 +2,7 @@ namespace SportsBetting.Domain.Repositories.WalletRepository;
 
 public interface IWalletUpdateOnlyRepository
 {
-    public Task<Entities.Wallet> GetById(long id); 
+    Task<Entities.Wallet> GetByIdAsync(long id, CancellationToken cancellationToken);
     
-    public void Update(Entities.Wallet wallet);
+    void Update(Entities.Wallet wallet);
 }

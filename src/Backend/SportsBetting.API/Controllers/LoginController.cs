@@ -5,15 +5,20 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
  
-public class LoginController : SportsBettingBaseController
+[ApiController]
+[Route("Login")]
+public sealed class LoginController : ControllerBase
 {
     [HttpPost]
-    [ProducesResponseType(typeof(ResponseRegisteredUserJson), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
 
-    public async Task<IActionResult> Login([FromServices] IDoLoginUseCase useCase, [FromBody] RequestLoginJson request)
+    public async Task<IActionResult> Login(
+        [FromServices] IDoLoginUseCase useCase,
+        [FromBody] LoginRequest request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         
         return Ok(response);
     }

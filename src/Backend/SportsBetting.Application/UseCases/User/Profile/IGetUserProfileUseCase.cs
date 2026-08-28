@@ -1,6 +1,8 @@
-namespace SportsBetting.Communication.Responses;
+using SportsBetting.Communication.Responses;
+
+namespace SportsBetting.Application.UseCases.User.Profile;
 
 public interface IGetUserProfileUseCase
 {
-    public Task<ResponseUserProfileJson> Execute();
+    Task<UserProfileResponse> Execute(CancellationToken cancellationToken);
 }

@@ -16,12 +16,12 @@ public class AutoMapping : Profile
      
      private void RequestToDomain()
      {
-          CreateMap<RequestRegisterUserJson, Domain.Entities.User>()
+          CreateMap<RegisterUserRequest, Domain.Entities.User>()
                .ForMember(dest => dest.Password,
                     opt => opt.Ignore())
                .ForMember(dest => dest.Active, opt => opt.MapFrom(_ => true));
 
-          CreateMap<RequestPlaceBetJson, Domain.Entities.Bet>()
+          CreateMap<PlaceBetRequest, Domain.Entities.Bet>()
                .ForMember(dest => dest.Odds, opt => opt.Ignore())
                .ForMember(dest => dest.EventName, opt => opt.Ignore())
                .ForMember(dest => dest.BetType, opt => opt.Ignore())
@@ -32,11 +32,9 @@ public class AutoMapping : Profile
      
      private void DomainToResponse()
      {
-          CreateMap<Domain.Entities.User, ResponseUserProfileJson>();
+          CreateMap<Domain.Entities.User, UserProfileResponse>();
           
-          CreateMap<Domain.Entities.Bet, ResponseUserBetJson>();
-          
-          CreateMap<Domain.Entities.Bet, ResponseBetsJson>();
+          CreateMap<Domain.Entities.Bet, BetResponse>();
 
      }
 }

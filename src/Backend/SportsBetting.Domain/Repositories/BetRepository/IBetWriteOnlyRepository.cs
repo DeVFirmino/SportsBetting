@@ -2,5 +2,5 @@ namespace SportsBetting.Domain.Repositories.BetRepository;
 
 public interface IBetWriteOnlyRepository
 {
-    Task Add(Entities.Bet bet);
+    Task AddAsync(Entities.Bet bet, CancellationToken cancellationToken);
 }

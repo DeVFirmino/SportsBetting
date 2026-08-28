@@ -15,19 +15,21 @@ namespace UseCase.Test.Wallet;
 public class DepositUseCaseTests
 {
     [Fact]
-    public async Task Execute_WithoutExistingWallet_CreatesWalletWithDepositedBalance()
+    public async Task ShouldCreateWalletWithDepositedBalanceWhenWalletDoesNotExist()
     {
         // Arrange
         var user = User();
         Domain.Entities.Wallet? createdWallet = null;
         var writeRepository = new Mock<IWalletWriteOnlyRepository>();
-        writeRepository.Setup(repository => repository.Add(It.IsAny<Domain.Entities.Wallet>()))
-            .Callback<Domain.Entities.Wallet>(wallet => createdWallet = wallet)
+        writeRepository.Setup(repository => repository.AddAsync(
+                It.IsAny<Domain.Entities.Wallet>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Domain.Entities.Wallet, CancellationToken>((wallet, _) => createdWallet = wallet)
             .Returns(Task.CompletedTask);
         var useCase = CreateUseCase(user, null, writeRepository: writeRepository);
 
         // Act
-        await useCase.Execute(new RequestDepositJson { Amount = 75m });
+        await useCase.Execute(new DepositRequest { Amount = 75m }, CancellationToken.None);
 
         // Assert
         createdWallet.Should().NotBeNull();
@@ -36,14 +38,14 @@ public class DepositUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_WithExistingWallet_AddsAmountToBalance()
+    public async Task ShouldAddAmountToBalanceWhenWalletExists()
     {
         // Arrange
         var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
         var useCase = CreateUseCase(User(), wallet);
 
         // Act
-        await useCase.Execute(new RequestDepositJson { Amount = 25.50m });
+        await useCase.Execute(new DepositRequest { Amount = 25.50m }, CancellationToken.None);
 
         // Assert
         wallet.Balance.Should().Be(125.50m);
@@ -52,13 +54,13 @@ public class DepositUseCaseTests
     [Theory]
     [InlineData(0)]
     [InlineData(-10)]
-    public async Task Execute_WithInvalidAmount_ReturnsValidationError(decimal amount)
+    public async Task ShouldReturnValidationErrorWhenAmountIsInvalid(decimal amount)
     {
         // Arrange
         var useCase = CreateUseCase(User(), null);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new RequestDepositJson { Amount = amount });
+        Func<Task> act = () => useCase.Execute(new DepositRequest { Amount = amount }, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -72,19 +74,23 @@ public class DepositUseCaseTests
         Mock<IWalletWriteOnlyRepository>? writeRepository = null)
     {
         var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.User()).ReturnsAsync(user);
+        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var readRepository = new Mock<IWalletReadOnlyRepository>();
-        readRepository.Setup(repository => repository.GetByUserId(user.Id)).ReturnsAsync(wallet!);
+        readRepository.Setup(repository => repository.GetByUserIdAsync(
+            user.Id,
+            It.IsAny<CancellationToken>())).ReturnsAsync(wallet!);
 
         var updateRepository = new Mock<IWalletUpdateOnlyRepository>();
         if (wallet is not null)
         {
-            updateRepository.Setup(repository => repository.GetById(wallet.Id)).ReturnsAsync(wallet);
+            updateRepository.Setup(repository => repository.GetByIdAsync(
+                wallet.Id,
+                It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
         }
 
         var unitOfWork = new Mock<IUnitOfWork>();
-        unitOfWork.Setup(work => work.Commit()).Returns(Task.CompletedTask);
+        unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         return new DepositUseCase(
             (writeRepository ?? new Mock<IWalletWriteOnlyRepository>()).Object,

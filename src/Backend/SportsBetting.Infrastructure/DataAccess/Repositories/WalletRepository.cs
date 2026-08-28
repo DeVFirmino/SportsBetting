@@ -4,7 +4,7 @@ using SportsBetting.Domain.Repositories.WalletRepository;
 
 namespace SportsBetting.Infrastructure.DataAccess.Repositories;
 
-public class WalletRepository : IWalletReadOnlyRepository, IWalletWriteOnlyRepository, IWalletUpdateOnlyRepository
+public sealed class WalletRepository : IWalletReadOnlyRepository, IWalletWriteOnlyRepository, IWalletUpdateOnlyRepository
 {
     private readonly SportsBettingDbContext _context;
     
@@ -13,28 +13,28 @@ public class WalletRepository : IWalletReadOnlyRepository, IWalletWriteOnlyRepos
         _context = context;
     }
     
-    public async Task Add(Wallet wallet)
+    public async Task AddAsync(Wallet wallet, CancellationToken cancellationToken)
     {
-        await _context.Wallets.AddAsync(wallet);
+        await _context.Wallets.AddAsync(wallet, cancellationToken);
     }
     
-    public async Task<Wallet?> GetByUserId(long userId)
+    public async Task<Wallet?> GetByUserIdAsync(long userId, CancellationToken cancellationToken)
     {
         return await _context.Wallets
             .AsNoTracking()
-            .FirstOrDefaultAsync(w => w.UserId == userId && w.Active);
+            .FirstOrDefaultAsync(w => w.UserId == userId && w.Active, cancellationToken);
     }
  
-    public async Task<bool> ExistWalletForUser(long userId)
+    public async Task<bool> ExistsWalletForUserAsync(long userId, CancellationToken cancellationToken)
     {
         return await _context.Wallets
-            .AnyAsync(w => w.UserId == userId && w.Active);
+            .AnyAsync(w => w.UserId == userId && w.Active, cancellationToken);
      }
 
-    public async Task<Wallet> GetById(long id)
+    public async Task<Wallet> GetByIdAsync(long id, CancellationToken cancellationToken)
     {
         return await _context.Wallets
-            .FirstAsync(w => w.Id == id);
+            .FirstAsync(w => w.Id == id, cancellationToken);
     }
 
     public void Update(Wallet wallet)
@@ -43,4 +43,3 @@ public class WalletRepository : IWalletReadOnlyRepository, IWalletWriteOnlyRepos
             .Update(wallet);    
     }
 }   
-

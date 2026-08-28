@@ -3,7 +3,7 @@ using SportsBetting.Domain.Services.ExternalApis;
 
 namespace SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
 
-public class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
+public sealed class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
 {
     private readonly IFootballApiService _footballApiService;
 
@@ -12,11 +12,11 @@ public class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
         _footballApiService = footballApiService;
     }
 
-    public async Task<List<ResponseFixtureJson>> Execute()
+    public async Task<List<FixtureResponse>> Execute(CancellationToken cancellationToken)
     {
-        var fixtures = await _footballApiService.GetUpcomingFixtures();
+        var fixtures = await _footballApiService.GetUpcomingFixturesAsync(cancellationToken);
 
-        var response = fixtures.Select(f => new ResponseFixtureJson
+        var response = fixtures.Select(f => new FixtureResponse
         {
             FixtureId = f.FixtureId,
             HomeTeam = f.HomeTeam,
@@ -26,8 +26,6 @@ public class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
             DrawOdds = f.DrawOdds,
             AwayWinOdds = f.AwayWinOdds
         }).ToList();
-        //TO DO VALIDATORS FOR BETTING
-
         return response;
     }
 }

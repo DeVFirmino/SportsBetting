@@ -5,15 +5,16 @@ namespace SportsBetting.Domain.Repositories.BetRepository;
 
 public interface IBetReadOnlyRepository
 {
-    Task<List<Bet>> GetByUserId(long userId);
+    Task<List<Bet>> GetByUserIdAsync(long userId, CancellationToken cancellationToken);
 
-    Task<Bet?> GetById(long id);
+    Task<Bet?> GetByIdAsync(long id, CancellationToken cancellationToken);
 
-    Task<(List<Bet> Items, int TotalCount)> GetPagedByUserId(
+    Task<(List<Bet> Items, int TotalCount)> GetPagedByUserIdAsync(
         long userId,
         int pageNumber,
         int pageSize,
-        BetStatus? status = null,
-        DateTime? startDate = null,
-        DateTime? endDate = null);
+        BetStatus? status,
+        DateTime? startDate,
+        DateTime? endDate,
+        CancellationToken cancellationToken);
 }

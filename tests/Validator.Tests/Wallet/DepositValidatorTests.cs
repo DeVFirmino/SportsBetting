@@ -8,11 +8,11 @@ namespace SportsBetting.Tests.Wallet;
 public class DepositValidatorTests
 {
     [Fact]
-    public void Validate_WithPositiveAmount_IsValid()
+    public void ShouldBeValidWhenAmountIsPositive()
     {
         // Arrange
         var validator = new DepositValidator();
-        var request = new RequestDepositJson { Amount = 25.50m };
+        var request = new DepositRequest { Amount = 25.50m };
 
         // Act
         var result = validator.Validate(request);
@@ -25,11 +25,11 @@ public class DepositValidatorTests
     [InlineData(0)]
     [InlineData(-0.01)]
     [InlineData(-100)]
-    public void Validate_WithNonPositiveAmount_ReturnsAmountInvalid(decimal amount)
+    public void ShouldReturnAmountInvalidWhenAmountIsNotPositive(decimal amount)
     {
         // Arrange
         var validator = new DepositValidator();
-        var request = new RequestDepositJson { Amount = amount };
+        var request = new DepositRequest { Amount = amount };
 
         // Act
         var result = validator.Validate(request);

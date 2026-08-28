@@ -4,5 +4,5 @@ namespace SportsBetting.Application.UseCases.User.GetBalance;
 
 public interface IGetBalanceUseCase
 {
-    public Task<ResponseWalletJson> Execute();
+    Task<WalletBalanceResponse> Execute(CancellationToken cancellationToken);
 }
