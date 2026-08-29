@@ -115,12 +115,17 @@ the betting odds are fixed study values defined in the application.
 </tr>
 </table>
 
-## Architecture
-This project follows **Clean Architecture** with clear separation of concerns:
+## How a bet is placed
 
-![Architecture diagram: clients call the ASP.NET Core 9 API through JWT auth; API, Application, Domain and Infrastructure layers sit inside one container, with Azure SQL below and api-sports.io queried for fixture data](docs/img/architecture.svg)
+The diagram follows one request from the API to a `Pending` bet. It also shows where the API returns `400` or `409`.
+
+![Flow diagram showing how SportsBetting validates a bet request, loads fixture data, protects the wallet with RowVersion, and saves the wallet debit and Pending bet together](docs/img/architecture.svg)
 
 *Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
+
+## Project structure
+
+This project follows **Clean Architecture** with clear separation of concerns:
 
 ```text
 SportsBetting/
