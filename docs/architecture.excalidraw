@@ -245,7 +245,7 @@
       "width": 220,
       "height": 170,
       "angle": 0,
-      "backgroundColor": "#ffedd5",
+      "backgroundColor": "#fef3c7",
       "boundElements": [
         {
           "id": "sports_step_3-label",
@@ -290,7 +290,7 @@
       "width": 44,
       "height": 44,
       "angle": 0,
-      "backgroundColor": "#ea580c",
+      "backgroundColor": "#d97706",
       "boundElements": [
         {
           "id": "sports_num_3-label",
@@ -327,7 +327,7 @@
       "width": 220,
       "height": 170,
       "angle": 0,
-      "backgroundColor": "#fef3c7",
+      "backgroundColor": "#ffedd5",
       "boundElements": [
         {
           "id": "sports_step_4-label",
@@ -372,7 +372,7 @@
       "width": 44,
       "height": 44,
       "angle": 0,
-      "backgroundColor": "#d97706",
+      "backgroundColor": "#ea580c",
       "boundElements": [
         {
           "id": "sports_num_4-label",
@@ -1204,14 +1204,14 @@
       "link": null,
       "locked": false,
       "opacity": 100,
-      "originalText": "Load the fixture\n\nAPI-Football supplies\nthe match data",
+      "originalText": "Check the wallet\n\nVerify the balance\nbefore anything else",
       "roughness": 1,
       "roundness": null,
       "seed": 662231734,
       "strokeColor": "#334155",
       "strokeStyle": "solid",
       "strokeWidth": 1,
-      "text": "Load the fixture\n\nAPI-Football supplies\nthe match data",
+      "text": "Check the wallet\n\nVerify the balance\nbefore anything else",
       "textAlign": "center",
       "updated": 1788042335091,
       "version": 1,
@@ -1278,14 +1278,14 @@
       "link": null,
       "locked": false,
       "opacity": 100,
-      "originalText": "Check the wallet\n\nVerify the balance\nand the fixed odds",
+      "originalText": "Load the fixture\n\nAPI-Football supplies\nthe match data",
       "roughness": 1,
       "roundness": null,
       "seed": 955376985,
       "strokeColor": "#334155",
       "strokeStyle": "solid",
       "strokeWidth": 1,
-      "text": "Check the wallet\n\nVerify the balance\nand the fixed odds",
+      "text": "Load the fixture\n\nAPI-Football supplies\nthe match data",
       "textAlign": "center",
       "updated": 1788042335091,
       "version": 1,

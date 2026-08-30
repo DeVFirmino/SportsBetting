@@ -119,7 +119,7 @@ the betting odds are fixed study values defined in the application.
 
 The diagram follows one request from the API to a `Pending` bet. It also shows where the API returns `400` or `409`.
 
-![Flow diagram showing how SportsBetting validates a bet request, loads fixture data, protects the wallet with RowVersion, and saves the wallet debit and Pending bet together](docs/img/architecture.svg)
+![Flow diagram showing how SportsBetting validates a bet request, checks the wallet, loads fixture data, and saves the wallet debit and Pending bet together under RowVersion protection](docs/img/architecture.svg)
 
 *Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
 
