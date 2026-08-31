@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using FluentAssertions;
 using SportsBetting.Application.UseCases.User.Login.DoLogin;
 using SportsBetting.Communication.Requests;
@@ -51,63 +49,6 @@ public class DoLoginUseCaseTest
     }
 
     [Fact]
-    public async Task ShouldRehashTheStoredPasswordWhenItUsesTheRetiredSha512Scheme()
-    {
-        // Load-bearing values: the retired scheme hashed "{password} {additionalKey}" as
-        // uppercase-hex SHA-512, and this is the exact shape a pre-migration row carries.
-        const string password = "current-password";
-        const string additionalKey = "abc1234";
-
-        var user = new SportsBetting.Domain.Entities.User
-        {
-            Id = 5,
-            Name = "Legacy User",
-            Email = "legacy@example.com",
-            UserIdentifier = Guid.NewGuid(),
-            Password = LegacySha512(password, additionalKey)
-        };
-
-        var useCase = CreateUseCase(user, additionalKey);
-
-        var result = await useCase.Execute(new LoginRequest
-        {
-            Email = user.Email,
-            Password = password
-        }, CancellationToken.None);
-
-        result.Tokens.AccessToken.Should().NotBeNullOrEmpty();
-        user.Password.Should().NotBe(LegacySha512(password, additionalKey));
-        PasswordHasherBuilder.Build().Verify(user, user.Password, password)
-            .Should().Be(PasswordVerificationOutcome.Success);
-    }
-
-    [Fact]
-    public async Task ShouldThrowInvalidLoginWhenTheLegacyPepperIsNotConfigured()
-    {
-        const string password = "current-password";
-
-        var user = new SportsBetting.Domain.Entities.User
-        {
-            Id = 5,
-            Name = "Legacy User",
-            Email = "legacy@example.com",
-            UserIdentifier = Guid.NewGuid(),
-            Password = LegacySha512(password, "abc1234")
-        };
-
-        // Without the pepper the legacy hash cannot be verified, so the login fails closed.
-        var useCase = CreateUseCase(user, legacyAdditionalKey: null);
-
-        Func<Task> action = () => useCase.Execute(new LoginRequest
-        {
-            Email = user.Email,
-            Password = password
-        }, CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidLoginException>();
-    }
-
-    [Fact]
     public async Task ShouldPayTheHashingCostWhenTheUserDoesNotExist()
     {
         var request = LoginRequestBuilder.Build();
@@ -126,27 +67,19 @@ public class DoLoginUseCaseTest
 
     private static DoLoginUseCase CreateUseCase(
         SportsBetting.Domain.Entities.User? user = null,
-        string? legacyAdditionalKey = null,
         IPasswordHasher? passwordHasher = null)
     {
-        passwordHasher ??= PasswordHasherBuilder.Build(legacyAdditionalKey);
+        passwordHasher ??= PasswordHasherBuilder.Build();
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
-        var userUpdateOnlyRepositoryBuilder = new UserUpdateOnlyRepositoryBuilder();
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
         if(user is not null)
         {
             userReadOnlyRepositoryBuilder.GetByEmailAsync(user);
-            userUpdateOnlyRepositoryBuilder.GetById(user);
         }
 
         return new DoLoginUseCase(
             userReadOnlyRepositoryBuilder.Build(),
-            userUpdateOnlyRepositoryBuilder.Build(),
             passwordHasher,
-            accessTokenGenerator,
-            UnitOfWorkBuilder.Build());
+            accessTokenGenerator);
     }
-
-    private static string LegacySha512(string password, string additionalKey) =>
-        Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes($"{password} {additionalKey}")));
 }

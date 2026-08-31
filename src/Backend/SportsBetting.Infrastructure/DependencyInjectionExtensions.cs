@@ -107,11 +107,6 @@ public static class DependencyInjectionExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Optional on purpose: only deployments with password hashes from before the Identity
-        // hasher need the legacy pepper, so a missing section must not fail startup.
-        services.AddOptions<LegacyPasswordOptions>()
-            .Bind(configuration.GetSection(LegacyPasswordOptions.SectionName));
-
         if (configuration.IsUnitTestEnvironment() is false)
         {
             services.AddOptions<DatabaseOptions>()

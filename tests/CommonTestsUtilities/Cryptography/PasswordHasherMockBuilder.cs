@@ -21,7 +21,7 @@ public sealed class PasswordHasherMockBuilder
 
         _hasher
             .Setup(hasher => hasher.Verify(It.IsAny<User>(), It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(PasswordVerificationOutcome.Failed);
+            .Returns(false);
     }
 
     public PasswordHasherMockBuilder VerifyWasInvokedOnce()

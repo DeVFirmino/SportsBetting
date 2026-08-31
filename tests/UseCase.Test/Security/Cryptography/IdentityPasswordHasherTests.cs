@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
 using FluentAssertions;
-using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Tests.Common.Cryptography;
 using DomainUser = SportsBetting.Domain.Entities.User;
 
@@ -21,7 +18,7 @@ public class IdentityPasswordHasherTests
         var verified = hasher.Verify(user, stored, "password123");
 
         // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Success);
+        verified.Should().BeTrue();
     }
 
     [Fact]
@@ -51,7 +48,7 @@ public class IdentityPasswordHasherTests
         var verified = hasher.Verify(user, stored, "wrong-password");
 
         // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Failed);
+        verified.Should().BeFalse();
     }
 
     [Theory]
@@ -68,67 +65,6 @@ public class IdentityPasswordHasherTests
         var verified = hasher.Verify(user, stored, "password123");
 
         // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Failed);
+        verified.Should().BeFalse();
     }
-
-    [Fact]
-    public void ShouldRequireARehashWhenTheStoredHashUsesTheRetiredSha512Scheme()
-    {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build(legacyAdditionalKey: "abc1234");
-        var user = new DomainUser { Email = "user@example.com" };
-
-        // Act
-        var verified = hasher.Verify(user, LegacySha512("password123", "abc1234"), "password123");
-
-        // Assert
-        // The password matched, but only the login flow holds the plain text needed to store a
-        // modern hash in its place — hence the distinct outcome.
-        verified.Should().Be(PasswordVerificationOutcome.SuccessRehashRequired);
-    }
-
-    [Fact]
-    public void ShouldFailWhenTheLegacyPasswordIsWrong()
-    {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build(legacyAdditionalKey: "abc1234");
-        var user = new DomainUser { Email = "user@example.com" };
-
-        // Act
-        var verified = hasher.Verify(user, LegacySha512("password123", "abc1234"), "wrong-password");
-
-        // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Failed);
-    }
-
-    [Fact]
-    public void ShouldFailWhenTheLegacyPepperDiffersFromTheOneTheHashWasMadeWith()
-    {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build(legacyAdditionalKey: "another-key");
-        var user = new DomainUser { Email = "user@example.com" };
-
-        // Act
-        var verified = hasher.Verify(user, LegacySha512("password123", "abc1234"), "password123");
-
-        // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Failed);
-    }
-
-    [Fact]
-    public void ShouldFailWhenTheHashIsLegacyShapedButNoPepperIsConfigured()
-    {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build();
-        var user = new DomainUser { Email = "user@example.com" };
-
-        // Act
-        var verified = hasher.Verify(user, LegacySha512("password123", "abc1234"), "password123");
-
-        // Assert
-        verified.Should().Be(PasswordVerificationOutcome.Failed);
-    }
-
-    private static string LegacySha512(string password, string additionalKey) =>
-        Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes($"{password} {additionalKey}")));
 }
