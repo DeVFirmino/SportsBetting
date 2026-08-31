@@ -141,11 +141,16 @@ namespace SportsBetting.Exceptions {
             get { return ResourceManager.GetString("BET_TYPE_REQUIRED", resourceCulture); }
         }
         
+        public static string IDEMPOTENCY_KEY_REUSED
+        {
+            get { return ResourceManager.GetString("IDEMPOTENCY_KEY_REUSED", resourceCulture); }
+        }
+
         public static string IDEMPOTENCY_KEY_TOO_LONG
         {
             get { return ResourceManager.GetString("IDEMPOTENCY_KEY_TOO_LONG", resourceCulture); }
         }
-        
+
         public static string INSUFFICIENT_BALANCE
         {
             get { return ResourceManager.GetString("INSUFFICIENT_BALANCE", resourceCulture); }

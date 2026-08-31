@@ -69,6 +69,9 @@
     <data name="BET_TYPE_REQUIRED" xml:space="preserve">
         <value>Please select the bet type "HomeWin", "Draw" or "AwayWin".</value>
     </data>
+    <data name="IDEMPOTENCY_KEY_REUSED" xml:space="preserve">
+        <value>Idempotency-Key was already used for a different request.</value>
+    </data>
     <data name="IDEMPOTENCY_KEY_TOO_LONG" xml:space="preserve">
         <value>Idempotency-Key must be at most 128 characters.</value>
     </data>
