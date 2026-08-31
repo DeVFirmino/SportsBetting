@@ -99,6 +99,62 @@ public sealed class DepositUseCaseTests
     }
 
     [Fact]
+    public async Task ShouldCreditOnceWhenTheKeyIsClaimedWhileTheFirstDepositIsCreatingTheWallet()
+    {
+        (User user, _) = await _fixture.SeedAsync(balance: null);
+        string key = Guid.NewGuid().ToString();
+
+        // Both first deposits race to create the wallet itself. The loser collides with the
+        // wallets' unique user index; because the winner already applied this key, that must
+        // settle as a no-op — not as a 500.
+        bool claimed = false;
+        await using ServiceProvider provider = _fixture.BuildProvider(
+            user,
+            new FootballApiStub(),
+            beforeCommit: async () =>
+            {
+                if (claimed)
+                    return;
+
+                claimed = true;
+                await CreateWalletAndDepositFromAnotherConnection(user.Id, 50m, key);
+            });
+
+        await Execute(provider, amount: 50m, idempotencyKey: key);
+
+        await using SportsBettingDbContext verification = _fixture.NewContext();
+
+        Wallet wallet = await verification.Wallets.AsNoTracking().SingleAsync(entity => entity.UserId == user.Id);
+        wallet.Balance.Should().Be(50m);
+
+        (await verification.WalletTransactions.AsNoTracking().CountAsync(entry => entry.WalletId == wallet.Id))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ShouldRejectTheReplayWhenTheSameKeyCarriesADifferentAmount()
+    {
+        (User user, long walletId) = await _fixture.SeedAsync(balance: 20m);
+        await using ServiceProvider provider = _fixture.BuildProvider(user, new FootballApiStub());
+        string key = Guid.NewGuid().ToString();
+
+        await Execute(provider, amount: 50m, idempotencyKey: key);
+
+        // A silent no-op here would tell the client the 70 was credited.
+        Func<Task> replayWithDifferentAmount = () => Execute(provider, amount: 70m, idempotencyKey: key);
+
+        await replayWithDifferentAmount.Should().ThrowAsync<ErrorOnValidationException>();
+
+        await using SportsBettingDbContext verification = _fixture.NewContext();
+
+        Wallet wallet = await verification.Wallets.AsNoTracking().FirstAsync(entity => entity.Id == walletId);
+        wallet.Balance.Should().Be(70m);
+
+        (await verification.WalletTransactions.AsNoTracking().CountAsync(entry => entry.WalletId == walletId))
+            .Should().Be(1);
+    }
+
+    [Fact]
     public async Task ShouldCreditTwiceWhenNoIdempotencyKeyIsSupplied()
     {
         (User user, long walletId) = await _fixture.SeedAsync(balance: 0m);
@@ -143,6 +199,21 @@ public sealed class DepositUseCaseTests
         Wallet wallet = await context.Wallets.FirstAsync(entity => entity.Id == walletId);
 
         await context.WalletTransactions.AddAsync(wallet.Deposit(amount, clientRequestId));
+        await context.SaveChangesAsync();
+    }
+
+    private async Task CreateWalletAndDepositFromAnotherConnection(
+        long userId,
+        decimal amount,
+        string clientRequestId)
+    {
+        await using SportsBettingDbContext context = _fixture.NewContext();
+
+        Wallet wallet = new() { UserId = userId };
+        WalletTransaction entry = wallet.Deposit(amount, clientRequestId);
+
+        await context.Wallets.AddAsync(wallet);
+        await context.WalletTransactions.AddAsync(entry);
         await context.SaveChangesAsync();
     }
 }

@@ -25,6 +25,10 @@ RUN dotnet publish src/Backend/SportsBetting.API/SportsBetting.API.csproj -c Rel
 # never applied automatically when the API starts.
 FROM build AS migrations-build
 ENV PATH="$PATH:/root/.dotnet/tools"
+# The design-time factory refuses to run without a connection string, and bundling never opens a
+# connection, so a placeholder satisfies it here. The real connection string is passed to the
+# bundle at run time via --connection (see docker-compose.yml).
+ENV SPORTSBETTING_EF_CONNECTION="Server=design-time-placeholder;Database=SportsBetting;User Id=sa;Password=design-time-placeholder;TrustServerCertificate=True;"
 RUN dotnet tool install --global dotnet-ef --version 10.0.*
 RUN dotnet ef migrations bundle \
         --project src/Backend/SportsBetting.Infrastructure \

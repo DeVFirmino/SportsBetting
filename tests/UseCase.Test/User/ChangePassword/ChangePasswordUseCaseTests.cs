@@ -4,6 +4,7 @@ using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -35,7 +36,7 @@ public class ChangePasswordUseCaseTests
 
         // Assert
         PasswordHasherBuilder.Build().Verify(user, user.Password, "new-password")
-            .Should().BeTrue();
+            .Should().Be(PasswordVerificationOutcome.Success);
     }
 
     [Fact]
@@ -58,7 +59,7 @@ public class ChangePasswordUseCaseTests
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
         PasswordHasherBuilder.Build().Verify(user, user.Password, "correct-password")
-            .Should().BeTrue();
+            .Should().Be(PasswordVerificationOutcome.Success);
     }
 
     [Fact]

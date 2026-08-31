@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Communication.Requests;
@@ -158,13 +159,88 @@ public class PlaceBetUseCaseTests
             .WithMessage(ResourcesMessagesException.CONCURRENT_BET_DETECTED);
     }
 
+    [Fact]
+    public async Task ShouldPropagateTheCommitFailureWhenNoIdempotencyKeyWasSent()
+    {
+        // Arrange
+        var context = CreateContext(commitException: new DbUpdateException("unrelated write failure"));
+
+        // Act
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
+
+        // Assert: without a key there is nothing to replay — swallowing the exception here would
+        // report a server-side write failure as the caller's 400.
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
+    public async Task ShouldPropagateTheCommitFailureWhenTheKeyHasNoWinnerToReplay()
+    {
+        // Arrange
+        var context = CreateContext(commitException: new DbUpdateException("unrelated write failure"));
+
+        // Act
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert: no stored bet and no ledger entry hold this key, so the failure is unrelated to
+        // idempotency and the original exception must reach the caller.
+        await act.Should().ThrowAsync<DbUpdateException>();
+    }
+
+    [Fact]
+    public async Task ShouldRejectTheRequestWhenTheKeyWasStoredUnderADifferentPayload()
+    {
+        // Arrange
+        var stored = SportsBetting.Domain.Entities.Bet.Place(
+            userId: 12,
+            fixtureId: 101,
+            amount: 55m,
+            BetType.HomeWin,
+            odds: 2.10m,
+            eventName: "Home FC vs Away FC",
+            clientRequestId: "key-1",
+            placedAt: DateTime.UtcNow);
+        var context = CreateContext(storedReplay: stored);
+
+        // Act: same key, but ValidRequest carries a different amount.
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert
+        await AssertSingleError(act, ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED);
+    }
+
+    [Fact]
+    public async Task ShouldReturnTheStoredBetWhenTheKeyIsReplayedWithTheSamePayload()
+    {
+        // Arrange
+        var request = ValidRequest();
+        var stored = SportsBetting.Domain.Entities.Bet.Place(
+            userId: 12,
+            fixtureId: request.FixtureId,
+            amount: request.Amount,
+            BetType.HomeWin,
+            odds: 2.10m,
+            eventName: "Home FC vs Away FC",
+            clientRequestId: "key-1",
+            placedAt: DateTime.UtcNow);
+        var context = CreateContext(storedReplay: stored);
+
+        // Act
+        var result = await context.UseCase.Execute(request, idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert: the stored bet came back and nothing new was persisted.
+        result.Amount.Should().Be(request.Amount);
+        context.PersistedBet.Should().BeNull();
+    }
+
     private static TestContext CreateContext(
         decimal balance = 100m,
         decimal? balanceAtDeduction = null,
         bool walletExists = true,
         bool fixtureExists = true,
         FixtureData? fixture = default,
-        Exception? commitException = null)
+        Exception? commitException = null,
+        SportsBetting.Domain.Entities.Bet? storedReplay = null)
     {
         var user = new SportsBetting.Domain.Entities.User { Id = 12 };
         var wallet = new SportsBetting.Domain.Entities.Wallet { Id = 31, UserId = user.Id, Balance = balance };
@@ -202,7 +278,16 @@ public class PlaceBetUseCaseTests
             .Callback<SportsBetting.Domain.Entities.Bet, CancellationToken>((bet, _) => persistedBet = bet)
             .Returns(Task.CompletedTask);
         var betReadRepository = new Mock<IBetReadOnlyRepository>();
+        if (storedReplay is not null)
+        {
+            betReadRepository.Setup(repository => repository.GetByClientRequestIdAsync(
+                    user.Id,
+                    storedReplay.ClientRequestId!,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(storedReplay);
+        }
         var transactionRepository = new Mock<IWalletTransactionWriteOnlyRepository>();
+        var transactionReadRepository = new Mock<IWalletTransactionReadOnlyRepository>();
 
         var footballApi = new Mock<IFootballApiService>();
         var fixtures = fixtureExists ? new List<FixtureData> { fixture ?? Fixture() } : [];
@@ -228,7 +313,8 @@ public class PlaceBetUseCaseTests
             walletReadRepository.Object,
             unitOfWork.Object,
             footballApi.Object,
-            transactionRepository.Object);
+            transactionRepository.Object,
+            transactionReadRepository.Object);
 
         return new TestContext(useCase, user, wallet, () => persistedBet);
     }

@@ -48,6 +48,8 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
       Settings__Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY (at least 32 characters) in .env}
+      # Only needed when the database holds password hashes from before the Identity hasher.
+      Settings__Password__AdditionalKey: ${LEGACY_PASSWORD_ADDITIONAL_KEY:-}
       Settings__Jwt__Issuer: ${JWT_ISSUER:-sportsbetting-api}
       Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
       Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
