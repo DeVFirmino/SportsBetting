@@ -1,6 +1,7 @@
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.WalletRepository;
+using SportsBetting.Domain.Repositories.WalletTransactionRepository;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions.ExceptionBase;
 
@@ -14,6 +15,7 @@ public sealed class DepositUseCase : IDepositUseCase
     private readonly IWalletWriteOnlyRepository _walletWriteOnlyRepository;
     private readonly IWalletUpdateOnlyRepository _walletUpdateOnlyRepository;
     private readonly IWalletReadOnlyRepository _walletReadOnlyRepository;
+    private readonly IWalletTransactionWriteOnlyRepository _walletTransactionWriteOnlyRepository;
     private readonly ILoggedUser _loggedUser; 
     private readonly IUnitOfWork _unitOfWork;
     
@@ -23,12 +25,14 @@ public sealed class DepositUseCase : IDepositUseCase
         ILoggedUser loggedUser, 
         IWalletUpdateOnlyRepository walletUpdateOnlyRepository, 
         IWalletReadOnlyRepository walletReadOnlyRepository,
+        IWalletTransactionWriteOnlyRepository walletTransactionWriteOnlyRepository,
         IUnitOfWork unitOfWork)
     {
         _walletWriteOnlyRepository = walletWriteOnlyRepository;
         _loggedUser = loggedUser;
         _walletUpdateOnlyRepository = walletUpdateOnlyRepository;
         _walletReadOnlyRepository = walletReadOnlyRepository;
+        _walletTransactionWriteOnlyRepository = walletTransactionWriteOnlyRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -49,15 +53,28 @@ public sealed class DepositUseCase : IDepositUseCase
            wallet = new Domain.Entities.Wallet
            {
                UserId = loggedUser.Id,
-               Balance = request.Amount
            };
+
+           wallet.Deposit(request.Amount);
            
            await _walletWriteOnlyRepository.AddAsync(wallet, cancellationToken);
+           await _walletTransactionWriteOnlyRepository.AddAsync(
+               Domain.Entities.WalletTransaction.Deposit(
+                   loggedUser.Id,
+                   request.Amount,
+                   wallet.Balance),
+               cancellationToken);
        }
        else
        {
            var walletToUpdate = await _walletUpdateOnlyRepository.GetByIdAsync(wallet.Id, cancellationToken);
-           walletToUpdate.Balance += request.Amount;
+           walletToUpdate.Deposit(request.Amount);
+           await _walletTransactionWriteOnlyRepository.AddAsync(
+               Domain.Entities.WalletTransaction.Deposit(
+                   loggedUser.Id,
+                   request.Amount,
+                   walletToUpdate.Balance),
+               cancellationToken);
            
            _walletUpdateOnlyRepository.Update(walletToUpdate);
        }

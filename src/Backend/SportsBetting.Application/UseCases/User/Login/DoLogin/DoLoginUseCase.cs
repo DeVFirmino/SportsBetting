@@ -1,6 +1,7 @@
  using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -11,28 +12,46 @@ public sealed class DoLoginUseCase : IDoLoginUseCase
 {
     
     private readonly IUserReadOnlyRepository _repository;
-    private readonly IPasswordEncrypter _passwordEncrypter;
+    private readonly IUserUpdateOnlyRepository _userUpdateOnlyRepository;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IAccessTokenGenerator _accessTokenGenerator;
+    private readonly IUnitOfWork _unitOfWork;
     
 
     public DoLoginUseCase(IUserReadOnlyRepository repository, 
-        IPasswordEncrypter passwordEncrypter, 
-        IAccessTokenGenerator accessTokenGenerator)
+        IUserUpdateOnlyRepository userUpdateOnlyRepository,
+        IPasswordHasher passwordHasher,
+        IAccessTokenGenerator accessTokenGenerator,
+        IUnitOfWork unitOfWork)
     {
         _repository = repository;
-        _passwordEncrypter = passwordEncrypter;
+        _userUpdateOnlyRepository = userUpdateOnlyRepository;
+        _passwordHasher = passwordHasher;
         _accessTokenGenerator = accessTokenGenerator;
+        _unitOfWork = unitOfWork;
     }
     
     public async Task<AuthenticatedUserResponse> Execute(LoginRequest request, CancellationToken cancellationToken)
     {
-        var encryptedPassword = _passwordEncrypter.Encrypt(request.Password);
-        
-        var user = await _repository.GetByEmailAndPasswordAsync(request.Email, encryptedPassword, cancellationToken);
+        var user = await _repository.GetByEmailAsync(request.Email, cancellationToken);
 
         if (user is null)
         {
             throw new InvalidLoginException();
+        }
+
+        PasswordHashVerification verification = _passwordHasher.Verify(user, user.Password, request.Password);
+
+        if (verification is PasswordHashVerification.Failed)
+        {
+            throw new InvalidLoginException();
+        }
+
+        if (verification is PasswordHashVerification.SuccessRehashNeeded)
+        {
+            user.Password = _passwordHasher.Hash(user, request.Password);
+            _userUpdateOnlyRepository.Update(user);
+            await _unitOfWork.CommitAsync(cancellationToken);
         }
         
         return new AuthenticatedUserResponse

@@ -32,17 +32,14 @@ public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepo
                 .Active, cancellationToken);
         
     }
-    public async Task<User?> GetByEmailAndPasswordAsync(
+    public async Task<User?> GetByEmailAsync(
         string email,
-        string password,
         CancellationToken cancellationToken)
     {
         return await _context
             .Users
-            .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Active && u.Email
-                .Equals(email) && u.Password
-                .Equals(password), cancellationToken);
+                .Equals(email), cancellationToken);
      }
 
     public async Task<User> GetByIdAsync(long id, CancellationToken cancellationToken)

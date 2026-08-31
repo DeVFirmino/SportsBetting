@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Moq;
  using SportsBetting.Application.UseCases.User.Login.DoLogin;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
@@ -49,14 +50,24 @@ public class DoLoginUseCaseTest
 
     private static DoLoginUseCase CreateUseCase(SportsBetting.Domain.Entities.User? user = null)
     {
-        var passwordEncrypter = PasswordEncrypterBuilder.Build();
+        var passwordHasher = PasswordHasherBuilder.Build();
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
+        var userUpdateRepository = new Moq.Mock<SportsBetting.Domain.Repositories.User.IUserUpdateOnlyRepository>();
+        var unitOfWork = new Moq.Mock<SportsBetting.Domain.Repositories.IUnitOfWork>();
+        unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         
         if(user is not null)
-            userReadOnlyRepositoryBuilder.GetByEmailAndPasswordAsync(user);
+        {
+            userReadOnlyRepositoryBuilder.GetByEmailAsync(user);
+        }
         
-        return new DoLoginUseCase(userReadOnlyRepositoryBuilder.Build(), passwordEncrypter, accessTokenGenerator);
+        return new DoLoginUseCase(
+            userReadOnlyRepositoryBuilder.Build(),
+            userUpdateRepository.Object,
+            passwordHasher,
+            accessTokenGenerator,
+            unitOfWork.Object);
     }
     
     

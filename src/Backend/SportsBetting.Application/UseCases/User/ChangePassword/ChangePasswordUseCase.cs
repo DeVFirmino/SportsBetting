@@ -13,14 +13,14 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
     private readonly ILoggedUser _loggedUser;
     private readonly IUserUpdateOnlyRepository _repository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IPasswordEncrypter _passwordEncrypter;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public ChangePasswordUseCase(ILoggedUser loggedUser, IUserUpdateOnlyRepository repository, IUnitOfWork unitOfWork, IPasswordEncrypter passwordEncrypter)
+    public ChangePasswordUseCase(ILoggedUser loggedUser, IUserUpdateOnlyRepository repository, IUnitOfWork unitOfWork, IPasswordHasher passwordHasher)
     {
         _loggedUser = loggedUser;
         _repository = repository;
         _unitOfWork = unitOfWork;
-        _passwordEncrypter = passwordEncrypter;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task Execute(ChangePasswordRequest request, CancellationToken cancellationToken)
@@ -31,7 +31,7 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
         
         var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
         
-        user.Password = _passwordEncrypter.Encrypt(request.NewPassword);
+        user.Password = _passwordHasher.Hash(user, request.NewPassword);
         
         _repository.Update(user);
         
@@ -42,9 +42,7 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
     {
         var result = new ChangePasswordValidator().Validate(request);
         
-        var currentPasswordEncrypted = _passwordEncrypter.Encrypt(request.Password);
-        
-        if (!currentPasswordEncrypted.Equals(loggedUser.Password))
+        if (_passwordHasher.Verify(loggedUser, loggedUser.Password, request.Password) is PasswordHashVerification.Failed)
         {
              result.Errors.Add(new FluentValidation.Results.ValidationFailure("password", 
                  ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID));

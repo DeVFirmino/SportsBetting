@@ -20,11 +20,10 @@ public class UserReadOnlyRepositoryBuilder
             It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
     
-    public void GetByEmailAndPasswordAsync(User user)
+    public void GetByEmailAsync(User user)
     {
-        _repository.Setup(r => r.GetByEmailAndPasswordAsync(
+        _repository.Setup(r => r.GetByEmailAsync(
             user.Email,
-            user.Password,
             It.IsAny<CancellationToken>())).ReturnsAsync(user);
     }
     public IUserReadOnlyRepository Build()

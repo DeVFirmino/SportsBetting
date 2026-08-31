@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using SportsBetting.API.Attributes;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Application.UseCases.User.Profile;
 using SportsBetting.Application.UseCases.User.Register;
@@ -16,6 +17,7 @@ public sealed class UserController : ControllerBase
 {
     [HttpPost("register")]
     [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status201Created)]
+    [EnableRateLimiting("registration")]
     public async Task<IActionResult> Register(
         [FromServices] IRegisterUserUseCase useCase,
         [FromBody] RegisterUserRequest request,
@@ -27,7 +29,7 @@ public sealed class UserController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
-    [AuthenticatedUser]
+    [Authorize]
 
     public async Task<IActionResult> GetUserProfile(
         [FromServices] IGetUserProfileUseCase useCase,
@@ -42,7 +44,7 @@ public sealed class UserController : ControllerBase
     [HttpPut]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [AuthenticatedUser] 
+    [Authorize]
     public async Task<IActionResult> Update(
         [FromServices] IUpdateUserUseCase useCase,
         [FromBody] UpdateUserRequest request,
@@ -56,7 +58,7 @@ public sealed class UserController : ControllerBase
     [HttpPut("change-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse),StatusCodes.Status400BadRequest)]
-    [AuthenticatedUser] 
+    [Authorize]
     public async Task<IActionResult> ChangePassword(
         [FromServices] IChangePasswordUseCase useCase,
         [FromBody] ChangePasswordRequest request,
@@ -67,4 +69,3 @@ public sealed class UserController : ControllerBase
         return NoContent();
     }
 }
-

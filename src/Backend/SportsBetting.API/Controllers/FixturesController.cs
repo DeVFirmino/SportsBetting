@@ -1,5 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SportsBetting.API.Attributes;
 using SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
 using SportsBetting.Communication.Responses;
 
@@ -12,7 +12,7 @@ public sealed class FixturesController : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<FixtureResponse>), StatusCodes.Status200OK)]
-    [AuthenticatedUser]
+    [Authorize]
     public async Task<IActionResult> GetAvailableFixtures(
         [FromServices] IGetAvailableFixtureUseCase useCase,
         CancellationToken cancellationToken)
