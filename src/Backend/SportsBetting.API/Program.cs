@@ -88,15 +88,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Swagger is served in every environment on purpose: the live demo is a
+// portfolio piece and the interactive docs are part of what it demonstrates.
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-         options.SwaggerEndpoint("v1/swagger.json", "SportsBetting API v1");
-        options.RoutePrefix = "swagger"; 
-    });
-}
+    options.SwaggerEndpoint("v1/swagger.json", "SportsBetting API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
