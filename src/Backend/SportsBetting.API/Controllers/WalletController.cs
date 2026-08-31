@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SportsBetting.Application.UseCases.User.GetBalance;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
 using SportsBetting.Communication.Requests;
@@ -18,22 +19,24 @@ public sealed class WalletController : ControllerBase
         [FromServices] IGetBalanceUseCase useCase,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(cancellationToken);
-        
+        WalletBalanceResponse response = await useCase.Execute(cancellationToken);
+
         return Ok(response);
     }
 
     [HttpPost("deposit")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EnableRateLimiting("wallet")]
     public async Task<IActionResult> Deposit(
         [FromServices] IDepositUseCase useCase,
         [FromBody] DepositRequest request,
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        await useCase.Execute(request, cancellationToken);
-        
+        await useCase.Execute(request, idempotencyKey, cancellationToken);
+
         return NoContent();
     }
-
 }

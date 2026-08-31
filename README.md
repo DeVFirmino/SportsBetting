@@ -1,8 +1,8 @@
 <div align="center">
 
-![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)
-![C#](https://img.shields.io/badge/C%23-13.0-512BD4)
-![EF Core](https://img.shields.io/badge/EF%20Core-9.0-512BD4)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
+![C#](https://img.shields.io/badge/C%23-14.0-512BD4)
+![EF Core](https://img.shields.io/badge/EF%20Core-10.0-512BD4)
 ![Fluent Validation](https://img.shields.io/badge/Fluent_Validation-12.0-512BD4)
 ![SQL Server](https://img.shields.io/badge/SQL_Server-2022-512BD4?logo=microsoft-sql-server&logoColor=white)
 ![SOLID](https://img.shields.io/badge/Principles-SOLID-512BD4)
@@ -16,7 +16,7 @@
 ![Azure SQL Database](https://img.shields.io/badge/Azure_SQL_Database-PaaS-512BD4?logo=microsoft-sql-server&logoColor=white)
 
 # SportsBetting API
-An educational sports betting API built with **.NET 9** to practise backend development,
+An educational sports betting API built with **.NET 10** to practise backend development,
 layered architecture, authentication, persistence, validation, and concurrency control.
 
 ## Live Demo
@@ -51,17 +51,28 @@ the betting odds are fixed study values defined in the application.
 - `IUpdateOnlyRepository` - Update operations
 
 ## Security
-- **JWT authentication** with token based authorization
+- **ASP.NET Core JSON Web Token (JWT) bearer authentication** — `AddAuthentication` / `AddJwtBearer`
+  with `[Authorize]`, validating issuer, audience, signing key and expiration, and reading the
+  standard `sub` claim
+- **ASP.NET Core Identity `PasswordHasher<User>`** for password hashing and verification
 - **FluentValidation** for input validation
+- **Rate limiting** on login, registration, betting and wallet endpoints, partitioned per caller
+- **ProblemDetails** for every error response, produced by one global exception filter
+- **Strongly typed options** for JSON Web Token, API-Football and database settings, validated at
+  startup with `ValidateOnStart`
 
 ## Testing
 - **xUnit Tests**: Use case logic validation
-- **Integration Tests**: User registration and authentication flows
+- **Integration Tests** (`Integration.Test`): the registered use cases run against a real **SQL
+  Server** container started by **Testcontainers**, on the schema the versioned **Entity Framework
+  Core** migrations produce — this is where wallet concurrency, ledger atomicity and idempotency
+  are proven
+- **Web API Tests** (`WebApi.Test`): authentication, ProblemDetails, health checks, rate-limit
+  partitioning and Swagger exposure through `WebApplicationFactory`
 - **Validator Tests**: FluentValidation rules
 - **Fluent Assertions**: Readable assertions
 - **Moq** - Mocking framework
 - **Bogus** - Fake data generation.
-- **Test Coverage**: 92.9% line / 92.85% branch (`SportsBetting.Application`)
 
 ### External Services
 - **API-Football (api-sports.io)** - Sports data integration
@@ -82,6 +93,9 @@ the betting odds are fixed study values defined in the application.
 
 ### Wallet System
 - **Deposit funds** — balance management with decimal precision for accurate financial calculations
+- **Append-only ledger** — every credit and debit is written to `WalletTransactions` as a
+  `Deposit` or `BetDebit` entry recording the resulting balance
+- **Idempotent deposits and bets** via the `Idempotency-Key` header
 - **Concurrent bet protection** - prevents negative balance from simultaneous bets via optimistic concurrency control
 
 </td>
@@ -97,6 +111,7 @@ the betting odds are fixed study values defined in the application.
 - **Potential return calculation** (`Amount × Odds`)
 - **Get bet by ID** with detailed information
 - **Race condition prevention** via optimistic concurrency control on the wallet
+- **Atomic placement** — the wallet debit, the ledger entry and the bet are written in one commit
 
 > **Project boundary:** Bets are created with `Pending` status. The API does not fetch
 > match results, settle bets, change them to won or lost, or credit winnings back to the
@@ -106,7 +121,10 @@ the betting odds are fixed study values defined in the application.
 <td width="50%" valign="top">
 
 ### Football API Integration
-- Integration with **API-FOOTBALL** (api-sports.io)
+- Integration with **API-FOOTBALL** (api-sports.io) through `IHttpClientFactory` and
+  **Microsoft.Extensions.Http.Resilience** — total and per-attempt timeouts, a circuit breaker, and
+  retries on safe `GET` requests only, with exponential backoff and jitter
+- Short in-memory cache of the fixture list, and upstream failures reported as `502` or `503`
 - Get fixture IDs, dates, and home/away team names for the 2024 La Liga season
 - User can bet for **HomeWin, Draw, and AwayWin** betting markets
 - Fixed odds of `2.10`, `3.40`, and `3.80` are added locally for learning purposes
@@ -141,13 +159,16 @@ SportsBetting/
 └── tests/
 ├── UseCase.Test                    # Unit tests
 ├── Validator.Tests                 # FluentValidation tests
-├── WebApi.Test                     # Integration tests
+├── WebApi.Test                     # HTTP-level tests (WebApplicationFactory)
+├── Integration.Test                # SQL Server tests (Testcontainers)
 └── CommonTestsUtilities            # Test builders
 ```
 ```mermaid
 erDiagram
 Users ||--|| Wallets : "1:1"
 Users ||--o{ Bets : "1:N"
+Wallets ||--o{ WalletTransactions : "1:N"
+Bets ||--o| WalletTransactions : "0..1:1"
 
     EntityBase {
         bigint Id PK
@@ -181,6 +202,18 @@ Users ||--o{ Bets : "1:N"
         int BetType
         int Status
         datetime2 PlacedAt
+        nvarchar ClientRequestId "Unique per user when set"
+    }
+
+    WalletTransactions {
+        bigint Id PK
+        bigint WalletId FK
+        bigint BetId FK "Null for deposits"
+        nvarchar Type "Deposit | BetDebit"
+        decimal Amount
+        decimal BalanceAfter
+        datetime2 OccurredAt
+        nvarchar ClientRequestId "Unique per wallet when set"
     }
  ```
 
@@ -219,14 +252,17 @@ graph LR
 
 ## Tech Stack
 
-- **.NET 9** / **C# 13**
-- **ASP.NET Core** - Web API 
+- **.NET 10** / **C# 14**
+- **ASP.NET Core** - Web API
 - **Entity Framework Core** - ORM with SQL Server
 - **SQL Server** - Relational database
 - **AutoMapper** - Object-to-object mapping
 - **FluentValidation** - Request validation
-- **JWT** - Authentication
+- **JSON Web Token (JWT)** - Authentication, via ASP.NET Core JWT bearer
+- **Microsoft.Extensions.Http.Resilience** - Timeouts, circuit breaker and retries for API-Football
 - **Swagger** - API documentation
+- **Docker** and **Docker Compose** - Containerised SQL Server, migrations and API
+- **Testcontainers** - SQL Server for the integration tests
 - **API-Football (api-sports.io)** - External fixture and team data
 
 
@@ -257,16 +293,20 @@ catch (DbUpdateConcurrencyException)
 - Concurrent updates trigger `DbUpdateConcurrencyException`
 - The loser gets `409 Conflict`: *"Another bet was placed simultaneously. Please try again"* — a retryable
   conflict, not a validation error, and the winning balance is never overwritten
-- Covered by `UnitOfWorkConcurrencyTests`, which stages a real competing write against the database
+- Covered by `PlaceBetUseCaseTests.ShouldPersistNothingWhenTheWalletMovedUnderTheRequest`, which
+  drives the registered use case against a real SQL Server container and commits a competing debit
+  in the instant before the write
 
-**Testing:** Verified with simultaneous Postman requests using the same authenticated session to simulate race conditions.
+**Testing:** `dotnet test tests/Integration.Test` runs these against SQL Server; Docker must be
+running because the container is started by Testcontainers.
 
 **Fixture details and fixed study odds are server controlled** - users can only specify
 `fixtureId`, `amount`, and `betType`. There is no payout or settlement workflow.
 
 ## Prerequisites
-- .NET 9 SDK or later
-- SQL Server
+- .NET 10 SDK
+- SQL Server (or Docker, which the Compose stack starts for you)
+- Docker — required to run `tests/Integration.Test`, which starts SQL Server through Testcontainers
 - API-Football account and key from [api-sports.io](https://api-sports.io) (direct plan, not the RapidAPI gateway)
 - Visual Studio or JetBrains Rider (developed with Rider, recommended for this project)
 - Postman or Swagger for API testing
@@ -277,15 +317,31 @@ catch (DbUpdateConcurrencyException)
 
 This project is fully containerized and engineered to run in scalable cloud environments.
 
-#### Local Execution with Docker
-Run the API locally without needing the .NET SDK installed:
+#### Local execution with Docker Compose
+Compose brings up SQL Server, applies the Entity Framework Core migrations as a separate step, and
+only then starts the API:
 
 ```bash
-# Build the image
-docker build -t sportsbetting-api .
+cp .env.example .env      # then edit the secrets it lists
+docker compose up --build
+```
 
-# Run the container
-docker run -p 8080:8080 sportsbetting-api
+The stack has three services:
+
+| Service | Purpose |
+| :--- | :--- |
+| `sqlserver` | SQL Server 2022, with a health check the other services wait on |
+| `migrator` | Runs an Entity Framework Core migration bundle to completion, then exits |
+| `api` | Starts only after `migrator` succeeds; runs as a non-root user with its own health check |
+
+Migrations are never applied by the API at startup — the `migrator` service is the deployment step.
+The API answers on `http://localhost:8080` by default (`API_HOST_PORT` in `.env`).
+
+To build just the API image:
+
+```bash
+docker build --target runtime -t sportsbetting-api .
+docker run -p 8080:8080 --env-file .env sportsbetting-api
 ```
 
 ### 1. Clone Repository
@@ -312,34 +368,48 @@ section to `appsettings.Development.json`:
 ```json
 {
   "Settings": {
-    "Password": {
-      "AdditionalKey": "any-random-string-mixed-into-password-hashing"
-    },
     "Jwt": {
       "SigningKey": "your-secret-key-min-32-characters-long",
+      "Issuer": "sportsbetting-api",
+      "Audience": "sportsbetting-clients",
       "ExpirationTimeMinutes": 60
     },
     "FootballApi": {
       "BaseUrl": "https://v3.football.api-sports.io",
-      "ApiKey": "YOUR_API_FOOTBALL_KEY_HERE"
+      "ApiKey": "YOUR_API_FOOTBALL_KEY_HERE",
+      "CacheSeconds": 30,
+      "RetryDelayMilliseconds": 500
     }
   }
 }
 ```
 
-### 4. Run Database Migrations
-```bash
-cd src/Backend/SportsBetting.API
+Every one of these is bound to a typed options class and validated with `ValidateOnStart`, so a
+missing connection string, a signing key under 32 characters, an empty issuer or audience, or a
+malformed API-Football base URL stops the application while it is starting rather than on the
+first request that needs the value.
 
-# Apply all migrations
-dotnet ef database update
+### 4. Run Database Migrations
+The design-time factory takes its connection string from the environment, so nothing is hardcoded
+in source:
+
+```bash
+export SPORTSBETTING_EF_CONNECTION="Server=(localdb)\\mssqllocaldb;Database=SportsBetting;Trusted_Connection=true;TrustServerCertificate=true"
+
+dotnet ef database update \
+  --project src/Backend/SportsBetting.Infrastructure \
+  --startup-project src/Backend/SportsBetting.Infrastructure
 ```
+
+Under Docker Compose this step is the `migrator` service instead, which runs a migration bundle.
 
 **Migrations include:**
 - Initial schema (Users, Wallets, Bets)
 - RowVersion for Wallet concurrency control
 - BetType enum conversion
 - FixtureId index on Bets
+- `WalletTransactions` ledger, `Bets.ClientRequestId`, and the filtered unique indexes behind
+  idempotency (`AddWalletLedgerAndIdempotency`)
 
 ### 5. Run Application
 ```bash
@@ -349,6 +419,15 @@ dotnet run
 **URLs:**
 - **HTTP**: `http://localhost:5055` (the launch profile serves HTTP only)
 - **Swagger**: `http://localhost:5055/swagger`
+- **Liveness**: `http://localhost:5055/health/live`
+- **Readiness**: `http://localhost:5055/health/ready` (reaches SQL Server)
+
+### 6. Run the tests
+```bash
+dotnet build
+dotnet test                        # every project; Integration.Test needs Docker running
+dotnet test tests/UseCase.Test     # unit tests only, no Docker required
+```
 ---
 
 ## API Endpoints  
@@ -365,7 +444,7 @@ dotnet run
 ### Wallet Management
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| POST | `/Wallet/deposit` | Add funds to the user's wallet | Yes |
+| POST | `/Wallet/deposit` | Add funds to the user's wallet (accepts `Idempotency-Key`) | Yes |
 | GET | `/Wallet` | Check current wallet balance | Yes |
 
 > **Note:** Add balance to your wallet before placing a bet on a fixture.
@@ -376,7 +455,7 @@ dotnet run
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :--- |
-| POST | `/Bet/place-bet` | Place a new bet on a fixture | Yes |
+| POST | `/Bet/place-bet` | Place a new bet on a fixture (accepts `Idempotency-Key`) | Yes |
 | GET | `/Bet/get-bets` | Retrieve all bets placed by the user | Yes |
 | GET | `/Bet/{id}` | Retrieve details of a specific bet | Yes |
 
@@ -420,6 +499,7 @@ Content-Type: application/json
 ```http
 POST /Wallet/deposit
 Authorization: Bearer {jwt_token}
+Idempotency-Key: 6f1c2d64-0f2e-4a1f-9a53-0b6c2f2d9a11
 
 { "amount": 959.00 }
 ```
@@ -442,6 +522,7 @@ Authorization: Bearer {jwt_token}
 ```http
 POST /Bet/place-bet
 Authorization: Bearer {jwt_token}
+Idempotency-Key: 6f1c2d64-0f2e-4a1f-9a53-0b6c2f2d9a11
 
 {
   "fixtureId": 12345,
@@ -470,11 +551,52 @@ Authorization: Bearer {jwt_token}
 4. **Place bet** → Select fixture, amount, and bet type
 
 
+### Idempotency
+
+`POST /Wallet/deposit` and `POST /Bet/place-bet` accept an optional `Idempotency-Key` header of at
+most 128 characters; a longer one is rejected with `400`. Send the same key again and the request
+is replayed rather than repeated:
+
+- the bet endpoint returns the bet already stored under that key;
+- the deposit endpoint credits the balance once and answers `204` again.
+
+The key is unique per user for bets and per wallet for ledger entries, enforced by filtered unique
+indexes in SQL Server. That covers the concurrent case too: when two requests carrying the same key
+overlap, the one that loses the index re-reads the winner and returns it, instead of failing.
+Omitting the header opts out — repeated calls then create separate bets and separate deposits.
+
+### Health checks
+
+| Endpoint | Reports |
+| :--- | :--- |
+| `GET /health/live` | The process is running |
+| `GET /health/ready` | The process can reach SQL Server |
+
+### Rate limits
+
+Each policy uses a one-minute fixed window, partitioned by the authenticated `sub` claim when there
+is one and by remote address otherwise, so one caller cannot spend another caller's allowance.
+
+| Endpoint | Requests per minute |
+| :--- | :--- |
+| `POST /Login` | 5 |
+| `POST /User/register` | 5 |
+| `POST /Bet/place-bet` | 10 |
+| `POST /Wallet/deposit` | 10 |
+
+Exceeding a window returns `429`.
+
 ### Error Codes
 
-- `400` - Validation error, insufficient balance, or bet/fixture/wallet not found
+Every error is returned as an ASP.NET Core `ProblemDetails` body, with the messages under an
+`errors` extension member:
+
+- `400` - Validation error, insufficient balance, bet/fixture/wallet not found, or an
+  `Idempotency-Key` longer than 128 characters
 - `401` - Unauthorized (invalid/missing token or invalid login)
 - `409` - Concurrent bet conflict
+- `429` - Rate limit exceeded
+- `502` / `503` - API-Football answered with a failure, was unreachable, or the circuit is open
 - `500` - Unexpected server error
 
 ---

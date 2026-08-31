@@ -43,6 +43,7 @@ public class OptionsValidationTests
     [InlineData("Settings:FootballApi:BaseUrl", "not-a-url")]
     [InlineData("Settings:FootballApi:ApiKey", "")]
     [InlineData("Settings:FootballApi:CacheSeconds", "0")]
+    [InlineData("Settings:FootballApi:RetryDelayMilliseconds", "0")]
     public void ShouldFailOnStartWhenASettingIsInvalid(string key, string value)
     {
         // Arrange
@@ -55,6 +56,25 @@ public class OptionsValidationTests
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
         // Assert
+        validate.Should().Throw<OptionsValidationException>();
+    }
+
+    [Fact]
+    public void ShouldFailOnStartWhenTheConnectionStringIsMissing()
+    {
+        // Arrange
+        Dictionary<string, string?> settings = ValidSettings();
+        settings.Remove("InMemoryTest");
+        settings["ConnectionStrings:DefaultConnection"] = string.Empty;
+
+        ServiceProvider provider = BuildProvider(settings);
+
+        // Act
+        Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
+
+        // Assert
+        // The DbContext resolves its connection string from these options, so an empty one has to
+        // stop the application at startup rather than at the first query.
         validate.Should().Throw<OptionsValidationException>();
     }
 
@@ -72,8 +92,7 @@ public class OptionsValidationTests
 
     private static Dictionary<string, string?> ValidSettings() => new()
     {
-        // Keeps the registration off SQL Server; the database options are exercised by the
-        // integration tests that actually reach a server.
+        // Keeps most cases off SQL Server; the connection-string case below opts back in.
         ["InMemoryTest"] = "true",
         ["Settings:Jwt:SigningKey"] = "a-signing-key-with-at-least-32-chars",
         ["Settings:Jwt:Issuer"] = "sportsbetting-api",
@@ -82,6 +101,6 @@ public class OptionsValidationTests
         ["Settings:FootballApi:BaseUrl"] = "https://football.example",
         ["Settings:FootballApi:ApiKey"] = "test-api-key",
         ["Settings:FootballApi:CacheSeconds"] = "30",
-        ["Settings:Password:AdditionalKey"] = "additional-key",
+        ["Settings:FootballApi:RetryDelayMilliseconds"] = "500",
     };
 }

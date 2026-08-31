@@ -51,10 +51,10 @@ services:
       Settings__Jwt__Issuer: ${JWT_ISSUER:-sportsbetting-api}
       Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
       Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
-      Settings__Password__AdditionalKey: ${PASSWORD_ADDITIONAL_KEY:-}
       Settings__FootballApi__BaseUrl: ${FOOTBALL_API_BASE_URL:-https://v3.football.api-sports.io}
       Settings__FootballApi__ApiKey: ${FOOTBALL_API_KEY:?set FOOTBALL_API_KEY in .env}
       Settings__FootballApi__CacheSeconds: ${FOOTBALL_API_CACHE_SECONDS:-30}
+      Settings__FootballApi__RetryDelayMilliseconds: ${FOOTBALL_API_RETRY_DELAY_MS:-500}
     ports:
       - "${API_HOST_PORT:-8080}:8080"
     depends_on:

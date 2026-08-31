@@ -12,7 +12,6 @@ public class HealthCheckTests : IClassFixture<CustomWebApplicationFactory>
     [Theory]
     [InlineData("/health/live")]
     [InlineData("/health/ready")]
-    [InlineData("/health")]
     public async Task ShouldReportHealthyWhenTheApplicationIsRunning(string path)
     {
         var response = await _httpClient.GetAsync(path);

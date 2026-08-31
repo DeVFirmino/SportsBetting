@@ -42,7 +42,7 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
     {
         var result = new ChangePasswordValidator().Validate(request);
         
-        if (_passwordHasher.Verify(loggedUser, loggedUser.Password, request.Password) is PasswordHashVerification.Failed)
+        if (_passwordHasher.Verify(loggedUser, loggedUser.Password, request.Password) is false)
         {
              result.Errors.Add(new FluentValidation.Results.ValidationFailure("password", 
                  ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID));

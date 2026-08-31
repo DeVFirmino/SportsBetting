@@ -31,7 +31,7 @@ public class DepositUseCaseTests
         var useCase = CreateUseCase(user, null, writeRepository: writeRepository);
 
         // Act
-        await useCase.Execute(new DepositRequest { Amount = 75m }, CancellationToken.None);
+        await useCase.Execute(new DepositRequest { Amount = 75m }, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         createdWallet.Should().NotBeNull();
@@ -47,7 +47,7 @@ public class DepositUseCaseTests
         var useCase = CreateUseCase(User(), wallet);
 
         // Act
-        await useCase.Execute(new DepositRequest { Amount = 25.50m }, CancellationToken.None);
+        await useCase.Execute(new DepositRequest { Amount = 25.50m }, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         wallet.Balance.Should().Be(125.50m);
@@ -62,7 +62,7 @@ public class DepositUseCaseTests
         var useCase = CreateUseCase(User(), null);
 
         // Act
-        Func<Task> act = () => useCase.Execute(new DepositRequest { Amount = amount }, CancellationToken.None);
+        Func<Task> act = () => useCase.Execute(new DepositRequest { Amount = amount }, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -79,12 +79,12 @@ public class DepositUseCaseTests
         var useCase = CreateUseCase(User(), wallet, ledger: ledger);
 
         // Act
-        await useCase.Execute(new DepositRequest { Amount = 25m }, CancellationToken.None);
+        await useCase.Execute(new DepositRequest { Amount = 25m }, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         var entry = ledger.Recorded.Should().ContainSingle().Subject;
         entry.Type.Should().Be(Domain.Enums.WalletTransactionType.Deposit);
-        entry.UserId.Should().Be(42);
+        entry.Wallet.Id.Should().Be(8);
         entry.Amount.Should().Be(25m);
         entry.BalanceAfter.Should().Be(125m);
         entry.BetId.Should().BeNull();
@@ -98,7 +98,7 @@ public class DepositUseCaseTests
         var useCase = CreateUseCase(User(), null, ledger: ledger);
 
         // Act
-        await useCase.Execute(new DepositRequest { Amount = 75m }, CancellationToken.None);
+        await useCase.Execute(new DepositRequest { Amount = 75m }, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         var entry = ledger.Recorded.Should().ContainSingle().Subject;
@@ -137,6 +137,7 @@ public class DepositUseCaseTests
             updateRepository.Object,
             readRepository.Object,
             (ledger ?? new WalletTransactionWriteOnlyRepositoryBuilder()).Build(),
+            new WalletTransactionReadOnlyRepositoryBuilder().Build(),
             unitOfWork.Object);
     }
 

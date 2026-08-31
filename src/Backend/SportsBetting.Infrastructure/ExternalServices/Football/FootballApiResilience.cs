@@ -3,12 +3,13 @@ using Microsoft.Extensions.Http.Resilience;
 using Polly;
 using Polly.CircuitBreaker;
 using Polly.Retry;
+using Polly.Timeout;
+using SportsBetting.Infrastructure.Options;
 
 namespace SportsBetting.Infrastructure.ExternalServices.Football;
 
 /// <summary>
-/// The resilience pipeline in front of API-Football. It lives here rather than inline in the
-/// registration so the exact policy the application runs is the one the tests drive.
+/// The resilience pipeline in front of API-Football.
 /// </summary>
 public static class FootballApiResilience
 {
@@ -18,23 +19,16 @@ public static class FootballApiResilience
 
     public const int MaxRetryAttempts = 3;
 
-    public static readonly TimeSpan RetryDelay = TimeSpan.FromMilliseconds(500);
-
-    public static void Configure(ResiliencePipelineBuilder<HttpResponseMessage> builder)
-        => Configure(builder, RetryDelay);
-
-    /// <param name="retryDelay">
-    /// The base backoff delay. Overridable so tests can exercise the same policy without waiting
-    /// out the production delays.
-    /// </param>
-    public static void Configure(ResiliencePipelineBuilder<HttpResponseMessage> builder, TimeSpan retryDelay)
+    public static void Configure(
+        ResiliencePipelineBuilder<HttpResponseMessage> builder,
+        FootballApiOptions options)
     {
         builder.AddTimeout(TotalTimeout);
 
         builder.AddRetry(new HttpRetryStrategyOptions
         {
             MaxRetryAttempts = MaxRetryAttempts,
-            Delay = retryDelay,
+            Delay = TimeSpan.FromMilliseconds(options.RetryDelayMilliseconds),
             BackoffType = DelayBackoffType.Exponential,
             // Jitter keeps a fleet of callers from retrying in lockstep after a shared outage.
             UseJitter = true,
@@ -59,7 +53,10 @@ public static class FootballApiResilience
         if (IsSafeToReplay(args) is false)
             return false;
 
-        if (args.Outcome.Exception is HttpRequestException or TaskCanceledException)
+        // The per-attempt timeout sits inside this retry, so a slow upstream arrives here as
+        // TimeoutRejectedException. Leaving it out made the most common transient failure the one
+        // failure the pipeline never retried.
+        if (args.Outcome.Exception is HttpRequestException or TaskCanceledException or TimeoutRejectedException)
             return true;
 
         return args.Outcome.Result?.StatusCode is HttpStatusCode.RequestTimeout

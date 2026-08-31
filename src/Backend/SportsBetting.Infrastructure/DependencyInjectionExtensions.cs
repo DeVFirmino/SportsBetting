@@ -32,25 +32,26 @@ public static class DependencyInjectionExtensions
         AddOptions(services, configuration);
         AddPasswordHashing(services);
         AddRepositories(services);
-        AddExternalServices(services, configuration);
+        AddExternalServices(services);
         AddLoggedUser(services);
         AddTokens(services);
         
         if (configuration.IsUnitTestEnvironment())
             return;
         
-        AddDbContext(services, configuration);
+        AddDbContext(services);
     }
 
     
 
-    private static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
+    private static void AddDbContext(IServiceCollection services)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        services.AddDbContext<SportsBettingDbContext>((provider, options) =>
+        {
+            DatabaseOptions database = provider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
 
-        services.AddDbContext<SportsBettingDbContext>(options =>
-            options.UseSqlServer(connectionString));
-         
+            options.UseSqlServer(database.DefaultConnection);
+        });
     }
     
     private static void AddRepositories(IServiceCollection services)
@@ -66,6 +67,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IBetReadOnlyRepository, BetRepository>();
         services.AddScoped<IBetWriteOnlyRepository, BetRepository>();
         services.AddScoped<IBetUpdateOnlyRepository, BetRepository>();
+        services.AddScoped<IWalletTransactionReadOnlyRepository, WalletTransactionRepository>();
         services.AddScoped<IWalletTransactionWriteOnlyRepository, WalletTransactionRepository>();
     }
     
@@ -77,26 +79,20 @@ public static class DependencyInjectionExtensions
     private static void AddLoggedUser(IServiceCollection services) => services.AddScoped<ILoggedUser, LoggedUser>();
     
     private static void AddPasswordHashing(IServiceCollection services)
-    {
-        services.AddScoped<IPasswordHasher, IdentityPasswordHasher>();
-        services.AddScoped<IPasswordEncrypter>(provider =>
-        {
-            PasswordOptions options = provider.GetRequiredService<IOptions<PasswordOptions>>().Value;
-            return new Sha512Encrypter(options.AdditionalKey);
-        });
-    }
+        => services.AddScoped<IPasswordHasher, IdentityPasswordHasher>();
 
-    private static void AddExternalServices(this IServiceCollection services, IConfiguration configuration)
+    private static void AddExternalServices(IServiceCollection services)
     {
         services.AddMemoryCache();
-        services.AddHttpClient<IFootballApiService, FootballApiService>(client =>
+        services.AddHttpClient<IFootballApiService, FootballApiService>((provider, client) =>
         {
-            FootballApiOptions options = configuration
-                .GetRequiredSection(FootballApiOptions.SectionName)
-                .Get<FootballApiOptions>()!;
+            FootballApiOptions options = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
+
             client.BaseAddress = new Uri(options.BaseUrl);
         })
-        .AddResilienceHandler("api-football", FootballApiResilience.Configure);
+        .AddResilienceHandler("api-football", (builder, context) => FootballApiResilience.Configure(
+            builder,
+            context.ServiceProvider.GetRequiredService<IOptions<FootballApiOptions>>().Value));
     }
 
     private static void AddOptions(IServiceCollection services, IConfiguration configuration)
@@ -118,9 +114,5 @@ public static class DependencyInjectionExtensions
                 .ValidateDataAnnotations()
                 .ValidateOnStart();
         }
-
-        services.AddOptions<PasswordOptions>()
-            .Bind(configuration.GetSection(PasswordOptions.SectionName))
-            .ValidateOnStart();
     }
 }

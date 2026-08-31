@@ -183,6 +183,10 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.Property<long?>("BetId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("ClientRequestId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
@@ -194,14 +198,18 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<long>("UserId")
+                    b.Property<long>("WalletId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BetId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("WalletId");
+
+                    b.HasIndex("WalletId", "ClientRequestId")
+                        .IsUnique()
+                        .HasFilter("[ClientRequestId] IS NOT NULL");
 
                     b.ToTable("WalletTransactions", (string)null);
                 });
@@ -235,15 +243,15 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         .HasForeignKey("BetId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("SportsBetting.Domain.Entities.User", "User")
+                    b.HasOne("SportsBetting.Domain.Entities.Wallet", "Wallet")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("WalletId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Bet");
 
-                    b.Navigation("User");
+                    b.Navigation("Wallet");
                 });
 #pragma warning restore 612, 618
         }

@@ -4,5 +4,5 @@ namespace SportsBetting.Application.UseCases.Wallet.Deposit;
 
 public interface IDepositUseCase
 {
-    Task Execute(DepositRequest request, CancellationToken cancellationToken);
+    Task Execute(DepositRequest request, string? idempotencyKey, CancellationToken cancellationToken);
 }

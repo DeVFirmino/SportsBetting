@@ -2,6 +2,8 @@ using System.Net;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using SportsBetting.Infrastructure.ExternalServices.Football;
+using Polly.Timeout;
+using SportsBetting.Infrastructure.Options;
 
 namespace UseCase.Test.ExternalServices;
 
@@ -50,6 +52,26 @@ public class FootballApiResilienceTests
     }
 
     [Fact]
+    public async Task ShouldRetryGetWhenTheAttemptTimesOut()
+    {
+        // Arrange
+        var handler = new CountingHandler(attempt => attempt < 3
+            ? throw new TimeoutRejectedException("attempt timed out")
+            : new HttpResponseMessage(HttpStatusCode.OK));
+        var client = CreateResilientClient(handler);
+
+        // Act
+        var response = await client.GetAsync("/fixtures");
+
+        // Assert
+        // The per-attempt timeout sits inside the retry, so a slow upstream arrives as
+        // TimeoutRejectedException. Leaving it unhandled made the commonest transient failure the
+        // one the pipeline never retried.
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        handler.Attempts.Should().Be(3);
+    }
+
+    [Fact]
     public async Task ShouldNotRetryWhenTheRequestIsNotAGet()
     {
         // Arrange
@@ -85,11 +107,16 @@ public class FootballApiResilienceTests
 
         services.AddHttpClient("api-football", client => client.BaseAddress = new Uri("https://football.example"))
             .ConfigurePrimaryHttpMessageHandler(() => primaryHandler)
-            // Same policy the application registers, with the backoff shortened so the test does
-            // not spend seconds asleep.
+            // The policy the application registers, configured with the shortest backoff the
+            // options allow so the test does not spend seconds asleep.
             .AddResilienceHandler(
                 "api-football",
-                builder => FootballApiResilience.Configure(builder, TimeSpan.FromMilliseconds(1)));
+                builder => FootballApiResilience.Configure(builder, new FootballApiOptions
+                {
+                    BaseUrl = "https://football.example",
+                    ApiKey = "test-api-key",
+                    RetryDelayMilliseconds = 1,
+                }));
 
         ServiceProvider provider = services.BuildServiceProvider();
 

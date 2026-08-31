@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SportsBetting.API.Converters;
@@ -77,50 +79,42 @@ builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        JwtOptions jwtOptions = builder.Configuration
-            .GetRequiredSection(JwtOptions.SectionName)
-            .Get<JwtOptions>()!;
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
-        options.MapInboundClaims = false;
-        options.TokenValidationParameters = new TokenValidationParameters
+// The bearer options read the same validated JwtOptions the rest of the application resolves, so
+// there is one reader of the setting and ValidateOnStart still governs it.
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
+    {
+        JwtOptions options = jwt.Value;
+
+        bearer.MapInboundClaims = false;
+        bearer.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidIssuer = jwtOptions.Issuer,
+            ValidIssuer = options.Issuer,
             ValidateAudience = true,
-            ValidAudience = jwtOptions.Audience,
+            ValidAudience = options.Audience,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey)),
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             NameClaimType = JwtRegisteredClaimNames.Sub,
         };
     });
 builder.Services.AddAuthorization();
+// Every policy partitions its window. A single process-wide bucket would let one caller exhaust
+// the window for everybody, which turns a brute-force guard into a denial of service.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("login", limiter =>
-    {
-        limiter.PermitLimit = 5;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("registration", limiter =>
-    {
-        limiter.PermitLimit = 5;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("betting", limiter =>
-    {
-        limiter.PermitLimit = 10;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
-    });
+
+    options.AddPolicy("login", context => PerClientWindow(context, permitLimit: 5));
+    options.AddPolicy("registration", context => PerClientWindow(context, permitLimit: 5));
+    options.AddPolicy("betting", context => PerClientWindow(context, permitLimit: 10));
+    options.AddPolicy("wallet", context => PerClientWindow(context, permitLimit: 10));
 });
+
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
     .AddDbContextCheck<SportsBettingDbContext>("database", tags: ["ready"]);
@@ -139,21 +133,23 @@ builder.Services.AddCors(options =>
 
 WebApplication app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Swagger is served in every environment on purpose: the live demo is a
+// portfolio piece and the interactive docs are part of what it demonstrates.
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("v1/swagger.json", "SportsBetting API v1");
-        options.RoutePrefix = "swagger";
-    });
-}
+    options.SwaggerEndpoint("v1/swagger.json", "SportsBetting API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication on purpose: the limiter partitions authenticated traffic by the subject
+// claim, and running it earlier would put every caller in the same anonymous bucket.
+app.UseRateLimiter();
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
@@ -166,10 +162,27 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = registration => registration.Tags.Contains("ready")
 });
 
-app.MapHealthChecks("/health");
 app.MapControllers();
 
 await app.RunAsync();
+
+/// <summary>
+/// Partitions a fixed window by the authenticated subject when there is one and by remote address
+/// otherwise, so one caller's burst never spends another caller's allowance.
+/// </summary>
+static RateLimitPartition<string> PerClientWindow(HttpContext context, int permitLimit)
+{
+    string partition = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+        ?? context.Connection.RemoteIpAddress?.ToString()
+        ?? "unknown";
+
+    return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = permitLimit,
+        Window = TimeSpan.FromMinutes(1),
+        QueueLimit = 0,
+    });
+}
 
 public partial class Program
 {

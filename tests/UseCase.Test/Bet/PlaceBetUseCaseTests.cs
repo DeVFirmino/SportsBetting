@@ -37,7 +37,7 @@ public class PlaceBetUseCaseTests
         var request = ValidRequest(requestedType);
 
         // Act
-        var result = await context.UseCase.Execute(request, CancellationToken.None);
+        var result = await context.UseCase.Execute(request, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         context.PersistedBet.Should().NotBeNull();
@@ -61,7 +61,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(fixture: fixture);
 
         // Act
-        var result = await context.UseCase.Execute(ValidRequest("HomeWin"), CancellationToken.None);
+        var result = await context.UseCase.Execute(ValidRequest("HomeWin"), idempotencyKey: null, CancellationToken.None);
 
         // Assert
         context.PersistedBet!.Odds.Should().Be(1m);
@@ -75,7 +75,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(walletExists: false);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.WALLET_NOT_FOUND);
@@ -89,7 +89,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(balance: 10m);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
@@ -104,7 +104,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(balance: 100m, balanceAtDeduction: 5m);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
@@ -118,7 +118,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(fixtureExists: false);
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
 
         // Assert
         await AssertSingleError(act, ResourcesMessagesException.FIXTURE_NOT_FOUND);
@@ -136,7 +136,7 @@ public class PlaceBetUseCaseTests
         request.Amount = amount;
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(request, CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(request, idempotencyKey: null, CancellationToken.None);
 
         // Assert
         await act.Should().ThrowAsync<ErrorOnValidationException>();
@@ -150,7 +150,7 @@ public class PlaceBetUseCaseTests
         var context = CreateContext(commitException: new ConcurrencyException());
 
         // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), idempotencyKey: null, CancellationToken.None);
 
         // Assert: a lost race is not a validation error — it reaches the API as a conflict,
         // which answers 409 and tells the client to retry.
