@@ -581,9 +581,11 @@ Omitting the header opts out — repeated calls then create separate bets and se
 
 Each policy uses a one-minute fixed window. Betting and wallet windows are partitioned by the
 authenticated `sub` claim; login and registration are partitioned by client address only, so a
-token cannot buy a fresh brute-force allowance. Forwarded headers are honoured (the demo runs
-behind a platform proxy), which keeps the address partitions from collapsing into one shared
-bucket.
+token cannot buy a fresh brute-force allowance. `X-Forwarded-For` is honoured only from proxies
+the deployment declares (`Settings:ForwardedHeaders:KnownNetworks` / `KnownProxies`, plus the
+ASP.NET loopback defaults): behind the platform proxy the address partitions survive instead of
+collapsing into the proxy's single address, while a direct caller cannot mint fresh windows by
+forging the header.
 
 | Endpoint | Requests per minute |
 | :--- | :--- |

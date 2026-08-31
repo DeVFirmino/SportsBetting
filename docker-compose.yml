@@ -50,6 +50,10 @@ services:
       Settings__Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY (at least 32 characters) in .env}
       # Only needed when the database holds password hashes from before the Identity hasher.
       Settings__Password__AdditionalKey: ${LEGACY_PASSWORD_ADDITIONAL_KEY:-}
+      # Compose publishes the API port directly, so no proxy is trusted here. A deployment that
+      # fronts the API with a reverse proxy declares it, e.g.:
+      # Settings__ForwardedHeaders__KnownNetworks__0: 10.0.0.0/8
+      # Settings__ForwardedHeaders__KnownProxies__0: 203.0.113.5
       Settings__Jwt__Issuer: ${JWT_ISSUER:-sportsbetting-api}
       Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
       Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
