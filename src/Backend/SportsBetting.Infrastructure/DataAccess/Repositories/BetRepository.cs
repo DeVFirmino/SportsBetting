@@ -29,6 +29,20 @@ public sealed class BetRepository : IBetReadOnlyRepository, IBetWriteOnlyReposit
             .FirstOrDefaultAsync(b => b.Id == id && b.Active, cancellationToken);
     }
 
+    public async Task<Bet?> GetByClientRequestIdAsync(
+        long userId,
+        string clientRequestId,
+        CancellationToken cancellationToken)
+    {
+        return await _context.Bets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                bet => bet.UserId == userId
+                    && bet.ClientRequestId == clientRequestId
+                    && bet.Active,
+                cancellationToken);
+    }
+
     public async Task<(List<Bet> Items, int TotalCount)> GetPagedByUserIdAsync(
         long userId,
         int pageNumber,

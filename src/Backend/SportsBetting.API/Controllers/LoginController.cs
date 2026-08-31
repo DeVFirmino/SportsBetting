@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SportsBetting.Application.UseCases.User.Login.DoLogin;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
@@ -12,7 +13,7 @@ public sealed class LoginController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(
         [FromServices] IDoLoginUseCase useCase,
         [FromBody] LoginRequest request,

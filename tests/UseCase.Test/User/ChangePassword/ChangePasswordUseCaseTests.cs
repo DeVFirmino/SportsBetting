@@ -18,12 +18,12 @@ public class ChangePasswordUseCaseTests
     public async Task ShouldChangePasswordWhenCurrentPasswordIsCorrect()
     {
         // Arrange
-        var encrypter = PasswordEncrypterBuilder.Build();
+        var passwordHasher = PasswordHasherBuilder.Build();
         var user = new Domain.Entities.User
         {
             Id = 7,
-            Password = encrypter.Encrypt("current-password")
         };
+        user.Password = passwordHasher.Hash(user, "current-password");
         var useCase = CreateUseCase(user);
 
         // Act
@@ -34,15 +34,17 @@ public class ChangePasswordUseCaseTests
         }, CancellationToken.None);
 
         // Assert
-        user.Password.Should().Be(encrypter.Encrypt("new-password"));
+        PasswordHasherBuilder.Build().Verify(user, user.Password, "new-password")
+            .Should().Be(Domain.Security.Cryptography.PasswordHashVerification.Success);
     }
 
     [Fact]
     public async Task ShouldReturnInvalidCredentialsWhenCurrentPasswordIsIncorrect()
     {
         // Arrange
-        var encrypter = PasswordEncrypterBuilder.Build();
-        var user = new Domain.Entities.User { Id = 7, Password = encrypter.Encrypt("correct-password") };
+        var passwordHasher = PasswordHasherBuilder.Build();
+        var user = new Domain.Entities.User { Id = 7 };
+        user.Password = passwordHasher.Hash(user, "correct-password");
         var useCase = CreateUseCase(user);
 
         // Act
@@ -55,15 +57,17 @@ public class ChangePasswordUseCaseTests
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
-        user.Password.Should().Be(encrypter.Encrypt("correct-password"));
+        PasswordHasherBuilder.Build().Verify(user, user.Password, "correct-password")
+            .Should().Be(Domain.Security.Cryptography.PasswordHashVerification.Success);
     }
 
     [Fact]
     public async Task ShouldReturnValidationErrorWhenNewPasswordIsTooShort()
     {
         // Arrange
-        var encrypter = PasswordEncrypterBuilder.Build();
-        var user = new Domain.Entities.User { Id = 7, Password = encrypter.Encrypt("current-password") };
+        var passwordHasher = PasswordHasherBuilder.Build();
+        var user = new Domain.Entities.User { Id = 7 };
+        user.Password = passwordHasher.Hash(user, "current-password");
         var useCase = CreateUseCase(user);
 
         // Act
@@ -95,6 +99,6 @@ public class ChangePasswordUseCaseTests
             loggedUser.Object,
             repository.Object,
             unitOfWork.Object,
-            PasswordEncrypterBuilder.Build());
+            PasswordHasherBuilder.Build());
     }
 }

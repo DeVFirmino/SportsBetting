@@ -5,9 +5,11 @@ using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.WalletRepository;
+using SportsBetting.Domain.Repositories.WalletTransactionRepository;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
+using SportsBetting.Tests.Common.Repositories;
 using Domain = SportsBetting.Domain;
 
 namespace UseCase.Test.Wallet;
@@ -68,10 +70,48 @@ public class DepositUseCaseTests
             .Which.Should().Be(ResourcesMessagesException.AMOUNT_INVALID);
     }
 
+    [Fact]
+    public async Task ShouldRecordADepositLedgerEntryWhenTheWalletAlreadyExists()
+    {
+        // Arrange
+        var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
+        var ledger = new WalletTransactionWriteOnlyRepositoryBuilder();
+        var useCase = CreateUseCase(User(), wallet, ledger: ledger);
+
+        // Act
+        await useCase.Execute(new DepositRequest { Amount = 25m }, CancellationToken.None);
+
+        // Assert
+        var entry = ledger.Recorded.Should().ContainSingle().Subject;
+        entry.Type.Should().Be(Domain.Enums.WalletTransactionType.Deposit);
+        entry.UserId.Should().Be(42);
+        entry.Amount.Should().Be(25m);
+        entry.BalanceAfter.Should().Be(125m);
+        entry.BetId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ShouldRecordADepositLedgerEntryWhenTheWalletIsCreated()
+    {
+        // Arrange
+        var ledger = new WalletTransactionWriteOnlyRepositoryBuilder();
+        var useCase = CreateUseCase(User(), null, ledger: ledger);
+
+        // Act
+        await useCase.Execute(new DepositRequest { Amount = 75m }, CancellationToken.None);
+
+        // Assert
+        var entry = ledger.Recorded.Should().ContainSingle().Subject;
+        entry.Type.Should().Be(Domain.Enums.WalletTransactionType.Deposit);
+        entry.Amount.Should().Be(75m);
+        entry.BalanceAfter.Should().Be(75m);
+    }
+
     private static DepositUseCase CreateUseCase(
         Domain.Entities.User user,
         Domain.Entities.Wallet? wallet,
-        Mock<IWalletWriteOnlyRepository>? writeRepository = null)
+        Mock<IWalletWriteOnlyRepository>? writeRepository = null,
+        WalletTransactionWriteOnlyRepositoryBuilder? ledger = null)
     {
         var loggedUser = new Mock<ILoggedUser>();
         loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
@@ -91,12 +131,12 @@ public class DepositUseCaseTests
 
         var unitOfWork = new Mock<IUnitOfWork>();
         unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-
         return new DepositUseCase(
             (writeRepository ?? new Mock<IWalletWriteOnlyRepository>()).Object,
             loggedUser.Object,
             updateRepository.Object,
             readRepository.Object,
+            (ledger ?? new WalletTransactionWriteOnlyRepositoryBuilder()).Build(),
             unitOfWork.Object);
     }
 

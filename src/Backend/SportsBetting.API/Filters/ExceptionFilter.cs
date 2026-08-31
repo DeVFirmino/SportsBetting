@@ -1,8 +1,9 @@
 using System.Net;
+using Polly.CircuitBreaker;
+using Polly.Timeout;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SportsBetting.Exceptions;
-using SportsBetting.Communication.Responses;
 using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.API.Filters;
@@ -19,49 +20,114 @@ public sealed class ExceptionFilter : IExceptionFilter
     public void OnException(ExceptionContext context)
     {
         if (context.Exception is SportsBettingException)
+        {
             HandleProjectException(context);
-        else
-            HandleUnknownException(context);
+            return;
+        }
+
+        if (context.Exception is HttpRequestException httpRequestException
+            && httpRequestException.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable)
+        {
+            HandleUpstreamException(context, httpRequestException);
+            return;
+        }
+
+        // The resilience pipeline in front of API-Football stops calling a failing upstream and
+        // gives up on one that is too slow. Neither is the caller's fault, so both answer 503
+        // rather than surfacing as an unexplained 500.
+        if (context.Exception is BrokenCircuitException or TimeoutRejectedException)
+        {
+            HandleUnavailableUpstream(context, context.Exception);
+            return;
+        }
+
+        HandleUnknownException(context);
     }
 
-
-    private void HandleProjectException(ExceptionContext context)
+    private static void HandleProjectException(ExceptionContext context)
     {
         if (context.Exception is InvalidLoginException)
         {
-
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            context.Result = new UnauthorizedObjectResult(new ErrorResponse(context.Exception.Message));
-        }
-        
-        else if (context.Exception is ConcurrencyException)
-        {
-            // The request was valid; another write won the race for the wallet. 409 says
-            // "retry", which is what the client should do — a 400 would blame the payload.
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Conflict;
-            context.Result = new ConflictObjectResult(new ErrorResponse(context.Exception.Message));
+            SetProblem(context, StatusCodes.Status401Unauthorized, "Unauthorized", [context.Exception.Message]);
+            return;
         }
 
-        else if (context.Exception is ErrorOnValidationException exception)
+        if (context.Exception is ConcurrencyException)
         {
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Result = new BadRequestObjectResult(new ErrorResponse(exception.ErrorMessage));
+            SetProblem(context, StatusCodes.Status409Conflict, "Conflict", [context.Exception.Message]);
+            return;
         }
 
-        else
+        if (context.Exception is ErrorOnValidationException exception)
         {
-            // Without this branch an unmapped project exception left the response empty.
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Result = new BadRequestObjectResult(new ErrorResponse(context.Exception.Message));
+            SetProblem(context, StatusCodes.Status400BadRequest, "Validation failed", exception.ErrorMessage);
+            return;
         }
+
+        SetProblem(context, StatusCodes.Status400BadRequest, "Bad request", [context.Exception.Message]);
+    }
+
+    private void HandleUnavailableUpstream(ExceptionContext context, Exception exception)
+    {
+        _logger.LogWarning(exception, "Upstream API-Football is not reachable");
+
+        SetProblem(
+            context,
+            StatusCodes.Status503ServiceUnavailable,
+            "Upstream service unavailable",
+            [ResourcesMessagesException.UNKNOWN_ERROR]);
+    }
+
+    private void HandleUpstreamException(ExceptionContext context, HttpRequestException exception)
+    {
+        int statusCode = exception.StatusCode is HttpStatusCode.BadGateway
+            ? StatusCodes.Status502BadGateway
+            : StatusCodes.Status503ServiceUnavailable;
+
+        _logger.LogWarning(exception, "Upstream API-Football request failed with {StatusCode}", statusCode);
+
+        SetProblem(context, statusCode, "Upstream service unavailable", [exception.Message]);
     }
 
     private void HandleUnknownException(ExceptionContext context)
     {
-        _logger.LogError(context.Exception, "Unhandled exception occurred: {Message}", context.Exception.Message);
-        context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        context.Result = new ObjectResult(new ErrorResponse(ResourcesMessagesException.UNKNOWN_ERROR));
+        string correlationId = context.HttpContext.TraceIdentifier;
+        _logger.LogError(
+            context.Exception,
+            "Unhandled exception {CorrelationId} occurred on {Path}",
+            correlationId,
+            context.HttpContext.Request.Path);
+
+        SetProblem(
+            context,
+            StatusCodes.Status500InternalServerError,
+            "Unexpected error",
+            [ResourcesMessagesException.UNKNOWN_ERROR],
+            correlationId);
     }
 
+    private static void SetProblem(
+        ExceptionContext context,
+        int statusCode,
+        string title,
+        IList<string> errors,
+        string? correlationId = null)
+    {
+        ProblemDetails problemDetails = new()
+        {
+            Status = statusCode,
+            Title = title,
+            Instance = context.HttpContext.Request.Path,
+        };
+        problemDetails.Extensions["errors"] = errors;
 
+        if (string.IsNullOrWhiteSpace(correlationId) is false)
+            problemDetails.Extensions["correlationId"] = correlationId;
+
+        context.HttpContext.Response.StatusCode = statusCode;
+        context.Result = new ObjectResult(problemDetails)
+        {
+            StatusCode = statusCode,
+        };
+    }
 }

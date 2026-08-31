@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using SportsBetting.API.Attributes;
+using Microsoft.AspNetCore.Authorization;
 using SportsBetting.Application.UseCases.User.GetBalance;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
 using SportsBetting.Communication.Requests;
@@ -9,11 +9,11 @@ namespace SportsBetting.API.Controllers;
 
 [ApiController]
 [Route("Wallet")]
+[Authorize]
 public sealed class WalletController : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(WalletBalanceResponse), StatusCodes.Status200OK)]
-    [AuthenticatedUser]
     public async Task<IActionResult> GetBalance(
         [FromServices] IGetBalanceUseCase useCase,
         CancellationToken cancellationToken)
@@ -26,7 +26,6 @@ public sealed class WalletController : ControllerBase
     [HttpPost("deposit")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [AuthenticatedUser]
     public async Task<IActionResult> Deposit(
         [FromServices] IDepositUseCase useCase,
         [FromBody] DepositRequest request,

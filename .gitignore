@@ -208,3 +208,7 @@ coverage.opencover.xml
 appsettings.json
 appsettings.Development.json
 appsettings.*.json
+
+# Local Docker Compose secrets
+.env
+!.env.example

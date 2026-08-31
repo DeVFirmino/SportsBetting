@@ -17,7 +17,7 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -39,6 +39,10 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.Property<int>("BetType")
                         .HasMaxLength(100)
                         .HasColumnType("int");
+
+                    b.Property<string>("ClientRequestId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
@@ -76,6 +80,10 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.HasIndex("FixtureId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "ClientRequestId")
+                        .IsUnique()
+                        .HasFilter("[ClientRequestId] IS NOT NULL");
 
                     b.ToTable("Bets", (string)null);
                 });
@@ -155,6 +163,49 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.ToTable("Wallets", (string)null);
                 });
 
+            modelBuilder.Entity("SportsBetting.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("BetId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BetId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WalletTransactions", (string)null);
+                });
+
             modelBuilder.Entity("SportsBetting.Domain.Entities.Bet", b =>
                 {
                     b.HasOne("SportsBetting.Domain.Entities.User", "User")
@@ -173,6 +224,24 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         .HasForeignKey("SportsBetting.Domain.Entities.Wallet", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SportsBetting.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.HasOne("SportsBetting.Domain.Entities.Bet", "Bet")
+                        .WithMany()
+                        .HasForeignKey("BetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SportsBetting.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Bet");
 
                     b.Navigation("User");
                 });

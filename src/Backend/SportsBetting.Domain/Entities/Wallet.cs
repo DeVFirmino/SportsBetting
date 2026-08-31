@@ -1,6 +1,6 @@
 namespace SportsBetting.Domain.Entities;
 
-public class Wallet : EntityBase
+public sealed class Wallet : EntityBase
 {
     public long UserId { get; set; }
     
@@ -9,4 +9,24 @@ public class Wallet : EntityBase
 
     public byte[] RowVersion { get; set; } = [];
 
+    public void Deposit(decimal amount)
+    {
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        Balance += amount;
+    }
+
+    public WalletTransaction Debit(decimal amount, long? betId = null)
+    {
+        if (amount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+
+        if (Balance < amount)
+            throw new InvalidOperationException("Insufficient balance.");
+
+        Balance -= amount;
+
+        return WalletTransaction.BetDebit(UserId, amount, Balance, betId);
+    }
 }

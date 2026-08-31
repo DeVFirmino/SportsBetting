@@ -17,7 +17,7 @@ public sealed class RegisterUserUseCase : IRegisterUserUseCase
     private readonly IUserWriteOnlyRepository _userWriteOnlyRepository;
     private readonly IUserReadOnlyRepository _userReadOnlyRepository;
     private readonly IMapper _mapper;
-    private readonly IPasswordEncrypter _passwordEncrypter;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccessTokenGenerator _accessTokenGenerator;
     private readonly IWalletWriteOnlyRepository _walletWriteOnlyRepository;
@@ -25,7 +25,7 @@ public sealed class RegisterUserUseCase : IRegisterUserUseCase
     public RegisterUserUseCase(IUserWriteOnlyRepository userWriteOnlyRepository,
         IUserReadOnlyRepository userReadOnlyRepository,
         IMapper mapper, 
-        IPasswordEncrypter passwordEncrypter,
+        IPasswordHasher passwordHasher,
         IUnitOfWork unitOfWork, 
         IAccessTokenGenerator accessTokenGenerator,
         IWalletWriteOnlyRepository walletWriteOnlyRepository)     
@@ -33,7 +33,7 @@ public sealed class RegisterUserUseCase : IRegisterUserUseCase
         _userWriteOnlyRepository = userWriteOnlyRepository;
         _userReadOnlyRepository = userReadOnlyRepository;
         _mapper = mapper;
-        _passwordEncrypter = passwordEncrypter;
+        _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
         _accessTokenGenerator = accessTokenGenerator;
         _walletWriteOnlyRepository = walletWriteOnlyRepository;
@@ -46,16 +46,17 @@ public sealed class RegisterUserUseCase : IRegisterUserUseCase
         
          var user = _mapper.Map<Domain.Entities.User>(request);
         
-         user.Password = (_passwordEncrypter.Encrypt(request.Password));
+         user.Password = _passwordHasher.Hash(user, request.Password);
         user.UserIdentifier = Guid.NewGuid();
         
          await _userWriteOnlyRepository.AddAsync(user, cancellationToken);
         
-         await _unitOfWork.CommitAsync(cancellationToken);
-        
+        // The user has no identity value until the insert runs, so the wallet points at the user
+        // through the navigation property. Entity Framework Core then orders the two inserts and
+        // fills the foreign key itself, and registration stays a single atomic commit.
         var wallet = new Domain.Entities.Wallet()
         {
-            UserId = user.Id,
+            User = user,
             Balance = 0
         };
         

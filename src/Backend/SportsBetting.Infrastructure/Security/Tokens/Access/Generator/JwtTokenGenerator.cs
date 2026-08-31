@@ -1,35 +1,37 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SportsBetting.Domain.Security.Tokens;
+using SportsBetting.Infrastructure.Options;
 
 namespace SportsBetting.Infrastructure.Security.Tokens.Access.Generator;    
 
-public class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
+public sealed class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
 {
-    private readonly uint _expirationTimeMinutes;
-    private readonly string _signKey;
+    private readonly JwtOptions _options;
 
-    public JwtTokenGenerator(uint expirationTimeMinutes, string signKey)
+    public JwtTokenGenerator(IOptions<JwtOptions> options)
     { 
-        _expirationTimeMinutes = expirationTimeMinutes;
-        _signKey = signKey; 
+        _options = options.Value;
     }
 
     public string Generate(Guid userIdentifier)
     {
-        var claims = new List<Claim>()
-        {
-            new Claim(ClaimTypes.Sid, userIdentifier.ToString()),
-        };
+        List<Claim> claims =
+        [
+            new Claim(JwtRegisteredClaimNames.Sub, userIdentifier.ToString()),
+        ];
         
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(_expirationTimeMinutes),
-            SigningCredentials = new SigningCredentials(SecurityKey(_signKey ), SecurityAlgorithms.HmacSha256Signature)
+            Expires = DateTime.UtcNow.AddMinutes(_options.ExpirationTimeMinutes),
+            Issuer = _options.Issuer,
+            Audience = _options.Audience,
+            SigningCredentials = new SigningCredentials(
+                SecurityKey(_options.SigningKey),
+                SecurityAlgorithms.HmacSha256Signature)
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();

@@ -9,6 +9,11 @@ public interface IBetReadOnlyRepository
 
     Task<Bet?> GetByIdAsync(long id, CancellationToken cancellationToken);
 
+    Task<Bet?> GetByClientRequestIdAsync(
+        long userId,
+        string clientRequestId,
+        CancellationToken cancellationToken);
+
     Task<(List<Bet> Items, int TotalCount)> GetPagedByUserIdAsync(
         long userId,
         int pageNumber,

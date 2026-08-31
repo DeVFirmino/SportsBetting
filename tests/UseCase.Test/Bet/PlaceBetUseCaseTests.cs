@@ -7,6 +7,7 @@ using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.WalletRepository;
+using SportsBetting.Domain.Repositories.WalletTransactionRepository;
 using SportsBetting.Domain.Services.ExternalApis;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
@@ -200,6 +201,8 @@ public class PlaceBetUseCaseTests
                 It.IsAny<CancellationToken>()))
             .Callback<SportsBetting.Domain.Entities.Bet, CancellationToken>((bet, _) => persistedBet = bet)
             .Returns(Task.CompletedTask);
+        var betReadRepository = new Mock<IBetReadOnlyRepository>();
+        var transactionRepository = new Mock<IWalletTransactionWriteOnlyRepository>();
 
         var footballApi = new Mock<IFootballApiService>();
         var fixtures = fixtureExists ? new List<FixtureData> { fixture ?? Fixture() } : [];
@@ -219,11 +222,13 @@ public class PlaceBetUseCaseTests
         var useCase = new PlaceBetUseCase(
             loggedUser.Object,
             MapperBuilder.Build(),
+            betReadRepository.Object,
             betRepository.Object,
             walletUpdateRepository.Object,
             walletReadRepository.Object,
             unitOfWork.Object,
-            footballApi.Object);
+            footballApi.Object,
+            transactionRepository.Object);
 
         return new TestContext(useCase, user, wallet, () => persistedBet);
     }

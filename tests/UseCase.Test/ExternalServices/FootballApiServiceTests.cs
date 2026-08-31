@@ -2,7 +2,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using SportsBetting.Infrastructure.Options;
 using SportsBetting.Infrastructure.ExternalServices.Football;
 
 namespace UseCase.Test.ExternalServices;
@@ -81,7 +83,7 @@ public class FootballApiServiceTests
     }
 
     [Fact]
-    public async Task ShouldThrowHttpRequestExceptionWhenResponseFails()
+    public async Task ShouldReportBadGatewayWhenTheUpstreamAnswersBadGateway()
     {
         // Arrange
         var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
@@ -90,20 +92,87 @@ public class FootballApiServiceTests
         Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
 
         // Assert
-        await act.Should().ThrowAsync<HttpRequestException>();
+        var exception = await act.Should().ThrowAsync<HttpRequestException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+    }
+
+    [Fact]
+    public async Task ShouldReportServiceUnavailableWhenTheUpstreamAnswersServiceUnavailable()
+    {
+        // Arrange
+        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+
+        // Act
+        Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<HttpRequestException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+    }
+
+    [Fact]
+    public async Task ShouldReportServiceUnavailableWhenTheUpstreamRateLimitIsExceeded()
+    {
+        // Arrange
+        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.TooManyRequests)));
+
+        // Act
+        Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
+
+        // Assert
+        // A quota this API ran out of is not the caller's fault, so it is reported as an
+        // unavailable upstream rather than passed through as the caller's own 429.
+        var exception = await act.Should().ThrowAsync<HttpRequestException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        exception.Which.Message.Should().Contain("rate limit");
+    }
+
+    [Fact]
+    public async Task ShouldReportBadGatewayWhenTheUpstreamRejectsTheApiKey()
+    {
+        // Arrange
+        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)));
+
+        // Act
+        Func<Task> act = () => service.GetUpcomingFixturesAsync(CancellationToken.None);
+
+        // Assert
+        // A rejected key is a deployment problem here, not a bad request from the API's caller.
+        var exception = await act.Should().ThrowAsync<HttpRequestException>();
+        exception.Which.StatusCode.Should().Be(HttpStatusCode.BadGateway);
+    }
+
+    [Fact]
+    public async Task ShouldServeTheCachedFixturesWhenCalledAgainWithinTheCacheWindow()
+    {
+        // Arrange
+        var handler = new StubHandler(_ => JsonResponse("""
+            {"response":[{"fixture":{"id":321,"date":"2026-08-20T19:45:00Z"},"teams":{"home":{"name":"Home FC"},"away":{"name":"Away FC"}}}]}
+            """));
+        var service = CreateService(handler);
+
+        // Act
+        var first = await service.GetUpcomingFixturesAsync(CancellationToken.None);
+        var second = await service.GetUpcomingFixturesAsync(CancellationToken.None);
+
+        // Assert
+        first.Should().ContainSingle();
+        second.Should().BeSameAs(first);
+        handler.Calls.Should().Be(1);
     }
 
     private static FootballApiService CreateService(HttpMessageHandler handler)
     {
         var client = new HttpClient(handler) { BaseAddress = new Uri("https://football.example") };
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+        return new FootballApiService(
+            client,
+            new MemoryCache(new MemoryCacheOptions()),
+            Options.Create(new FootballApiOptions
             {
-                ["Settings:FootballApi:ApiKey"] = "test-api-key"
-            })
-            .Build();
-
-        return new FootballApiService(client, configuration);
+                BaseUrl = "https://football.example",
+                ApiKey = "test-api-key",
+                CacheSeconds = 30
+            }));
     }
 
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
@@ -113,8 +182,15 @@ public class FootballApiServiceTests
 
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> response) : HttpMessageHandler
     {
+        public int Calls { get; private set; }
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
-            CancellationToken cancellationToken) => Task.FromResult(response(request));
+            CancellationToken cancellationToken)
+        {
+            Calls++;
+
+            return Task.FromResult(response(request));
+        }
     }
 }

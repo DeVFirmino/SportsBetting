@@ -18,11 +18,14 @@ public sealed class SportsBettingDbContext : DbContext
 
     public DbSet<Bet> Bets => Set<Bet>();
 
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureUser(modelBuilder.Entity<User>());
         ConfigureWallet(modelBuilder.Entity<Wallet>());
         ConfigureBet(modelBuilder.Entity<Bet>());
+        ConfigureWalletTransaction(modelBuilder.Entity<WalletTransaction>());
     }
 
     private static void ConfigureUser(EntityTypeBuilder<User> user)
@@ -96,6 +99,9 @@ public sealed class SportsBettingDbContext : DbContext
             .HasDefaultValue(BetStatus.Pending)
             .IsRequired();
 
+        bet.Property(entity => entity.ClientRequestId)
+            .HasMaxLength(128);
+
         bet.HasOne(entity => entity.User)
             .WithMany()
             .HasForeignKey(entity => entity.UserId)
@@ -103,5 +109,43 @@ public sealed class SportsBettingDbContext : DbContext
 
         bet.HasIndex(entity => entity.UserId);
         bet.HasIndex(entity => entity.FixtureId);
+        bet.HasIndex(entity => new { entity.UserId, entity.ClientRequestId })
+            .IsUnique()
+            .HasFilter("[ClientRequestId] IS NOT NULL");
+    }
+
+    private static void ConfigureWalletTransaction(EntityTypeBuilder<WalletTransaction> transaction)
+    {
+        transaction.ToTable("WalletTransactions");
+        transaction.HasKey(entity => entity.Id);
+
+        transaction.Property(entity => entity.Type)
+            .HasMaxLength(50)
+            .HasConversion<string>()
+            .IsRequired();
+
+        transaction.Property(entity => entity.Amount)
+            .HasColumnType("decimal(18,2)")
+            .IsRequired();
+
+        transaction.Property(entity => entity.BalanceAfter)
+            .HasColumnType("decimal(18,2)")
+            .IsRequired();
+
+        transaction.Property(entity => entity.OccurredAt)
+            .IsRequired();
+
+        transaction.HasOne(entity => entity.User)
+            .WithMany()
+            .HasForeignKey(entity => entity.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        transaction.HasOne(entity => entity.Bet)
+            .WithMany()
+            .HasForeignKey(entity => entity.BetId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        transaction.HasIndex(entity => entity.UserId);
+        transaction.HasIndex(entity => entity.BetId);
     }
 }
