@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
@@ -78,6 +79,19 @@ builder.Logging.AddFilter("LuckyPennySoftware.AutoMapper.License", LogLevel.None
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// The live demo runs behind a platform proxy, so without this every caller shares the proxy's
+// address and the per-address rate-limit partitions collapse into one bucket. The proxy fleet has
+// no stable addresses to pin, so the known-proxy lists are cleared — with ForwardLimit at its
+// default of 1, only the X-Forwarded-For value appended by the last hop is honoured, which is the
+// edge's view of the client. The accepted trade-off: a proxyless direct caller can mint partitions
+// by forging the header, which weakens its own limit but cannot exhaust anybody else's.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
@@ -109,10 +123,10 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.AddPolicy("login", context => PerClientWindow(context, permitLimit: 5));
-    options.AddPolicy("registration", context => PerClientWindow(context, permitLimit: 5));
-    options.AddPolicy("betting", context => PerClientWindow(context, permitLimit: 10));
-    options.AddPolicy("wallet", context => PerClientWindow(context, permitLimit: 10));
+    options.AddPolicy("login", context => PerAddressWindow(context, permitLimit: 5));
+    options.AddPolicy("registration", context => PerAddressWindow(context, permitLimit: 5));
+    options.AddPolicy("betting", context => PerSubjectWindow(context, permitLimit: 10));
+    options.AddPolicy("wallet", context => PerSubjectWindow(context, permitLimit: 10));
 });
 
 builder.Services.AddHealthChecks()
@@ -142,6 +156,10 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = "swagger";
 });
 
+// First in the pipeline: everything downstream that reads the client address — most of all the
+// rate-limit partitions — must see the forwarded one.
+app.UseForwardedHeaders();
+
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 app.UseAuthentication();
@@ -167,15 +185,31 @@ app.MapControllers();
 await app.RunAsync();
 
 /// <summary>
-/// Partitions a fixed window by the authenticated subject when there is one and by remote address
-/// otherwise, so one caller's burst never spends another caller's allowance.
+/// Partitions a fixed window by the authenticated subject, falling back to the remote address, so
+/// one caller's burst never spends another caller's allowance. For endpoints behind [Authorize].
 /// </summary>
-static RateLimitPartition<string> PerClientWindow(HttpContext context, int permitLimit)
+static RateLimitPartition<string> PerSubjectWindow(HttpContext context, int permitLimit)
 {
     string partition = context.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-        ?? context.Connection.RemoteIpAddress?.ToString()
-        ?? "unknown";
+        ?? RemoteAddress(context);
 
+    return FixedWindow(partition, permitLimit);
+}
+
+/// <summary>
+/// Partitions a fixed window by the remote address only. Login and registration guard against an
+/// attacker, and the attacker's identity is the connection, not whatever token they choose to
+/// attach: preferring the subject claim on these anonymous endpoints would hand every
+/// self-registered account its own fresh brute-force allowance.
+/// </summary>
+static RateLimitPartition<string> PerAddressWindow(HttpContext context, int permitLimit) =>
+    FixedWindow(RemoteAddress(context), permitLimit);
+
+static string RemoteAddress(HttpContext context) =>
+    context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+static RateLimitPartition<string> FixedWindow(string partition, int permitLimit)
+{
     return RateLimitPartition.GetFixedWindowLimiter(partition, _ => new FixedWindowRateLimiterOptions
     {
         PermitLimit = permitLimit,

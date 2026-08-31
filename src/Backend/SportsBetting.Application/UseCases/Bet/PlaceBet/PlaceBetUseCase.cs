@@ -26,6 +26,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFootballApiService _footballApiService;
     private readonly IWalletTransactionWriteOnlyRepository _walletTransactionWriteOnlyRepository;
+    private readonly IWalletTransactionReadOnlyRepository _walletTransactionReadOnlyRepository;
 
     public PlaceBetUseCase(
         ILoggedUser loggedUser,
@@ -36,7 +37,8 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         IWalletReadOnlyRepository walletReadOnlyRepository,
         IUnitOfWork unitOfWork,
         IFootballApiService footballApiService,
-        IWalletTransactionWriteOnlyRepository walletTransactionWriteOnlyRepository)
+        IWalletTransactionWriteOnlyRepository walletTransactionWriteOnlyRepository,
+        IWalletTransactionReadOnlyRepository walletTransactionReadOnlyRepository)
     {
         _loggedUser = loggedUser;
         _mapper = mapper;
@@ -47,6 +49,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         _unitOfWork = unitOfWork;
         _footballApiService = footballApiService;
         _walletTransactionWriteOnlyRepository = walletTransactionWriteOnlyRepository;
+        _walletTransactionReadOnlyRepository = walletTransactionReadOnlyRepository;
     }
 
     public async Task<BetResponse> Execute(
@@ -68,7 +71,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
                 cancellationToken);
 
             if (replay is not null)
-                return _mapper.Map<BetResponse>(replay);
+                return Replay(replay, request);
         }
 
         Domain.Entities.Wallet wallet = await ValidateWallet(loggedUser.Id, request.Amount, cancellationToken);
@@ -87,35 +90,63 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
             // the balance moved underneath it, so the API answers 409 and the client can retry.
             await _unitOfWork.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (Exception exception) when (clientRequestId is not null
+            && exception is DbUpdateException or ConcurrencyException)
         {
             // The pre-read above is only a fast path. Two requests carrying the same key can both
             // pass it, because the fixture lookup between the read and the commit is an external
-            // HTTP call; the loser collides with the filtered unique index. Replaying the winner
-            // is what makes the key idempotent under concurrency, which is the case it exists for.
-            Domain.Entities.Bet losersReplay = await ReplayAfterConflict(
+            // HTTP call. The loser then fails in one of two shapes: it collides with the filtered
+            // unique index, or — when the winner's debit already moved the wallet — it loses the
+            // rowversion check. In both, the winner holds the key, and replaying it is what makes
+            // the key idempotent under concurrency.
+            Domain.Entities.Bet? winner = await FindByClientRequestId(
                 loggedUser.Id,
                 clientRequestId,
                 cancellationToken);
 
-            return _mapper.Map<BetResponse>(losersReplay);
+            if (winner is not null)
+                return Replay(winner, request);
+
+            // The same key on a ledger entry means it was already spent by a deposit — a client
+            // mistake, not a server fault.
+            if (await KeyUsedByWalletLedger(wallet.Id, clientRequestId, cancellationToken))
+                throw new ErrorOnValidationException([ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED]);
+
+            // Nothing to replay means the commit failed for an unrelated reason. Rethrowing keeps
+            // the original exception — and its classification and logging — instead of reporting
+            // a bet that was never placed.
+            throw;
         }
 
         return _mapper.Map<BetResponse>(bet);
     }
 
-    private async Task<Domain.Entities.Bet> ReplayAfterConflict(
-        long userId,
-        string? clientRequestId,
+    /// <summary>
+    /// A replayed key must carry the same request it was stored under. Returning the stored bet
+    /// for a different amount, fixture or market would tell the client the new payload was
+    /// accepted.
+    /// </summary>
+    private BetResponse Replay(Domain.Entities.Bet winner, PlaceBetRequest request)
+    {
+        bool matches = winner.Amount == request.Amount
+            && winner.FixtureId == request.FixtureId
+            && winner.BetType.ToString() == request.BetType;
+
+        if (matches is false)
+            throw new ErrorOnValidationException([ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED]);
+
+        return _mapper.Map<BetResponse>(winner);
+    }
+
+    private async Task<bool> KeyUsedByWalletLedger(
+        long walletId,
+        string clientRequestId,
         CancellationToken cancellationToken)
     {
-        Domain.Entities.Bet? winner = clientRequestId is null
-            ? null
-            : await FindByClientRequestId(userId, clientRequestId, cancellationToken);
-
-        // Nothing to replay means the write failed for some other reason, and swallowing it would
-        // report a bet that was never placed.
-        return winner ?? throw new ErrorOnValidationException([ResourcesMessagesException.UNKNOWN_ERROR]);
+        return await _walletTransactionReadOnlyRepository.GetByClientRequestIdAsync(
+            walletId,
+            clientRequestId,
+            cancellationToken) is not null;
     }
 
     private Task<Domain.Entities.Bet?> FindByClientRequestId(

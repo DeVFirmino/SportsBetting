@@ -107,11 +107,91 @@ public class DepositUseCaseTests
         entry.BalanceAfter.Should().Be(75m);
     }
 
+    [Fact]
+    public async Task ShouldRejectTheDepositWhenTheKeyWasStoredUnderADifferentAmount()
+    {
+        // Arrange
+        var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
+        var applied = new Domain.Entities.WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Type = Domain.Enums.WalletTransactionType.Deposit,
+            Amount = 50m,
+            BalanceAfter = 150m,
+            ClientRequestId = "key-1"
+        };
+        var readLedger = new WalletTransactionReadOnlyRepositoryBuilder().AlreadyApplied(applied);
+        var useCase = CreateUseCase(User(), wallet, readLedger: readLedger);
+
+        // Act: same key, different amount — silently ignoring it would tell the client the new
+        // amount was credited.
+        Func<Task> act = () => useCase.Execute(
+            new DepositRequest { Amount = 25m }, idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        exception.Which.ErrorMessage.Should().ContainSingle()
+            .Which.Should().Be(ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED);
+    }
+
+    [Fact]
+    public async Task ShouldCreditNothingWhenTheKeyWasAlreadyAppliedWithTheSameAmount()
+    {
+        // Arrange
+        var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 150m };
+        var applied = new Domain.Entities.WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Type = Domain.Enums.WalletTransactionType.Deposit,
+            Amount = 50m,
+            BalanceAfter = 150m,
+            ClientRequestId = "key-1"
+        };
+        var readLedger = new WalletTransactionReadOnlyRepositoryBuilder().AlreadyApplied(applied);
+        var ledger = new WalletTransactionWriteOnlyRepositoryBuilder();
+        var useCase = CreateUseCase(User(), wallet, ledger: ledger, readLedger: readLedger);
+
+        // Act
+        await useCase.Execute(
+            new DepositRequest { Amount = 50m }, idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert: the replay is a no-op — no new ledger entry and no balance change.
+        ledger.Recorded.Should().BeEmpty();
+        wallet.Balance.Should().Be(150m);
+    }
+
+    [Fact]
+    public async Task ShouldRejectTheDepositWhenTheKeyWasSpentByABet()
+    {
+        // Arrange
+        var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
+        var applied = new Domain.Entities.WalletTransaction
+        {
+            WalletId = wallet.Id,
+            Type = Domain.Enums.WalletTransactionType.BetDebit,
+            Amount = 25m,
+            BalanceAfter = 75m,
+            ClientRequestId = "key-1"
+        };
+        var readLedger = new WalletTransactionReadOnlyRepositoryBuilder().AlreadyApplied(applied);
+        var useCase = CreateUseCase(User(), wallet, readLedger: readLedger);
+
+        // Act: the amount even matches, but the key belongs to a debit, not a deposit.
+        Func<Task> act = () => useCase.Execute(
+            new DepositRequest { Amount = 25m }, idempotencyKey: "key-1", CancellationToken.None);
+
+        // Assert
+        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        exception.Which.ErrorMessage.Should().ContainSingle()
+            .Which.Should().Be(ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED);
+    }
+
     private static DepositUseCase CreateUseCase(
         Domain.Entities.User user,
         Domain.Entities.Wallet? wallet,
         Mock<IWalletWriteOnlyRepository>? writeRepository = null,
-        WalletTransactionWriteOnlyRepositoryBuilder? ledger = null)
+        WalletTransactionWriteOnlyRepositoryBuilder? ledger = null,
+        WalletTransactionReadOnlyRepositoryBuilder? readLedger = null)
     {
         var loggedUser = new Mock<ILoggedUser>();
         loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
@@ -137,7 +217,7 @@ public class DepositUseCaseTests
             updateRepository.Object,
             readRepository.Object,
             (ledger ?? new WalletTransactionWriteOnlyRepositoryBuilder()).Build(),
-            new WalletTransactionReadOnlyRepositoryBuilder().Build(),
+            (readLedger ?? new WalletTransactionReadOnlyRepositoryBuilder()).Build(),
             unitOfWork.Object);
     }
 

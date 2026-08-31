@@ -113,6 +113,65 @@ public sealed class PlaceBetUseCaseTests
     }
 
     [Fact]
+    public async Task ShouldReplayTheWinnerWhenTheWinnerAlsoDebitedTheWalletUnderTheSameKey()
+    {
+        (User user, long walletId) = await _fixture.SeedAsync(balance: 100m);
+        string key = Guid.NewGuid().ToString();
+
+        // The realistic duplicate: the winning request committed its bet AND its wallet debit, so
+        // the loser can fail on the wallet's rowversion instead of the unique index. Whichever of
+        // the two shapes surfaces, the caller must get the winner back — not a 409 and not a 500.
+        long winnerId = 0;
+        await using ServiceProvider provider = _fixture.BuildProvider(
+            user,
+            new FootballApiStub(),
+            beforeCommit: async () =>
+            {
+                if (winnerId != 0)
+                    return;
+
+                winnerId = await ClaimKeyAndDebitFromAnotherConnection(user.Id, walletId, key);
+            });
+
+        BetResponse response = await Execute(provider, amount: 30m, key);
+
+        response.Id.Should().Be(winnerId);
+
+        await using SportsBettingDbContext verification = _fixture.NewContext();
+
+        (await verification.Bets.AsNoTracking().CountAsync(bet => bet.UserId == user.Id)).Should().Be(1);
+
+        Wallet wallet = await verification.Wallets.AsNoTracking().FirstAsync(entity => entity.Id == walletId);
+        wallet.Balance.Should().Be(70m);
+
+        (await verification.WalletTransactions.AsNoTracking().CountAsync(entry => entry.WalletId == walletId))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ShouldRejectTheReplayWhenTheSameKeyCarriesADifferentAmount()
+    {
+        (User user, long walletId) = await _fixture.SeedAsync(balance: 100m);
+        await using ServiceProvider provider = _fixture.BuildProvider(user, new FootballApiStub());
+        string key = Guid.NewGuid().ToString();
+
+        await Execute(provider, amount: 25m, key);
+
+        // Reusing the key with a different payload must not answer with the stored bet as if the
+        // new amount had been accepted.
+        Func<Task> replayWithDifferentAmount = () => Execute(provider, amount: 30m, key);
+
+        await replayWithDifferentAmount.Should().ThrowAsync<ErrorOnValidationException>();
+
+        await using SportsBettingDbContext verification = _fixture.NewContext();
+
+        (await verification.Bets.AsNoTracking().CountAsync(bet => bet.UserId == user.Id)).Should().Be(1);
+
+        Wallet wallet = await verification.Wallets.AsNoTracking().FirstAsync(entity => entity.Id == walletId);
+        wallet.Balance.Should().Be(75m);
+    }
+
+    [Fact]
     public async Task ShouldPersistNothingWhenTheWalletMovedUnderTheRequest()
     {
         (User user, long walletId) = await _fixture.SeedAsync(balance: 100m);
@@ -217,10 +276,12 @@ public sealed class PlaceBetUseCaseTests
     {
         await using SportsBettingDbContext context = _fixture.NewContext();
 
+        // The winner mirrors the request under test: a replay only answers for a key stored with
+        // the same payload.
         Bet winner = Bet.Place(
             userId,
             FootballApiStub.FixtureId,
-            amount: 1m,
+            amount: 30m,
             BetType.HomeWin,
             odds: 2.5m,
             eventName: "Home FC vs Away FC",
@@ -228,6 +289,33 @@ public sealed class PlaceBetUseCaseTests
             DateTime.UtcNow);
 
         await context.Bets.AddAsync(winner);
+        await context.SaveChangesAsync();
+
+        return winner.Id;
+    }
+
+    private async Task<long> ClaimKeyAndDebitFromAnotherConnection(
+        long userId,
+        long walletId,
+        string clientRequestId)
+    {
+        await using SportsBettingDbContext context = _fixture.NewContext();
+
+        Bet winner = Bet.Place(
+            userId,
+            FootballApiStub.FixtureId,
+            amount: 30m,
+            BetType.HomeWin,
+            odds: 2.5m,
+            eventName: "Home FC vs Away FC",
+            clientRequestId,
+            DateTime.UtcNow);
+
+        Wallet wallet = await context.Wallets.FirstAsync(entity => entity.Id == walletId);
+        WalletTransaction entry = wallet.Debit(30m, winner);
+
+        await context.Bets.AddAsync(winner);
+        await context.WalletTransactions.AddAsync(entry);
         await context.SaveChangesAsync();
 
         return winner.Id;

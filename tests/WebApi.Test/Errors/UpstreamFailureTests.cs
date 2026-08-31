@@ -48,6 +48,30 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
     }
 
     [Fact]
+    public async Task ShouldReportServiceUnavailableWhenApiFootballIsUnreachable()
+    {
+        // A DNS or connection failure raises HttpRequestException with no status code at all —
+        // still an unavailable upstream, never the caller's 500.
+        _factory.FootballApi.Failure = new HttpRequestException("connection refused");
+
+        try
+        {
+            HttpClient client = await AuthenticatedClientAsync();
+
+            var response = await client.GetAsync("/fixtures");
+
+            response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+
+            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            document.RootElement.GetProperty("title").GetString().Should().Be("Upstream service unavailable");
+        }
+        finally
+        {
+            _factory.FootballApi.Failure = null;
+        }
+    }
+
+    [Fact]
     public async Task ShouldReportServiceUnavailableWhenTheCircuitIsOpen()
     {
         _factory.FootballApi.Failure = new BrokenCircuitException();
