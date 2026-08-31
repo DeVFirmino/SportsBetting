@@ -107,11 +107,29 @@ public class DoLoginUseCaseTest
         await action.Should().ThrowAsync<InvalidLoginException>();
     }
 
+    [Fact]
+    public async Task ShouldPayTheHashingCostWhenTheUserDoesNotExist()
+    {
+        var request = LoginRequestBuilder.Build();
+        var hasherBuilder = new PasswordHasherMockBuilder();
+
+        var useCase = CreateUseCase(passwordHasher: hasherBuilder.Build());
+
+        Func<Task> action = () => useCase.Execute(request, CancellationToken.None);
+
+        await action.Should().ThrowAsync<InvalidLoginException>();
+
+        // An unknown e-mail must still run one verification, so its response time cannot be told
+        // apart from a wrong password's.
+        hasherBuilder.VerifyWasInvokedOnce();
+    }
+
     private static DoLoginUseCase CreateUseCase(
         SportsBetting.Domain.Entities.User? user = null,
-        string? legacyAdditionalKey = null)
+        string? legacyAdditionalKey = null,
+        IPasswordHasher? passwordHasher = null)
     {
-        var passwordHasher = PasswordHasherBuilder.Build(legacyAdditionalKey);
+        passwordHasher ??= PasswordHasherBuilder.Build(legacyAdditionalKey);
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
         var userUpdateOnlyRepositoryBuilder = new UserUpdateOnlyRepositoryBuilder();
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();

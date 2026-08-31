@@ -79,17 +79,24 @@ builder.Logging.AddFilter("LuckyPennySoftware.AutoMapper.License", LogLevel.None
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// The live demo runs behind a platform proxy, so without this every caller shares the proxy's
-// address and the per-address rate-limit partitions collapse into one bucket. The proxy fleet has
-// no stable addresses to pin, so the known-proxy lists are cleared — with ForwardLimit at its
-// default of 1, only the X-Forwarded-For value appended by the last hop is honoured, which is the
-// edge's view of the client. The accepted trade-off: a proxyless direct caller can mint partitions
-// by forging the header, which weakens its own limit but cannot exhaust anybody else's.
+// The live demo runs behind a platform proxy, so without forwarded headers every caller shares
+// the proxy's address and the per-address rate-limit partitions collapse into one bucket. But the
+// header is only honoured from proxies the deployment declares (plus the ASP.NET loopback
+// defaults): trusting it from any connection would let a direct caller mint a fresh partition per
+// request by forging X-Forwarded-For, which reopens the bypass the partitions exist to close.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    options.KnownIPNetworks.Clear();
-    options.KnownProxies.Clear();
+
+    string[] knownNetworks = builder.Configuration
+        .GetSection("Settings:ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [];
+    foreach (string network in knownNetworks)
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+
+    string[] knownProxies = builder.Configuration
+        .GetSection("Settings:ForwardedHeaders:KnownProxies").Get<string[]>() ?? [];
+    foreach (string proxy in knownProxies)
+        options.KnownProxies.Add(System.Net.IPAddress.Parse(proxy));
 });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
@@ -157,7 +164,7 @@ app.UseSwaggerUI(options =>
 });
 
 // First in the pipeline: everything downstream that reads the client address — most of all the
-// rate-limit partitions — must see the forwarded one.
+// rate-limit partitions — must see the one forwarded by a trusted proxy.
 app.UseForwardedHeaders();
 
 app.UseHttpsRedirection();

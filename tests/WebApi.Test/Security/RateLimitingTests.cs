@@ -64,69 +64,12 @@ public class RateLimitingTests : IClassFixture<CustomWebApplicationFactory>
         (await Deposit(bystander)).StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
-    [Fact]
-    public async Task ShouldLeaveAnotherAddressesLoginAllowanceIntactWhenOneAddressExhaustsIt()
-    {
-        var request = new LoginRequest
-        {
-            Email = "missing@example.com",
-            Password = "whatever",
-        };
-
-        // Forwarded headers are trusted (see Program.cs), so X-Forwarded-For is the client
-        // address the partition sees — which is exactly what a deployment behind a proxy gets.
-        HttpClient greedy = _factory.CreateClient();
-        greedy.DefaultRequestHeaders.Add("X-Forwarded-For", "203.0.113.10");
-        HttpClient bystander = _factory.CreateClient();
-        bystander.DefaultRequestHeaders.Add("X-Forwarded-For", "203.0.113.20");
-
-        for (int attempt = 0; attempt < LoginPermitLimit; attempt++)
-        {
-            var allowed = await greedy.PostAsJsonAsync("login", request);
-            allowed.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        }
-
-        (await greedy.PostAsJsonAsync("login", request)).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-
-        // A different forwarded address keeps its own allowance — the window did not collapse
-        // into one shared bucket.
-        (await bystander.PostAsJsonAsync("login", request)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
-    public async Task ShouldShareTheLoginWindowWhenTwoTokensComeFromTheSameAddress()
-    {
-        // Registration mints tokens freely, so a token must not buy a fresh login window: the
-        // login partition is the address, never the subject the caller chooses to present.
-        const string address = "203.0.113.40";
-
-        HttpClient first = await RegisteredClientAsync(address);
-        HttpClient second = await RegisteredClientAsync(address);
-
-        var request = new LoginRequest
-        {
-            Email = "missing@example.com",
-            Password = "whatever",
-        };
-
-        for (int attempt = 0; attempt < LoginPermitLimit; attempt++)
-        {
-            var allowed = await first.PostAsJsonAsync("login", request);
-            allowed.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-        }
-
-        (await second.PostAsJsonAsync("login", request)).StatusCode.Should().Be(HttpStatusCode.TooManyRequests);
-    }
-
     private static Task<HttpResponseMessage> Deposit(HttpClient client)
         => client.PostAsJsonAsync("wallet/deposit", new DepositRequest { Amount = 1m });
 
-    private async Task<HttpClient> RegisteredClientAsync(string? forwardedFor = null)
+    private async Task<HttpClient> RegisteredClientAsync()
     {
         HttpClient client = _factory.CreateClient();
-
-        if (forwardedFor is not null)
-            client.DefaultRequestHeaders.Add("X-Forwarded-For", forwardedFor);
 
         var registration = new RegisterUserRequest
         {

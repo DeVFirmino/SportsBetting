@@ -35,7 +35,12 @@ public sealed class DoLoginUseCase : IDoLoginUseCase
         Domain.Entities.User? user = await _repository.GetByEmailAsync(request.Email, cancellationToken);
 
         if (user is null)
+        {
+            // An unknown e-mail pays the same hashing cost a wrong password pays, so response
+            // time does not reveal which accounts exist.
+            VerifyAgainstUnknownUser(request.Password);
             throw new InvalidLoginException();
+        }
 
         PasswordVerificationOutcome outcome = _passwordHasher.Verify(user, user.Password, request.Password);
 
@@ -55,6 +60,20 @@ public sealed class DoLoginUseCase : IDoLoginUseCase
                 AccessToken = _accessTokenGenerator.Generate(user.UserIdentifier)
             }
         };
+    }
+
+    // Computed once per process: hashing it in every request would double the cost of legitimate
+    // logins, and the value itself is irrelevant — only the verification work it forces matters.
+    // The benign race on first use costs at most one extra hash.
+    private static string? _unknownUserPasswordHash;
+
+    private void VerifyAgainstUnknownUser(string providedPassword)
+    {
+        Domain.Entities.User unknownUser = new();
+
+        _unknownUserPasswordHash ??= _passwordHasher.Hash(unknownUser, "unknown-user-timing-equalizer");
+
+        _passwordHasher.Verify(unknownUser, _unknownUserPasswordHash, providedPassword);
     }
 
     private async Task RehashPassword(long userId, string password, CancellationToken cancellationToken)
