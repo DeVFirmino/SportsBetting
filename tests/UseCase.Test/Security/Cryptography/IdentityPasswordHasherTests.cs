@@ -1,5 +1,5 @@
 using FluentAssertions;
-using SportsBetting.Infrastructure.Security.Cryptography;
+using SportsBetting.Tests.Common.Cryptography;
 using DomainUser = SportsBetting.Domain.Entities.User;
 
 namespace UseCase.Test.Security.Cryptography;
@@ -10,7 +10,7 @@ public class IdentityPasswordHasherTests
     public void ShouldSucceedWhenTheStoredHashCameFromTheSameHasher()
     {
         // Arrange
-        var hasher = new IdentityPasswordHasher();
+        var hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
         var stored = hasher.Hash(user, "password123");
 
@@ -25,7 +25,7 @@ public class IdentityPasswordHasherTests
     public void ShouldProduceDifferentHashesForTheSamePasswordWhenSaltIsRandom()
     {
         // Arrange
-        var hasher = new IdentityPasswordHasher();
+        var hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
 
         // Act
@@ -40,7 +40,7 @@ public class IdentityPasswordHasherTests
     public void ShouldFailWhenTheProvidedPasswordIsWrong()
     {
         // Arrange
-        var hasher = new IdentityPasswordHasher();
+        var hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
         var stored = hasher.Hash(user, "password123");
 
@@ -58,7 +58,7 @@ public class IdentityPasswordHasherTests
     public void ShouldFailWithoutThrowingWhenTheStoredHashIsUnreadable(string stored)
     {
         // Arrange
-        var hasher = new IdentityPasswordHasher();
+        var hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
 
         // Act

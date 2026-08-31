@@ -4,6 +4,7 @@ using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;

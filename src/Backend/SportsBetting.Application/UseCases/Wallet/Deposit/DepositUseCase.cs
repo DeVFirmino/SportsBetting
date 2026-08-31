@@ -56,10 +56,19 @@ public sealed class DepositUseCase : IDepositUseCase
         // Two deposits of the same amount are legitimately distinct, so the rowversion cannot tell
         // a retry from a second deposit. Only the key can, and replaying it is what stops a client
         // retry after a timeout from crediting the balance twice.
-        if (existing is not null
-            && clientRequestId is not null
-            && await AlreadyApplied(existing.Id, clientRequestId, cancellationToken))
-            return;
+        if (existing is not null && clientRequestId is not null)
+        {
+            Domain.Entities.WalletTransaction? applied = await FindAppliedEntry(
+                existing.Id,
+                clientRequestId,
+                cancellationToken);
+
+            if (applied is not null)
+            {
+                EnsureReplayMatches(applied, request);
+                return;
+            }
+        }
 
         Domain.Entities.Wallet wallet = await ResolveWallet(existing, loggedUser.Id, cancellationToken);
 
@@ -71,17 +80,65 @@ public sealed class DepositUseCase : IDepositUseCase
         {
             await _unitOfWork.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException)
+        catch (Exception exception) when (clientRequestId is not null
+            && exception is DbUpdateException or ConcurrencyException)
         {
-            // The reader above is a fast path; concurrent retries can both pass it and the loser
-            // collides with the ledger's filtered unique index. The winner already credited the
-            // balance, so replaying it is a no-op rather than an error.
-            if (clientRequestId is null || wallet.Id == 0)
+            // The reader above is a fast path; concurrent retries can both pass it. The loser
+            // then either collides with the ledger's filtered unique index, or — when the winner
+            // already credited the wallet — loses the rowversion check. Either way the winner
+            // applied this key, so replaying it is a no-op rather than an error.
+            Domain.Entities.WalletTransaction? applied = await FindAppliedEntryAfterConflict(
+                loggedUser.Id,
+                wallet,
+                clientRequestId,
+                cancellationToken);
+
+            if (applied is null)
                 throw;
 
-            if (await AlreadyApplied(wallet.Id, clientRequestId, cancellationToken) is false)
-                throw;
+            EnsureReplayMatches(applied, request);
         }
+    }
+
+    /// <summary>
+    /// A replayed key must carry the same request it was stored under: silently ignoring a
+    /// different amount — or a key already spent by a bet — would tell the client the new payload
+    /// was applied.
+    /// </summary>
+    private static void EnsureReplayMatches(
+        Domain.Entities.WalletTransaction applied,
+        DepositRequest request)
+    {
+        bool matches = applied.Type is Domain.Enums.WalletTransactionType.Deposit
+            && applied.Amount == request.Amount;
+
+        if (matches is false)
+            throw new ErrorOnValidationException([ResourcesMessagesException.IDEMPOTENCY_KEY_REUSED]);
+    }
+
+    private async Task<Domain.Entities.WalletTransaction?> FindAppliedEntryAfterConflict(
+        long userId,
+        Domain.Entities.Wallet wallet,
+        string clientRequestId,
+        CancellationToken cancellationToken)
+    {
+        // When the losing request was also creating the wallet, its tracked instance has no id;
+        // the winner's wallet, found by user, is the one that owns the ledger entry.
+        long walletId = wallet.Id;
+
+        if (walletId == 0)
+        {
+            Domain.Entities.Wallet? winner = await _walletReadOnlyRepository.GetByUserIdAsync(
+                userId,
+                cancellationToken);
+
+            if (winner is null)
+                return null;
+
+            walletId = winner.Id;
+        }
+
+        return await FindAppliedEntry(walletId, clientRequestId, cancellationToken);
     }
 
     private async Task<Domain.Entities.Wallet> ResolveWallet(
@@ -108,15 +165,15 @@ public sealed class DepositUseCase : IDepositUseCase
         return tracked;
     }
 
-    private async Task<bool> AlreadyApplied(
+    private Task<Domain.Entities.WalletTransaction?> FindAppliedEntry(
         long walletId,
         string clientRequestId,
         CancellationToken cancellationToken)
     {
-        return await _walletTransactionReadOnlyRepository.GetByClientRequestIdAsync(
+        return _walletTransactionReadOnlyRepository.GetByClientRequestIdAsync(
             walletId,
             clientRequestId,
-            cancellationToken) is not null;
+            cancellationToken);
     }
 
     private static async Task Validate(DepositRequest request)

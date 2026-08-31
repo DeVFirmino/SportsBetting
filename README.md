@@ -560,9 +560,14 @@ is replayed rather than repeated:
 - the bet endpoint returns the bet already stored under that key;
 - the deposit endpoint credits the balance once and answers `204` again.
 
+A replay must carry the same payload the key was stored under: reusing a key with a different
+amount, fixture or bet type — or reusing a bet's key for a deposit — is rejected with `400`
+instead of answering as if the new payload had been applied.
+
 The key is unique per user for bets and per wallet for ledger entries, enforced by filtered unique
 indexes in SQL Server. That covers the concurrent case too: when two requests carrying the same key
-overlap, the one that loses the index re-reads the winner and returns it, instead of failing.
+overlap, the loser — whether it collides with the unique index or loses the wallet's rowversion to
+the winner's write — re-reads the winner and returns it, instead of failing.
 Omitting the header opts out — repeated calls then create separate bets and separate deposits.
 
 ### Health checks
@@ -574,8 +579,13 @@ Omitting the header opts out — repeated calls then create separate bets and se
 
 ### Rate limits
 
-Each policy uses a one-minute fixed window, partitioned by the authenticated `sub` claim when there
-is one and by remote address otherwise, so one caller cannot spend another caller's allowance.
+Each policy uses a one-minute fixed window. Betting and wallet windows are partitioned by the
+authenticated `sub` claim; login and registration are partitioned by client address only, so a
+token cannot buy a fresh brute-force allowance. `X-Forwarded-For` is honoured only from proxies
+the deployment declares (`Settings:ForwardedHeaders:KnownNetworks` / `KnownProxies`, plus the
+ASP.NET loopback defaults): behind the platform proxy the address partitions survive instead of
+collapsing into the proxy's single address, while a direct caller cannot mint fresh windows by
+forging the header.
 
 | Endpoint | Requests per minute |
 | :--- | :--- |

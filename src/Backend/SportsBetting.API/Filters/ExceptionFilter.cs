@@ -25,8 +25,10 @@ public sealed class ExceptionFilter : IExceptionFilter
             return;
         }
 
+        // A null status is a network-level failure — DNS, refused connection — from the only
+        // HTTP dependency this API has; it is as much "upstream unavailable" as an explicit 503.
         if (context.Exception is HttpRequestException httpRequestException
-            && httpRequestException.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable)
+            && httpRequestException.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable or null)
         {
             HandleUpstreamException(context, httpRequestException);
             return;
