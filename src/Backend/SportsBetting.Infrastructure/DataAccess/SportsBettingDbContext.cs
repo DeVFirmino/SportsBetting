@@ -135,9 +135,14 @@ public sealed class SportsBettingDbContext : DbContext
         transaction.Property(entity => entity.OccurredAt)
             .IsRequired();
 
-        transaction.HasOne(entity => entity.User)
+        transaction.Property(entity => entity.ClientRequestId)
+            .HasMaxLength(128);
+
+        // BalanceAfter is a wallet balance, so the entry is keyed to the wallet it describes and
+        // the ledger can be reconciled against it.
+        transaction.HasOne(entity => entity.Wallet)
             .WithMany()
-            .HasForeignKey(entity => entity.UserId)
+            .HasForeignKey(entity => entity.WalletId)
             .OnDelete(DeleteBehavior.Restrict);
 
         transaction.HasOne(entity => entity.Bet)
@@ -145,7 +150,10 @@ public sealed class SportsBettingDbContext : DbContext
             .HasForeignKey(entity => entity.BetId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        transaction.HasIndex(entity => entity.UserId);
+        transaction.HasIndex(entity => entity.WalletId);
         transaction.HasIndex(entity => entity.BetId);
+        transaction.HasIndex(entity => new { entity.WalletId, entity.ClientRequestId })
+            .IsUnique()
+            .HasFilter("[ClientRequestId] IS NOT NULL");
     }
 }

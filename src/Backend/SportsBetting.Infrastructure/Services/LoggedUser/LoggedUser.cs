@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using SportsBetting.Domain.Entities;
 using SportsBetting.Domain.Services.LoggedUser;
+using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Infrastructure.DataAccess;
 
 namespace SportsBetting.Infrastructure.Services.LoggedUser;
@@ -26,7 +27,10 @@ public sealed class LoggedUser : ILoggedUser
         
         var userIdentifier = Guid.Parse(identifier);
 
+        // A token can outlive the account it names. Treating that as "not authenticated" keeps a
+        // deactivated user out with a 401 instead of failing the request as a server error.
         return await _dbContext.Users.AsNoTracking()
-            .FirstAsync(user => user.Active && user.UserIdentifier == userIdentifier, cancellationToken);
+            .FirstOrDefaultAsync(user => user.Active && user.UserIdentifier == userIdentifier, cancellationToken)
+            ?? throw new InvalidLoginException();
     }   
 }

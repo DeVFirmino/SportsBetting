@@ -41,11 +41,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 using var scope = serviceProvider.CreateScope();
 
                 var dbContext = scope.ServiceProvider.GetRequiredService<SportsBettingDbContext>();
-                var passwordEncrypter = scope.ServiceProvider.GetRequiredService<IPasswordEncrypter>();
+                var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
                 
                 dbContext.Database.EnsureDeleted();
                 
-                StartDatabase(dbContext, passwordEncrypter);
+                StartDatabase(dbContext, passwordHasher);
               
             });
     }
@@ -55,12 +55,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     
     public string GetName() => _user.Name;
 
-    private void StartDatabase(SportsBettingDbContext dbContext, IPasswordEncrypter passwordEncrypter)
+    private void StartDatabase(SportsBettingDbContext dbContext, IPasswordHasher passwordHasher)
     {
         (_user, _password) = UserBuilder.Build();
 
-        var encryptedPassword = passwordEncrypter.Encrypt(_password);
-        _user.Password = encryptedPassword;
+        _user.Password = passwordHasher.Hash(_user, _password);
         
         dbContext.Users.Add(_user);
                 

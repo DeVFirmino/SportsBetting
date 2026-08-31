@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SportsBetting.Application.Shared;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Enums;
@@ -48,38 +49,81 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         _walletTransactionWriteOnlyRepository = walletTransactionWriteOnlyRepository;
     }
 
-    public async Task<BetResponse> Execute(PlaceBetRequest request, CancellationToken cancellationToken)
+    public async Task<BetResponse> Execute(
+        PlaceBetRequest request,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
     {
         Validate(request);
 
+        string? clientRequestId = IdempotencyKey.Normalize(idempotencyKey);
+
         Domain.Entities.User loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(request.ClientRequestId) is false)
+        if (clientRequestId is not null)
         {
-            Domain.Entities.Bet? existingBet = await _betReadOnlyRepository.GetByClientRequestIdAsync(
+            Domain.Entities.Bet? replay = await FindByClientRequestId(
                 loggedUser.Id,
-                request.ClientRequestId.Trim(),
+                clientRequestId,
                 cancellationToken);
 
-            if (existingBet is not null)
-                return _mapper.Map<BetResponse>(existingBet);
+            if (replay is not null)
+                return _mapper.Map<BetResponse>(replay);
         }
 
         Domain.Entities.Wallet wallet = await ValidateWallet(loggedUser.Id, request.Amount, cancellationToken);
 
         FixtureData fixture = await GetFixture(request.FixtureId, cancellationToken);
 
-        Domain.Entities.Bet bet = CreateBet(request, loggedUser.Id, fixture);
+        Domain.Entities.Bet bet = CreateBet(request, loggedUser.Id, clientRequestId, fixture);
 
         await DeductFromWallet(wallet.Id, request.Amount, bet, cancellationToken);
 
         await _betWriteOnlyRepository.AddAsync(bet, cancellationToken);
 
-        // A lost concurrency check surfaces as ConcurrencyException: the request was valid and
-        // the balance moved underneath it, so the API answers 409 and the client can retry.
-        await _unitOfWork.CommitAsync(cancellationToken);
+        try
+        {
+            // A lost concurrency check surfaces as ConcurrencyException: the request was valid and
+            // the balance moved underneath it, so the API answers 409 and the client can retry.
+            await _unitOfWork.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // The pre-read above is only a fast path. Two requests carrying the same key can both
+            // pass it, because the fixture lookup between the read and the commit is an external
+            // HTTP call; the loser collides with the filtered unique index. Replaying the winner
+            // is what makes the key idempotent under concurrency, which is the case it exists for.
+            Domain.Entities.Bet losersReplay = await ReplayAfterConflict(
+                loggedUser.Id,
+                clientRequestId,
+                cancellationToken);
+
+            return _mapper.Map<BetResponse>(losersReplay);
+        }
 
         return _mapper.Map<BetResponse>(bet);
+    }
+
+    private async Task<Domain.Entities.Bet> ReplayAfterConflict(
+        long userId,
+        string? clientRequestId,
+        CancellationToken cancellationToken)
+    {
+        Domain.Entities.Bet? winner = clientRequestId is null
+            ? null
+            : await FindByClientRequestId(userId, clientRequestId, cancellationToken);
+
+        // Nothing to replay means the write failed for some other reason, and swallowing it would
+        // report a bet that was never placed.
+        return winner ?? throw new ErrorOnValidationException([ResourcesMessagesException.UNKNOWN_ERROR]);
+    }
+
+    private Task<Domain.Entities.Bet?> FindByClientRequestId(
+        long userId,
+        string clientRequestId,
+        CancellationToken cancellationToken)
+    {
+        return _betReadOnlyRepository.GetByClientRequestIdAsync(userId, clientRequestId, cancellationToken);
     }
 
     private static void Validate(PlaceBetRequest request)
@@ -127,23 +171,20 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
 
     private static (BetType BetType, decimal Odds) BetTypeAndOdds(string betType, FixtureData fixture)
     {
-        if (betType == "HomeWin")
+        return betType switch
         {
-            return (BetType.HomeWin, fixture.HomeWinOdds ?? 1.0m);
-        }
-        if (betType == "Draw")
-        {
-            return (BetType.Draw, fixture.DrawOdds ?? 1.0m);
-        }
-        if (betType == "AwayWin")
-        {
-            return (BetType.AwayWin, fixture.AwayWinOdds ?? 1.0m);
-        }
-
-        throw new ErrorOnValidationException([ResourcesMessagesException.BET_TYPE_REQUIRED]);
+            "HomeWin" => (BetType.HomeWin, fixture.HomeWinOdds ?? 1.0m),
+            "Draw" => (BetType.Draw, fixture.DrawOdds ?? 1.0m),
+            "AwayWin" => (BetType.AwayWin, fixture.AwayWinOdds ?? 1.0m),
+            _ => throw new ErrorOnValidationException([ResourcesMessagesException.BET_TYPE_REQUIRED]),
+        };
     }
 
-    private static Domain.Entities.Bet CreateBet(PlaceBetRequest request, long userId, FixtureData fixture)
+    private static Domain.Entities.Bet CreateBet(
+        PlaceBetRequest request,
+        long userId,
+        string? clientRequestId,
+        FixtureData fixture)
     {
         (BetType betType, decimal odds) = BetTypeAndOdds(request.BetType!, fixture);
 
@@ -154,7 +195,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
             betType,
             odds,
             $"{fixture.HomeTeam} vs {fixture.AwayTeam}",
-            request.ClientRequestId,
+            clientRequestId,
             DateTime.UtcNow);
     }
 
@@ -173,11 +214,9 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         if (wallet.Balance < amount)
             throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
 
-        Domain.Entities.WalletTransaction transaction = wallet.Debit(amount);
-        transaction.Bet = bet;
+        Domain.Entities.WalletTransaction transaction = wallet.Debit(amount, bet);
 
         await _walletTransactionWriteOnlyRepository.AddAsync(transaction, cancellationToken);
         _walletUpdateOnlyRepository.Update(wallet);
     }
-
 }

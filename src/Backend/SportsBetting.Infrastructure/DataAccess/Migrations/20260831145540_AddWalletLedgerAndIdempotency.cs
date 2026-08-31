@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SportsBetting.Infrastructure.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class AddWalletTransactionsAndBetIdempotency : Migration
+    public partial class AddWalletLedgerAndIdempotency : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,12 +24,13 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    WalletId = table.Column<long>(type: "bigint", nullable: false),
                     BetId = table.Column<long>(type: "bigint", nullable: true),
                     Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     BalanceAfter = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     OccurredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ClientRequestId = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false),
                     CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -43,9 +44,9 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_WalletTransactions_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
+                        name: "FK_WalletTransactions_Wallets_WalletId",
+                        column: x => x.WalletId,
+                        principalTable: "Wallets",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -63,9 +64,16 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                 column: "BetId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_WalletTransactions_UserId",
+                name: "IX_WalletTransactions_WalletId",
                 table: "WalletTransactions",
-                column: "UserId");
+                column: "WalletId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_WalletTransactions_WalletId_ClientRequestId",
+                table: "WalletTransactions",
+                columns: new[] { "WalletId", "ClientRequestId" },
+                unique: true,
+                filter: "[ClientRequestId] IS NOT NULL");
         }
 
         /// <inheritdoc />

@@ -1,5 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
@@ -16,7 +16,9 @@ public sealed class BetController : ControllerBase
 {
     [HttpPost("place-bet")]
     [ProducesResponseType(typeof(BetResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [EnableRateLimiting("betting")]
     public async Task<IActionResult> PlaceBet(
         [FromServices] IPlaceBetUseCase useCase,
@@ -24,11 +26,8 @@ public sealed class BetController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.ClientRequestId))
-            request.ClientRequestId = idempotencyKey;
+        BetResponse result = await useCase.Execute(request, idempotencyKey, cancellationToken);
 
-        var result = await useCase.Execute(request, cancellationToken);
-        
         return Created(string.Empty, result);
     }
 
@@ -40,23 +39,24 @@ public sealed class BetController : ControllerBase
         [FromQuery] GetUserBetsRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(request, cancellationToken);
-        
+        PagedResponse<BetResponse> result = await useCase.Execute(request, cancellationToken);
+
         if (result.TotalCount == 0)
             return NoContent();
-        
+
         return Ok(result);
     }
-    
-    [HttpGet("{id}")]
+
+    [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(BetResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetBetById(
         [FromServices] IGetBetByIdUseCase useCase,
         [FromRoute] long id,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(id, cancellationToken);
+        BetResponse result = await useCase.Execute(id, cancellationToken);
+
         return Ok(result);
     }
 }

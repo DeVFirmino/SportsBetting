@@ -35,7 +35,7 @@ public class ChangePasswordUseCaseTests
 
         // Assert
         PasswordHasherBuilder.Build().Verify(user, user.Password, "new-password")
-            .Should().Be(Domain.Security.Cryptography.PasswordHashVerification.Success);
+            .Should().BeTrue();
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class ChangePasswordUseCaseTests
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
         PasswordHasherBuilder.Build().Verify(user, user.Password, "correct-password")
-            .Should().Be(Domain.Security.Cryptography.PasswordHashVerification.Success);
+            .Should().BeTrue();
     }
 
     [Fact]

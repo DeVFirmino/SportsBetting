@@ -2,11 +2,15 @@ using SportsBetting.Domain.Enums;
 
 namespace SportsBetting.Domain.Entities;
 
+/// <summary>
+/// One append-only entry in a wallet's ledger. Entries are created by <see cref="Wallet"/>, which
+/// is the only thing that knows the balance they record.
+/// </summary>
 public sealed class WalletTransaction : EntityBase
 {
-    public long UserId { get; set; }
+    public long WalletId { get; set; }
 
-    public User User { get; set; } = default!;
+    public Wallet Wallet { get; set; } = default!;
 
     public long? BetId { get; set; }
 
@@ -20,34 +24,5 @@ public sealed class WalletTransaction : EntityBase
 
     public DateTime OccurredAt { get; set; }
 
-    public static WalletTransaction Deposit(long userId, decimal amount, decimal balanceAfter)
-    {
-        if (amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
-
-        return new WalletTransaction
-        {
-            UserId = userId,
-            Type = WalletTransactionType.Deposit,
-            Amount = amount,
-            BalanceAfter = balanceAfter,
-            OccurredAt = DateTime.UtcNow,
-        };
-    }
-
-    public static WalletTransaction BetDebit(long userId, decimal amount, decimal balanceAfter, long? betId)
-    {
-        if (amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
-
-        return new WalletTransaction
-        {
-            UserId = userId,
-            BetId = betId,
-            Type = WalletTransactionType.BetDebit,
-            Amount = amount,
-            BalanceAfter = balanceAfter,
-            OccurredAt = DateTime.UtcNow,
-        };
-    }
+    public string? ClientRequestId { get; set; }
 }

@@ -12,7 +12,8 @@ public sealed class LoginController : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(
         [FromServices] IDoLoginUseCase useCase,
