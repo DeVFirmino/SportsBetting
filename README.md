@@ -24,8 +24,8 @@ A hosted instance runs on Azure Container Apps:
 [SportsBetting API Online](https://sportsbetting-api.salmonocean-c68fcbc3.eastus2.azurecontainerapps.io/swagger/index.html)
 
 > **Note:** Initial load might take a few seconds due to "Cold Start" (Azure scaling from zero to active).
-> In this codebase Swagger UI is enabled in the Development environment; when running locally
-> the interactive docs live at `/swagger`.
+> Swagger UI is enabled in every environment, so the link above serves the
+> interactive docs directly. Locally the docs live at `/swagger` too.
 
 </div>
 
