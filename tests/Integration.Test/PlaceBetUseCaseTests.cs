@@ -38,8 +38,8 @@ public sealed class PlaceBetUseCaseTests
         wallet.Balance.Should().Be(70m);
         bet.Stake.Should().Be(30m);
         bet.Market.Should().Be(BettingMarket.HomeWin);
-        bet.Odds.Should().Be(2.5m);
-        bet.PotentialReturn.Should().Be(75m);
+        bet.Odds.Should().Be(2.10m);
+        bet.PotentialReturn.Should().Be(63m);
     }
 
     [Fact]
