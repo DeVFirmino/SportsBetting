@@ -11,23 +11,23 @@ namespace WebApi.Test.Login.DoLogin;
 
 public class DoLoginTest : SportsBettingClassFixture
 {
-    private readonly string method = "login";
-    
+    private readonly string method = "/tokens";
+
     private readonly string _email = string.Empty;
     private readonly string _password;
     private readonly string _name;
 
 
-    public DoLoginTest(CustomWebApplicationFactory factory) : base(factory) 
+    public DoLoginTest(CustomWebApplicationFactory factory) : base(factory)
     {
-         _email = factory.GetEmail();
-       _password = factory.GetPassword();
-       _name = factory.GetName();
-       
+        _email = factory.GetEmail();
+        _password = factory.GetPassword();
+        _name = factory.GetName();
+
     }
 
     [Fact]
-    public async Task ShouldLoginWhenCredentialsAreValid()
+    public async Task ShouldReturnTokenWhenCredentialsAreValid()
     {
         var request = new LoginRequest
         {
@@ -47,7 +47,7 @@ public class DoLoginTest : SportsBettingClassFixture
         responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrEmpty();
 
     }
-    
+
     [Theory]
     [InlineData("en-US")]
     public async Task ShouldReturnUnauthorizedWhenCredentialsAreInvalid(string culture)

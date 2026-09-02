@@ -1,8 +1,8 @@
 using FluentAssertions;
-using Moq;
+using SportsBetting.Infrastructure.Services.Odds;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Communication.Requests;
-using SportsBetting.Domain.Entities;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
@@ -12,264 +12,323 @@ using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Mapper;
+using BetEntity = SportsBetting.Domain.Entities.Bet;
+using UserEntity = SportsBetting.Domain.Entities.User;
+using WalletEntity = SportsBetting.Domain.Entities.Wallet;
+using ApiBettingMarket = SportsBetting.Communication.Enums.BettingMarket;
 
 namespace UseCase.Test.Bet;
 
-public class PlaceBetUseCaseTests
+public sealed class PlaceBetUseCaseTests
 {
-    public static TheoryData<string, BetType, decimal> SupportedBetTypes => new()
+    public static TheoryData<ApiBettingMarket, decimal> SupportedMarkets => new()
     {
-        { "HomeWin", BetType.HomeWin, 2.10m },
-        { "Draw", BetType.Draw, 3.40m },
-        { "AwayWin", BetType.AwayWin, 3.80m }
+        { ApiBettingMarket.HomeWin, 2.10m },
+        { ApiBettingMarket.Draw, 3.40m },
+        { ApiBettingMarket.AwayWin, 3.80m },
     };
 
     [Theory]
-    [MemberData(nameof(SupportedBetTypes))]
-    public async Task ShouldPersistBetAndDeductBalanceWhenBetIsValid(
-        string requestedType,
-        BetType expectedType,
+    [MemberData(nameof(SupportedMarkets))]
+    public async Task ShouldPersistBetAndDebitWalletWhenRequestIsValid(
+        ApiBettingMarket requestedMarket,
         decimal expectedOdds)
     {
-        // Arrange
-        var context = CreateContext();
-        var request = ValidRequest(requestedType);
+        TestContext context = CreateContext();
+        PlaceBetRequest request = ValidRequest(requestedMarket);
 
-        // Act
-        var result = await context.UseCase.Execute(request, CancellationToken.None);
+        BetResponse response = await context.Execute(request, "key-1");
 
-        // Assert
-        context.PersistedBet.Should().NotBeNull();
-        context.PersistedBet!.UserId.Should().Be(context.User.Id);
-        context.PersistedBet.FixtureId.Should().Be(request.FixtureId);
-        context.PersistedBet.BetType.Should().Be(expectedType);
-        context.PersistedBet.Odds.Should().Be(expectedOdds);
-        context.PersistedBet.PotentialWinning.Should().Be(request.Amount * expectedOdds);
-        context.PersistedBet.EventName.Should().Be("Home FC vs Away FC");
-        context.PersistedBet.Status.Should().Be(BetStatus.Pending);
-        context.Wallet.Balance.Should().Be(80m);
-        result.PotentialWinning.Should().Be(request.Amount * expectedOdds);
-    }
-
-    [Fact]
-    public async Task ShouldUseEvenOddsWhenFixtureOddsAreMissing()
-    {
-        // Arrange
-        var fixture = Fixture();
-        fixture.HomeWinOdds = null;
-        var context = CreateContext(fixture: fixture);
-
-        // Act
-        var result = await context.UseCase.Execute(ValidRequest("HomeWin"), CancellationToken.None);
-
-        // Assert
-        context.PersistedBet!.Odds.Should().Be(1m);
-        result.PotentialWinning.Should().Be(20m);
+        response.Market.Should().Be(requestedMarket);
+        response.Odds.Should().Be(expectedOdds);
+        response.PotentialReturn.Should().Be(request.Stake * expectedOdds);
+        context.Wallet!.Balance.Should().Be(80m);
+        context.Bets.Persisted.Should().NotBeNull();
+        context.UnitOfWork.CommitCount.Should().Be(1);
     }
 
     [Fact]
     public async Task ShouldReturnWalletNotFoundWhenWalletDoesNotExist()
     {
-        // Arrange
-        var context = CreateContext(walletExists: false);
+        TestContext context = CreateContext(walletExists: false);
 
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.Execute(ValidRequest(), "key-1");
 
-        // Assert
-        await AssertSingleError(act, ResourcesMessagesException.WALLET_NOT_FOUND);
-        context.PersistedBet.Should().BeNull();
+        (await act.Should().ThrowAsync<ResourceNotFoundException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.WALLET_NOT_FOUND);
     }
 
     [Fact]
-    public async Task ShouldReturnInsufficientBalanceWhenBalanceIsTooLow()
+    public async Task ShouldReturnInsufficientBalanceWhenWalletCannotCoverStake()
     {
-        // Arrange
-        var context = CreateContext(balance: 10m);
+        TestContext context = CreateContext(balance: 10m);
 
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.Execute(ValidRequest(), "key-1");
 
-        // Assert
-        await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
-        context.Wallet.Balance.Should().Be(10m);
+        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.INSUFFICIENT_BALANCE);
     }
 
     [Fact]
-    public async Task ShouldReturnInsufficientBalanceWhenBalanceDropsBeforeDeduction()
+    public async Task ShouldReturnFixtureNotFoundWhenFixtureDoesNotExist()
     {
-        // Arrange: the no-tracking check saw enough balance, but by the time the tracked
-        // wallet is read for the deduction another request has already spent it.
-        var context = CreateContext(balance: 100m, balanceAtDeduction: 5m);
+        TestContext context = CreateContext(fixtureExists: false);
 
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.Execute(ValidRequest(), "key-1");
 
-        // Assert
-        await AssertSingleError(act, ResourcesMessagesException.INSUFFICIENT_BALANCE);
-        context.PersistedBet.Should().BeNull();
+        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.FIXTURE_NOT_FOUND);
     }
 
     [Fact]
-    public async Task ShouldReturnFixtureNotFoundWhenFixtureIsUnknown()
+    public async Task ShouldReturnValidationErrorWhenRequestIsInvalid()
     {
-        // Arrange
-        var context = CreateContext(fixtureExists: false);
+        TestContext context = CreateContext();
+        PlaceBetRequest request = ValidRequest();
+        request.Stake = 0;
 
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.Execute(request, "key-1");
 
-        // Assert
-        await AssertSingleError(act, ResourcesMessagesException.FIXTURE_NOT_FOUND);
-        context.Wallet.Balance.Should().Be(100m);
-    }
-
-    [Theory]
-    [InlineData(0, "HomeWin")]
-    [InlineData(20, "Invalid")]
-    public async Task ShouldReturnValidationErrorWhenRequestIsInvalid(decimal amount, string betType)
-    {
-        // Arrange
-        var context = CreateContext();
-        var request = ValidRequest(betType);
-        request.Amount = amount;
-
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(request, CancellationToken.None);
-
-        // Assert
         await act.Should().ThrowAsync<ErrorOnValidationException>();
-        context.Wallet.Balance.Should().Be(100m);
     }
 
     [Fact]
-    public async Task ShouldSurfaceConcurrencyConflictWhenCommitLosesTheRace()
+    public async Task ShouldReturnValidationErrorWhenIdempotencyKeyIsMissing()
     {
-        // Arrange
-        var context = CreateContext(commitException: new ConcurrencyException());
+        TestContext context = CreateContext();
 
-        // Act
-        Func<Task> act = () => context.UseCase.Execute(ValidRequest(), CancellationToken.None);
+        Func<Task> act = () => context.Execute(ValidRequest(), null);
 
-        // Assert: a lost race is not a validation error — it reaches the API as a conflict,
-        // which answers 409 and tells the client to retry.
-        await act.Should().ThrowAsync<ConcurrencyException>()
-            .WithMessage(ResourcesMessagesException.CONCURRENT_BET_DETECTED);
+        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.IDEMPOTENCY_KEY_REQUIRED);
+    }
+
+    [Fact]
+    public async Task ShouldReturnValidationErrorWhenIdempotencyKeyIsTooLong()
+    {
+        TestContext context = CreateContext();
+
+        Func<Task> act = () => context.Execute(ValidRequest(), new string('k', 129));
+
+        (await act.Should().ThrowAsync<ErrorOnValidationException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.IDEMPOTENCY_KEY_TOO_LONG);
+    }
+
+    [Fact]
+    public async Task ShouldReturnConflictWhenIdempotencyKeyWasStoredWithDifferentPayload()
+    {
+        BetEntity stored = StoredBet(stake: 10m);
+        TestContext context = CreateContext(storedReplay: stored);
+
+        Func<Task> act = () => context.Execute(ValidRequest(), stored.IdempotencyKey);
+
+        await act.Should().ThrowAsync<IdempotencyConflictException>();
+        context.Wallet!.Balance.Should().Be(100m);
+        context.UnitOfWork.CommitCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ShouldReturnStoredBetWhenIdempotencyKeyIsReplayedWithSamePayload()
+    {
+        BetEntity stored = StoredBet(stake: 20m);
+        stored.Id = 42;
+        TestContext context = CreateContext(storedReplay: stored);
+
+        BetResponse response = await context.Execute(ValidRequest(), stored.IdempotencyKey);
+
+        response.Id.Should().Be(42);
+        context.Wallet!.Balance.Should().Be(100m);
+        context.UnitOfWork.CommitCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ShouldSurfaceConcurrencyConflictWhenCommitLosesRace()
+    {
+        TestContext context = CreateContext(commitException: new ConcurrencyException());
+
+        Func<Task> act = () => context.Execute(ValidRequest(), "key-1");
+
+        await act.Should().ThrowAsync<ConcurrencyException>();
     }
 
     private static TestContext CreateContext(
         decimal balance = 100m,
-        decimal? balanceAtDeduction = null,
         bool walletExists = true,
         bool fixtureExists = true,
-        FixtureData? fixture = default,
+        FixtureData? fixture = null,
+        BetEntity? storedReplay = null,
         Exception? commitException = null)
     {
-        var user = new SportsBetting.Domain.Entities.User { Id = 12 };
-        var wallet = new SportsBetting.Domain.Entities.Wallet { Id = 31, UserId = user.Id, Balance = balance };
-
-        var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
-
-        var walletReadRepository = new Mock<IWalletReadOnlyRepository>();
-        walletReadRepository.Setup(repository => repository.GetByUserIdAsync(
-                user.Id,
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(walletExists ? wallet : null!);
-
-        // When balanceAtDeduction is set, the tracked read sees a different balance than the
-        // earlier no-tracking snapshot — the race the use case must re-check for.
-        var trackedWallet = balanceAtDeduction is null
-            ? wallet
-            : new SportsBetting.Domain.Entities.Wallet
-            {
-                Id = wallet.Id,
-                UserId = user.Id,
-                Balance = balanceAtDeduction.Value
-            };
-
-        var walletUpdateRepository = new Mock<IWalletUpdateOnlyRepository>();
-        walletUpdateRepository.Setup(repository => repository.GetByIdAsync(
-            wallet.Id,
-            It.IsAny<CancellationToken>())).ReturnsAsync(trackedWallet);
-
-        SportsBetting.Domain.Entities.Bet? persistedBet = null;
-        var betRepository = new Mock<IBetWriteOnlyRepository>();
-        betRepository.Setup(repository => repository.AddAsync(
-                It.IsAny<SportsBetting.Domain.Entities.Bet>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<SportsBetting.Domain.Entities.Bet, CancellationToken>((bet, _) => persistedBet = bet)
-            .Returns(Task.CompletedTask);
-
-        var footballApi = new Mock<IFootballApiService>();
-        var fixtures = fixtureExists ? new List<FixtureData> { fixture ?? Fixture() } : [];
-        footballApi.Setup(service => service.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(fixtures);
-
-        var unitOfWork = new Mock<IUnitOfWork>();
-        var commit = unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>()));
-        if (commitException is null)
+        UserEntity user = new() { Id = 1, UserIdentifier = Guid.NewGuid() };
+        WalletEntity? wallet = walletExists
+            ? new WalletEntity { Id = 2, UserId = user.Id, Balance = balance }
+            : null;
+        BetRepositoryStub bets = new() { Existing = storedReplay };
+        UnitOfWorkStub unitOfWork = new() { Exception = commitException };
+        FootballApiStub footballApi = new()
         {
-            commit.Returns(Task.CompletedTask);
-        }
-        else
-        {
-            commit.ThrowsAsync(commitException);
-        }
+            Fixtures = fixtureExists ? [fixture ?? ValidFixture()] : [],
+        };
 
-        var useCase = new PlaceBetUseCase(
-            loggedUser.Object,
+        PlaceBetUseCase useCase = new(
+            new LoggedUserStub(user),
             MapperBuilder.Build(),
-            betRepository.Object,
-            walletUpdateRepository.Object,
-            walletReadRepository.Object,
-            unitOfWork.Object,
-            footballApi.Object);
+            bets,
+            bets,
+            new WalletRepositoryStub(wallet),
+            unitOfWork,
+            footballApi,
+            new FixedOddsService());
 
-        return new TestContext(useCase, user, wallet, () => persistedBet);
+        return new TestContext(useCase, wallet, bets, unitOfWork);
     }
 
-    private static PlaceBetRequest ValidRequest(string betType = "HomeWin") => new()
+    private static PlaceBetRequest ValidRequest(ApiBettingMarket market = ApiBettingMarket.HomeWin) => new()
     {
-        FixtureId = 101,
-        Amount = 20m,
-        BetType = betType
+        FixtureId = 10,
+        Stake = 20m,
+        Market = market,
     };
 
-    private static FixtureData Fixture() => new()
+    private static FixtureData ValidFixture() => new()
     {
-        FixtureId = 101,
+        FixtureId = 10,
         HomeTeam = "Home FC",
         AwayTeam = "Away FC",
-        HomeWinOdds = 2.10m,
-        DrawOdds = 3.40m,
-        AwayWinOdds = 3.80m
     };
 
-    private static async Task AssertSingleError(Func<Task> act, string expectedError)
+    private static BetEntity StoredBet(decimal stake)
     {
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().ContainSingle().Which.Should().Be(expectedError);
+        return BetEntity.Place(
+            1,
+            10,
+            stake,
+            BettingMarket.HomeWin,
+            2.5m,
+            "Home FC vs Away FC",
+            "key-1",
+            DateTime.UtcNow);
     }
 
     private sealed class TestContext
     {
-        private readonly Func<SportsBetting.Domain.Entities.Bet?> _persistedBet;
+        private readonly PlaceBetUseCase _useCase;
 
         public TestContext(
             PlaceBetUseCase useCase,
-            SportsBetting.Domain.Entities.User user,
-            SportsBetting.Domain.Entities.Wallet wallet,
-            Func<SportsBetting.Domain.Entities.Bet?> persistedBet)
+            WalletEntity? wallet,
+            BetRepositoryStub bets,
+            UnitOfWorkStub unitOfWork)
         {
-            UseCase = useCase;
-            User = user;
+            _useCase = useCase;
             Wallet = wallet;
-            _persistedBet = persistedBet;
+            Bets = bets;
+            UnitOfWork = unitOfWork;
         }
 
-        public PlaceBetUseCase UseCase { get; }
-        public SportsBetting.Domain.Entities.User User { get; }
-        public SportsBetting.Domain.Entities.Wallet Wallet { get; }
-        public SportsBetting.Domain.Entities.Bet? PersistedBet => _persistedBet();
+        public WalletEntity? Wallet { get; }
+        public BetRepositoryStub Bets { get; }
+        public UnitOfWorkStub UnitOfWork { get; }
+
+        public Task<BetResponse> Execute(PlaceBetRequest request, string? key)
+        {
+            return _useCase.Execute(request, key, CancellationToken.None);
+        }
+    }
+
+    private sealed class LoggedUserStub : ILoggedUser
+    {
+        private readonly UserEntity _user;
+
+        public LoggedUserStub(UserEntity user)
+        {
+            _user = user;
+        }
+
+        public Task<UserEntity> GetUserAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_user);
+        }
+    }
+
+    private sealed class WalletRepositoryStub : IWalletUpdateOnlyRepository
+    {
+        private readonly WalletEntity? _wallet;
+
+        public WalletRepositoryStub(WalletEntity? wallet)
+        {
+            _wallet = wallet;
+        }
+
+        public Task<WalletEntity?> GetByUserIdAsync(long userId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_wallet);
+        }
+    }
+
+    private sealed class BetRepositoryStub : IBetReadOnlyRepository, IBetWriteOnlyRepository
+    {
+        public BetEntity? Existing { get; set; }
+        public BetEntity? Persisted { get; private set; }
+
+        public Task<BetEntity?> GetByIdAsync(
+            long id,
+            long userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<BetEntity?>(null);
+        }
+
+        public Task<BetEntity?> GetByIdempotencyKeyAsync(
+            long userId,
+            string idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                Existing?.IdempotencyKey == idempotencyKey ? Existing : null);
+        }
+
+        public Task<(List<BetEntity> Items, int TotalCount)> GetPagedByUserIdAsync(
+            long userId,
+            int pageNumber,
+            int pageSize,
+            DateTime? startDate,
+            DateTime? endDate,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult((new List<BetEntity>(), 0));
+        }
+
+        public Task AddAsync(BetEntity bet, CancellationToken cancellationToken)
+        {
+            Persisted = bet;
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class UnitOfWorkStub : IUnitOfWork
+    {
+        public Exception? Exception { get; set; }
+        public int CommitCount { get; private set; }
+
+        public Task CommitAsync(CancellationToken cancellationToken)
+        {
+            CommitCount++;
+
+            if (Exception is not null)
+                throw Exception;
+
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FootballApiStub : IFootballApiService
+    {
+        public List<FixtureData> Fixtures { get; set; } = [];
+
+        public Task<List<FixtureData>> GetFixturesAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Fixtures);
+        }
     }
 }

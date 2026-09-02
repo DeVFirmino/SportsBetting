@@ -1,514 +1,219 @@
-<div align="center">
-
-![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)
-![C#](https://img.shields.io/badge/C%23-13.0-512BD4)
-![EF Core](https://img.shields.io/badge/EF%20Core-9.0-512BD4)
-![Fluent Validation](https://img.shields.io/badge/Fluent_Validation-12.0-512BD4)
-![SQL Server](https://img.shields.io/badge/SQL_Server-2022-512BD4?logo=microsoft-sql-server&logoColor=white)
-![SOLID](https://img.shields.io/badge/Principles-SOLID-512BD4)
-![JWT](https://img.shields.io/badge/JWT-Token-512BD4?logo=JSON%20web%20tokens&logoColor=white)
-![xUnit](https://img.shields.io/badge/Testing-xUnit-512BD4?logo=dotnet&logoColor=white)
-![Bogus](https://img.shields.io/badge/Bogus-Fake_Data-512BD4)
-![FluentAssertions](https://img.shields.io/badge/FluentAssertions-Testing-512BD4)
-![Docker](https://img.shields.io/badge/Docker-Containers-512BD4?logo=docker&logoColor=white)
-![Azure](https://img.shields.io/badge/Microsoft_Azure-Cloud-512BD4?logo=microsoft-azure&logoColor=white)
-![Azure Container Apps](https://img.shields.io/badge/Azure_Container_Apps-Serverless-512BD4?logo=microsoft-azure&logoColor=white)
-![Azure SQL Database](https://img.shields.io/badge/Azure_SQL_Database-PaaS-512BD4?logo=microsoft-sql-server&logoColor=white)
-
 # SportsBetting API
-An educational sports betting API built with **.NET 9** to practise backend development,
-layered architecture, authentication, persistence, validation, and concurrency control.
 
-## Live Demo
-A hosted instance runs on Azure Container Apps:
-[SportsBetting API Online](https://sportsbetting-api.salmonocean-c68fcbc3.eastus2.azurecontainerapps.io/swagger/index.html)
+A small sports betting API I use to practise backend development with .NET 10.
+The project focuses on one complete workflow: a user deposits funds, chooses a
+football fixture and places a bet.
 
-> **Note:** Initial load might take a few seconds due to "Cold Start" (Azure scaling from zero to active).
-> Swagger UI is enabled in every environment, so the link above serves the
-> interactive docs directly. Locally the docs live at `/swagger` too.
+This is an educational project. It does not process real money, settle matches
+or pay winnings.
 
-</div>
+## What it demonstrates
 
-## Project Overview
+- REST endpoints with ASP.NET Core controllers
+- JWT authentication and ASP.NET Core password hashing
+- business rules kept in explicit use cases
+- SQL Server persistence with Entity Framework Core
+- optimistic concurrency on wallet updates
+- idempotent bet placement
+- an external football API through `IHttpClientFactory`
+- unit, HTTP and SQL Server integration tests
+- Docker Compose with an explicit migration step
 
-**Educational project** built to demonstrate .NET backend development skills. It is not
-intended for production use or real-money betting.
+## Main flow
 
-The implemented workflow covers account management, wallet deposits, fixture lookup,
-bet placement, and bet queries. It uses API-Football for fixture and team data, while
-the betting odds are fixed study values defined in the application.
+```mermaid
+flowchart LR
+    A[Register user] --> B[Create token]
+    B --> C[Deposit funds]
+    C --> D[Choose fixture]
+    D --> E[Place bet]
+    E --> F[Debit wallet and save bet]
+```
 
-## Patterns & Principles
+When a bet is placed, the API:
 
-- **SOLID Standards:** Dependency Inversion, Interface Segregation, Single Responsibility
-- **Separation of Concerns:** DTOs for API contracts, Use Cases for business logic
-- **Domain model:** Entities and enums for users, wallets, and bets
-- **Dependency Injection:** Full decoupling of layers via high-level abstractions
+1. validates the request and `Idempotency-Key` header;
+2. returns the stored result if the same request was already completed;
+3. loads the chosen fixture and its server-owned odds;
+4. verifies the authenticated user's wallet balance;
+5. debits the wallet and saves the bet in one database commit.
 
-**Repository Pattern (Interface Segregation):**
-- `IReadOnlyRepository` - Query operations
-- `IWriteOnlyRepository` - Insert operations
-- `IUpdateOnlyRepository` - Update operations
+The public contract calls the three available markets `HomeWin`, `Draw` and
+`AwayWin`. Swagger presents them as text choices, so there is no numeric enum or
+undocumented string to guess.
 
-## Security
-- **JWT authentication** with token based authorization
-- **FluentValidation** for input validation
+## API
 
-## Testing
-- **xUnit Tests**: Use case logic validation
-- **Integration Tests**: User registration and authentication flows
-- **Validator Tests**: FluentValidation rules
-- **Fluent Assertions**: Readable assertions
-- **Moq** - Mocking framework
-- **Bogus** - Fake data generation.
-- **Test Coverage**: 92.9% line / 92.85% branch (`SportsBetting.Application`)
+| Method | Route | Purpose |
+|---|---|---|
+| `POST` | `/users` | Register a user and create their wallet |
+| `POST` | `/tokens` | Exchange email and password for a JWT |
+| `GET` | `/users/me` | Read the authenticated user's profile |
+| `PUT` | `/users/me` | Update the profile |
+| `PUT` | `/users/me/password` | Change the password |
+| `GET` | `/wallet` | Read the current balance |
+| `POST` | `/wallet/deposits` | Add study funds to the wallet |
+| `GET` | `/fixtures` | List the first ten fixtures of the configured league season |
+| `POST` | `/bets` | Place an idempotent bet |
+| `GET` | `/bets` | List the authenticated user's bets |
+| `GET` | `/bets/{id}` | Read one owned bet |
 
-### External Services
-- **API-Football (api-sports.io)** - Sports data integration
+All routes except registration and token creation require a bearer token.
+Registration and token creation are rate-limited per client address.
 
-## Features
+### Place a bet
 
-<table>
-<tr>
-<td width="50%" valign="top">
+Send a unique `Idempotency-Key` header with a maximum of 128 characters:
 
-### User Management
-- **User Registration** with email validation and password hashing.
-- **JWT Authentication** with token-based authorization
-- **User Profile** management with password change functionality
+```http
+POST /bets
+Authorization: Bearer <token>
+Idempotency-Key: portfolio-demo-001
+Content-Type: application/json
 
-</td>
-<td width="50%" valign="top">
+{
+  "fixtureId": 123,
+  "stake": 25.00,
+  "market": "HomeWin"
+}
+```
 
-### Wallet System
-- **Deposit funds** — balance management with decimal precision for accurate financial calculations
-- **Concurrent bet protection** - prevents negative balance from simultaneous bets via optimistic concurrency control
+The fixture name and odds come from the server. The response includes the stake,
+odds and potential return. Repeating the same key and payload returns the first
+bet without charging the wallet again. Reusing the key with a different payload
+returns `409 Conflict`.
 
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
+## Domain boundaries
 
-### Betting System
-- **Place bets** on fixtures from the configured league season (2024 La Liga by default)
-- **Auto-generated event names** from Football API (example: "Manchester United vs Liverpool")
-- **Fixed study odds** selected by bet type (HomeWin, Draw, AwayWin)
-- **Enum based BetType** for type safety and validation (`HomeWin`, `Draw`, `AwayWin`)
-- **Potential return calculation** (`Amount × Odds`)
-- **Get bet by ID** with detailed information
-- **Race condition prevention** via optimistic concurrency control on the wallet
+The persisted model deliberately has only three concepts:
 
-> **Project boundary:** Bets are created with `Pending` status. The API does not fetch
-> match results, settle bets, change them to won or lost, or credit winnings back to the
-> wallet. `PotentialWinning` is an estimate calculated when the bet is placed.
+- `User`: credentials and profile data;
+- `Wallet`: the user's current study balance and concurrency token;
+- `Bet`: the fixture, market, stake, odds and potential return captured at
+  placement time.
 
-</td>
-<td width="50%" valign="top">
+There is no transaction ledger, bet settlement engine or administrator flow.
+Those concepts would add code without improving the portfolio story this
+repository is meant to tell.
 
-### Football API Integration
-- Integration with **API-FOOTBALL** (api-sports.io)
-- Get fixture IDs, dates, and home/away team names for the 2024 La Liga season
-- User can bet for **HomeWin, Draw, and AwayWin** betting markets
-- Fixed odds of `2.10`, `3.40`, and `3.80` are added locally for learning purposes
+The short domain glossary lives in [`CONTEXT.md`](CONTEXT.md).
 
-</td>
-</tr>
-</table>
+## Concurrency and idempotency
 
-## How a bet is placed
+`Wallet.RowVersion` is an SQL Server `rowversion`. Entity Framework includes it
+in the wallet update, so two requests cannot silently spend the same balance.
 
-The diagram follows one request from the API to a `Pending` bet. It also shows where the API returns `400` or `409`.
+Bet idempotency is also enforced by a unique database index over user and key.
+The use case makes the replay behaviour visible, while the infrastructure layer
+translates only the relevant database conflicts. This protects both sequential
+retries and requests that arrive at the same time.
 
-![Flow diagram showing how SportsBetting validates a bet request, checks the wallet, loads fixture data, and saves the wallet debit and Pending bet together under RowVersion protection](docs/img/architecture.svg)
+## Football data
 
-*Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — open it on [excalidraw.com](https://excalidraw.com) to edit, then re-export the SVG.*
+`GET /fixtures` uses API-Football for fixture and team data. It reads one fixed
+league season, La Liga 2024 by default, configured through `Settings:FootballApi`
+(`Season` and `LeagueId`), and returns the first ten fixtures the provider lists.
+The list is not filtered by date: it is a stable catalogue for exercising the
+betting flow, not a live schedule. The integration has a configured timeout and a
+short in-memory cache. Upstream failures are exposed
+as `502` or `503` Problem Details responses.
+
+Betting odds are fixed study values owned by this application. `IOddsService`
+is the single place that prices a market; its `FixedOddsService` implementation
+offers every fixture at the same odds. A client chooses the market, but it
+cannot submit or override the odds.
 
 ## Project structure
 
-This project follows **Clean Architecture** with clear separation of concerns:
-
 ```text
-SportsBetting/
-├── src/
-│ ├── Backend/
-│ │ ├── SportsBetting.API           # Controllers, Filters, Middleware
-│ │ ├── SportsBetting.Application   # Use Cases, AutoMapper, Validators
-│ │ ├── SportsBetting.Domain        # Entities, Enums, Interfaces
-│ │ └── SportsBetting.Infrastructure# EF Core, Repositories, External APIs
-│ └── Shared/
-│ ├── SportsBetting.Communication   # DTOs (Requests/Responses)
-│ └── SportsBetting.Exceptions      # Custom exceptions
-└── tests/
-├── UseCase.Test                    # Unit tests
-├── Validator.Tests                 # FluentValidation tests
-├── WebApi.Test                     # Integration tests
-└── CommonTestsUtilities            # Test builders
-```
-```mermaid
-erDiagram
-Users ||--|| Wallets : "1:1"
-Users ||--o{ Bets : "1:N"
+src/
+├── Backend/
+│   ├── SportsBetting.API             # HTTP endpoints and API configuration
+│   ├── SportsBetting.Application     # use cases, validation and mapping
+│   ├── SportsBetting.Domain          # entities and repository contracts
+│   └── SportsBetting.Infrastructure  # EF Core and football API access
+└── Shared/
+    ├── SportsBetting.Communication   # request and response contracts
+    └── SportsBetting.Exceptions      # application error contract
 
-    EntityBase {
-        bigint Id PK
-        bit Active "Default: true"
-        datetime2 CreatedOn 
-    }
-
-    Users {
-        bigint Id PK
-        nvarchar Name
-        nvarchar Email UK
-        nvarchar Password
-        bit Active
-        datetime2 CreatedOn
-    }
-
-    Wallets {
-        bigint Id PK
-        bigint UserId FK
-        decimal Balance
-        rowversion RowVersion "Optimistic Concurrency"
-    }
-
-    Bets {
-        bigint Id PK
-        bigint UserId FK
-        int FixtureId
-        decimal Amount
-        decimal Odds
-        decimal PotentialWinning
-        int BetType
-        int Status
-        datetime2 PlacedAt
-    }
- ```
-
-## Concurrency Flow (Wallet Protection)
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Database
-    
-    User->>API: POST /Bet/place-bet (Amount: €100)
-    API->>Database: SELECT Balance, RowVersion WHERE UserId = X
-    Database-->>API: Balance: €500, RowVersion: 0x001
-    
-    Note over API: Check: €500 >= €100 ✓
-    
-    API->>Database: UPDATE Wallets SET Balance = €400 WHERE UserId = X AND RowVersion = 0x001
-    
-    alt RowVersion Matched
-        Database-->>API: Success (RowVersion now 0x002)
-        API-->>User: 201 Created - Bet Placed
-    else RowVersion Changed (Concurrent Bet)
-        Database-->>API: 0 rows affected
-        API-->>User: 409 Conflict - "Another bet was placed simultaneously"
-    end
+tests/
+├── UseCase.Test                      # isolated business behaviour
+├── Validator.Tests                   # request validation
+├── WebApi.Test                       # routes, auth, errors and OpenAPI
+├── Integration.Test                  # real SQL Server behaviour
+└── CommonTestsUtilities              # focused test builders
 ```
 
-## Enum & Mappings
+The projects preserve clear dependency boundaries, but the request path remains
+ordinary: controller → use case → repository or external service.
 
-```mermaid
-graph LR
-0(0: HomeWin) --- A[Home Team Victory]
-1(1: Draw) --- B[Draw]
-2(2: AwayWin) --- C[Away Team Victory]
-```
+## Run with Docker Compose
 
-## Tech Stack
+Prerequisites:
 
-- **.NET 9** / **C# 13**
-- **ASP.NET Core** - Web API 
-- **Entity Framework Core** - ORM with SQL Server
-- **SQL Server** - Relational database
-- **AutoMapper** - Object-to-object mapping
-- **FluentValidation** - Request validation
-- **JWT** - Authentication
-- **Swagger** - API documentation
-- **API-Football (api-sports.io)** - External fixture and team data
+- Docker Desktop or another Docker-compatible runtime
+- an API-Football key
 
-
-## Technical Highlights (Betting - Wallet)
-
-### Optimistic Concurrency Control
-Prevents race conditions in wallet operations using **RowVersion**:
-```csharp
-// Wallet entity with version tracking
-public byte[] RowVersion { get; set; } = [];
-
-// EF Core carries the token in the UPDATE's WHERE clause
-builder.Property(w => w.RowVersion).IsRowVersion();
-
-// UnitOfWork translates the EF failure into a domain exception the API maps to 409
-catch (DbUpdateConcurrencyException)
-{
-    throw new ConcurrencyException();
-}
-```
-
-**How it works:**
-- SQL Server updates `RowVersion` automatically on each change
-- EF Core validates version in `WHERE` clause: `WHERE Id = X AND RowVersion = @value`
-- The balance is re-checked on the tracked read immediately before the deduction, so a bet
-  that arrives after another request spent the balance is refused with `400` insufficient
-  balance instead of driving the wallet negative
-- Concurrent updates trigger `DbUpdateConcurrencyException`
-- The loser gets `409 Conflict`: *"Another bet was placed simultaneously. Please try again"* — a retryable
-  conflict, not a validation error, and the winning balance is never overwritten
-- Covered by `UnitOfWorkConcurrencyTests`, which stages a real competing write against the database
-
-**Testing:** Verified with simultaneous Postman requests using the same authenticated session to simulate race conditions.
-
-**Fixture details and fixed study odds are server controlled** - users can only specify
-`fixtureId`, `amount`, and `betType`. There is no payout or settlement workflow.
-
-## Prerequisites
-- .NET 9 SDK or later
-- SQL Server
-- API-Football account and key from [api-sports.io](https://api-sports.io) (direct plan, not the RapidAPI gateway)
-- Visual Studio or JetBrains Rider (developed with Rider, recommended for this project)
-- Postman or Swagger for API testing
-
-## Setup Instructions
-
-### Docker & Cloud Deployment
-
-This project is fully containerized and engineered to run in scalable cloud environments.
-
-#### Local Execution with Docker
-Run the API locally without needing the .NET SDK installed:
+Create the local environment file:
 
 ```bash
-# Build the image
-docker build -t sportsbetting-api .
-
-# Run the container
-docker run -p 8080:8080 sportsbetting-api
+cp .env.example .env
 ```
 
-### 1. Clone Repository
+Set `MSSQL_SA_PASSWORD`, `JWT_SIGNING_KEY` and `FOOTBALL_API_KEY`, then run:
+
 ```bash
-git clone https://github.com/DeVFirmino/SportsBetting.git
-cd SportsBetting
-
+docker compose up --build
 ```
 
-### 2. Configure Database Connection
-Create `src/Backend/SportsBetting.API/appsettings.Development.json` (the file is gitignored):
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=SportsBetting;Trusted_Connection=true;TrustServerCertificate=true"
-  }
-}
-```
+Compose starts SQL Server, runs the versioned Entity Framework migration bundle
+and starts the API only after the migration succeeds.
 
-### 3. Configure Secrets and Football API
-Get your API key from [API-Football](https://api-sports.io) (the code calls the direct
-`v3.football.api-sports.io` endpoint with the `x-apisports-key` header) and add a `Settings`
-section to `appsettings.Development.json`:
-```json
-{
-  "Settings": {
-    "Password": {
-      "AdditionalKey": "any-random-string-mixed-into-password-hashing"
-    },
-    "Jwt": {
-      "SigningKey": "your-secret-key-min-32-characters-long",
-      "ExpirationTimeMinutes": 60
-    },
-    "FootballApi": {
-      "BaseUrl": "https://v3.football.api-sports.io",
-      "ApiKey": "YOUR_API_FOOTBALL_KEY_HERE"
-    }
-  }
-}
-```
+Open Swagger at <http://localhost:8080/swagger>.
 
-### 4. Run Database Migrations
+The local database port defaults to `1434`, which avoids taking the usual SQL
+Server port from an existing installation. Both published ports can be changed
+in `.env`.
+
+## Build and test
+
+The repository targets the .NET 10 SDK:
+
 ```bash
-cd src/Backend/SportsBetting.API
-
-# Apply all migrations
-dotnet ef database update
+dotnet build SportsBetting.sln
+dotnet test SportsBetting.sln --no-build
 ```
 
-**Migrations include:**
-- Initial schema (Users, Wallets, Bets)
-- RowVersion for Wallet concurrency control
-- BetType enum conversion
-- FixtureId index on Bets
+The five integration tests require Docker because they start a disposable SQL
+Server with Testcontainers. They cover the database behaviours that matter most:
 
-### 5. Run Application
+- registration persists the user and wallet together;
+- placement debits the wallet and saves the bet together;
+- replaying an idempotency key does not debit twice;
+- concurrent requests with the same key create one bet;
+- concurrent requests with different keys cannot overdraw the wallet.
+
+Run only that suite with:
+
 ```bash
-dotnet run
+dotnet test tests/Integration.Test/Integration.Test.csproj
 ```
 
-**URLs:**
-- **HTTP**: `http://localhost:5055` (the launch profile serves HTTP only)
-- **Swagger**: `http://localhost:5055/swagger`
----
+## Technology
 
-## API Endpoints  
+- .NET 10 and C#
+- ASP.NET Core Web API
+- Entity Framework Core and SQL Server
+- AutoMapper and FluentValidation
+- JWT bearer authentication
+- Swagger / OpenAPI
+- xUnit, FluentAssertions and Testcontainers
+- Docker and Docker Compose
 
-### Authentication
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| POST | `/User/register` | Register a new user account | No |
-| POST | `/Login` | Authenticate and retrieve JWT token | No |
-| GET | `/User` | Retrieve the authenticated user profile | Yes |
-| PUT | `/User` | Update the authenticated user's name and email | Yes |
-| PUT | `/User/change-password` | Update account password | Yes |
+## Intentional trade-offs
 
-### Wallet Management
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| POST | `/Wallet/deposit` | Add funds to the user's wallet | Yes |
-| GET | `/Wallet` | Check current wallet balance | Yes |
-
-> **Note:** Add balance to your wallet before placing a bet on a fixture.
-
-### Betting Operations
-> **Important:** Get a `fixtureId` from `/Fixtures` before placing bets.
-
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| POST | `/Bet/place-bet` | Place a new bet on a fixture | Yes |
-| GET | `/Bet/get-bets` | Retrieve all bets placed by the user | Yes |
-| GET | `/Bet/{id}` | Retrieve details of a specific bet | Yes |
-
-### Fixtures and Odds
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| GET | `/Fixtures` | Get fixture data with fixed study odds | Yes |
-
-## API Bet Documentation
-
-### Authentication Endpoints
-
-> Once registered, place the JWT token in Swagger's Authorize dialog, e.g. `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...`
-
-**Register User**
-```http
-POST /User/register
-Content-Type: application/json
-
-{
-  "name": "Cristiano Ronaldo",
-  "email": "cr7@portugal.com",
-  "password": "SiuuuCR7!"
-}
-```
-
-**Login**
-```http
-POST /Login
-Content-Type: application/json
-
-{
-  "email": "cr7@portugal.com",
-  "password": "SiuuuCR7!"
-}
-```
-
-### Wallet Endpoints
-
-**Deposit Funds**
-```http
-POST /Wallet/deposit
-Authorization: Bearer {jwt_token}
-
-{ "amount": 959.00 }
-```
-
-**Get Balance**
-```http
-GET /Wallet
-Authorization: Bearer {jwt_token}
-```
-
-### Betting Endpoints
-
-**Get Fixtures**
-```http
-GET /Fixtures
-Authorization: Bearer {jwt_token}
-```
-
-**Place Bet**
-```http
-POST /Bet/place-bet
-Authorization: Bearer {jwt_token}
-
-{
-  "fixtureId": 12345,
-  "amount": 70.00,
-  "betType": "HomeWin"  // Options: HomeWin, Draw, AwayWin
-}
-```
-
-**Get User Bets**
-```http
-GET /Bet/get-bets
-Authorization: Bearer {jwt_token}
-```
-
-**Get Bet by ID**
-```http
-GET /Bet/{id}
-Authorization: Bearer {jwt_token}
-```
-
-### Quick Start Workflow
-
-1. **Register** → Receive JWT token
-2. **Deposit funds** → Add balance to wallet
-3. **Get fixtures** → View available matches with odds
-4. **Place bet** → Select fixture, amount, and bet type
-
-
-### Error Codes
-
-- `400` - Validation error, insufficient balance, or bet/fixture/wallet not found
-- `401` - Unauthorized (invalid/missing token or invalid login)
-- `409` - Concurrent bet conflict
-- `500` - Unexpected server error
-
----
-
-## Author
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/DeVFirmino">
-        <img src="https://github.com/DeVFirmino.png" width="100px;" alt="Autor"/><br>
-         <sub>
-          <b>Daniel Dias</b>
-        </sub>
-      </a>
-    </td>
-    <td>
-      <p><strong>Daniel Dias</strong> </p>
-      <p>Backend developer C# and .NET with a focus on building real-world APIs</p>
-      <p>
-        <a href="https://www.linkedin.com/in/daniel-dias-504168113/">
-          <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn Badge">
-        </a>
-        <a href="https://github.com/DeVFirmino">
-          <img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Badge">
-        </a>
-        <a href="mailto:daanspfc@gmail.com">
-          <img src="https://img.shields.io/badge/Gmail-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail Badge">
-        </a>
-      </p>
-    </td>
-  </tr>
-</table>
-
-<div align="center"> <strong>
-Developed for practice & portfolio purposes</strong>
-<i>Not for commercial use</i> </div>
+This API is sized for learning and portfolio review, not production betting.
+Deposits create study funds, odds are static, fixtures are read-only and bets do
+not transition after placement. The code still protects the two behaviours
+where correctness is worth demonstrating: wallet concurrency and safe request
+retries.

@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Moq;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories.BetRepository;
@@ -7,78 +6,119 @@ using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Mapper;
-using Domain = SportsBetting.Domain;
+using BetEntity = SportsBetting.Domain.Entities.Bet;
+using UserEntity = SportsBetting.Domain.Entities.User;
 
 namespace UseCase.Test.Bet;
 
-public class GetBetByIdUseCaseTests
+public sealed class GetBetByIdUseCaseTests
 {
     [Fact]
     public async Task ShouldReturnMappedBetWhenBetExists()
     {
-        // Arrange
-        var bet = new Domain.Entities.Bet
-        {
-            Id = 11,
-            UserId = 1,
-            FixtureId = 123,
-            Amount = 20m,
-            Odds = 2.5m,
-            PotentialWinning = 50m,
-            EventName = "Home FC vs Away FC",
-            BetType = BetType.HomeWin,
-            Status = BetStatus.Pending
-        };
-        var useCase = CreateUseCase(bet);
+        BetEntity bet = BetEntity.Place(
+            1,
+            123,
+            20m,
+            BettingMarket.HomeWin,
+            2.5m,
+            "Home FC vs Away FC",
+            "key-1",
+            DateTime.UtcNow);
+        bet.Id = 11;
+        GetBetByIdUseCase useCase = CreateUseCase(bet);
 
-        // Act
         var result = await useCase.Execute(bet.Id, CancellationToken.None);
 
-        // Assert
         result.Id.Should().Be(bet.Id);
         result.EventName.Should().Be(bet.EventName);
-        result.PotentialWinning.Should().Be(50m);
+        result.PotentialReturn.Should().Be(50m);
     }
 
     [Fact]
     public async Task ShouldReturnBetNotFoundWhenBetIsMissing()
     {
-        // Arrange
-        var useCase = CreateUseCase(null);
+        GetBetByIdUseCase useCase = CreateUseCase(null);
 
-        // Act
         Func<Task> act = () => useCase.Execute(999, CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().ContainSingle()
-            .Which.Should().Be(ResourcesMessagesException.BET_NOT_FOUND);
+        (await act.Should().ThrowAsync<ResourceNotFoundException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.BET_NOT_FOUND);
     }
 
     [Fact]
     public async Task ShouldReturnBetNotFoundWhenBetBelongsToAnotherUser()
     {
-        // Arrange
-        var bet = new Domain.Entities.Bet { Id = 11, UserId = 99 };
-        var useCase = CreateUseCase(bet);
+        BetEntity bet = BetEntity.Place(
+            99,
+            123,
+            20m,
+            BettingMarket.HomeWin,
+            2.5m,
+            "Home FC vs Away FC",
+            "key-1",
+            DateTime.UtcNow);
+        bet.Id = 11;
+        GetBetByIdUseCase useCase = CreateUseCase(bet);
 
-        // Act
         Func<Task> act = () => useCase.Execute(bet.Id, CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().ContainSingle()
-            .Which.Should().Be(ResourcesMessagesException.BET_NOT_FOUND);
+        await act.Should().ThrowAsync<ResourceNotFoundException>();
     }
 
-    private static GetBetByIdUseCase CreateUseCase(Domain.Entities.Bet? bet)
+    private static GetBetByIdUseCase CreateUseCase(BetEntity? bet)
     {
-        var repository = new Mock<IBetReadOnlyRepository>();
-        repository.Setup(item => item.GetByIdAsync(It.IsAny<long>(), It.IsAny<CancellationToken>())).ReturnsAsync(bet);
+        return new GetBetByIdUseCase(
+            new BetRepositoryStub(bet),
+            MapperBuilder.Build(),
+            new LoggedUserStub());
+    }
 
-        var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(new Domain.Entities.User { Id = 1 });
+    private sealed class BetRepositoryStub : IBetReadOnlyRepository
+    {
+        private readonly BetEntity? _bet;
 
-        return new GetBetByIdUseCase(repository.Object, MapperBuilder.Build(), loggedUser.Object);
+        public BetRepositoryStub(BetEntity? bet)
+        {
+            _bet = bet;
+        }
+
+        public Task<BetEntity?> GetByIdAsync(
+            long id,
+            long userId,
+            CancellationToken cancellationToken)
+        {
+            BetEntity? result = _bet is not null && _bet.Id == id && _bet.UserId == userId
+                ? _bet
+                : null;
+            return Task.FromResult(result);
+        }
+
+        public Task<BetEntity?> GetByIdempotencyKeyAsync(
+            long userId,
+            string idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult<BetEntity?>(null);
+        }
+
+        public Task<(List<BetEntity> Items, int TotalCount)> GetPagedByUserIdAsync(
+            long userId,
+            int pageNumber,
+            int pageSize,
+            DateTime? startDate,
+            DateTime? endDate,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult((new List<BetEntity>(), 0));
+        }
+    }
+
+    private sealed class LoggedUserStub : ILoggedUser
+    {
+        public Task<UserEntity> GetUserAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new UserEntity { Id = 1 });
+        }
     }
 }

@@ -2,7 +2,7 @@ using FluentValidation;
 using SportsBetting.Application.SharedValidators;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
- 
+
 
 namespace SportsBetting.Application.UseCases.User.Register;
 
@@ -11,7 +11,7 @@ namespace SportsBetting.Application.UseCases.User.Register;
 //Then make a constructor to pass the rules
 public class RegisterUserValidator : AbstractValidator<RegisterUserRequest>
 {
-    public RegisterUserValidator() 
+    public RegisterUserValidator()
     {
         RuleFor(user => user.Name).NotEmpty().WithMessage(ResourcesMessagesException.NAME_EMPTY);
         RuleFor(user => user.Email)
@@ -19,6 +19,6 @@ public class RegisterUserValidator : AbstractValidator<RegisterUserRequest>
             .NotEmpty().WithMessage(ResourcesMessagesException.EMAIL_EMPTY)
             .EmailAddress().WithMessage(ResourcesMessagesException.EMAIL_INVALID);
         RuleFor(user => user.Password).SetValidator(new PasswordValidator<RegisterUserRequest>());
-         
+
     }
 }

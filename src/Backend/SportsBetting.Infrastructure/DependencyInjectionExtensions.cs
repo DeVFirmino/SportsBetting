@@ -1,8 +1,7 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using SportsBetting.Application.Services.AutoMapper;
+using Microsoft.Extensions.Options;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.User;
@@ -17,44 +16,48 @@ using SportsBetting.Infrastructure.ExternalServices.Football;
 using SportsBetting.Infrastructure.Security.Cryptography;
 using SportsBetting.Infrastructure.Security.Tokens.Access;
 using SportsBetting.Infrastructure.Security.Tokens.Access.Generator;
-using SportsBetting.Infrastructure.Security.Tokens.Access.Validator;
 using SportsBetting.Infrastructure.Services.LoggedUser;
-using Microsoft.Extensions.Http;
+using SportsBetting.Infrastructure.Services.Odds;
+using SportsBetting.Domain.Services.Odds;
 using SportsBetting.Domain.Services.ExternalApis;
+using SportsBetting.Infrastructure.Options;
 
 namespace SportsBetting.Infrastructure;
 
 public static class DependencyInjectionExtensions
 {
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-    { 
-        AddPasswordEncrypter(services, configuration);
+    {
+        AddOptions(services, configuration);
+        AddPasswordHashing(services);
         AddRepositories(services);
-        AddExternalServices(services, configuration);
+        AddExternalServices(services);
         AddLoggedUser(services);
-        AddTokens(services, configuration);
-        
+        AddOdds(services);
+        AddTokens(services);
+
         if (configuration.IsUnitTestEnvironment())
             return;
-        
-        AddDbContext(services, configuration);
+
+        AddDbContext(services);
     }
 
-    
 
-    private static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
+
+    private static void AddDbContext(IServiceCollection services)
     {
-        var connectionString = configuration.ConnectionString();
+        services.AddDbContext<SportsBettingDbContext>((provider, options) =>
+        {
+            DatabaseOptions database = provider.GetRequiredService<IOptions<DatabaseOptions>>().Value;
 
-        services.AddDbContext<SportsBettingDbContext>(options =>
-            options.UseSqlServer(connectionString));
-         
+            options.UseSqlServer(database.DefaultConnection);
+        });
     }
-    
+
     private static void AddRepositories(IServiceCollection services)
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        
+
         services.AddScoped<IUserWriteOnlyRepository, UserRepository>();
         services.AddScoped<IUserReadOnlyRepository, UserRepository>();
         services.AddScoped<IUserUpdateOnlyRepository, UserRepository>();
@@ -63,36 +66,50 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IWalletUpdateOnlyRepository, WalletRepository>();
         services.AddScoped<IBetReadOnlyRepository, BetRepository>();
         services.AddScoped<IBetWriteOnlyRepository, BetRepository>();
-        services.AddScoped<IBetUpdateOnlyRepository, BetRepository>();
     }
-    
-    private static void AddTokens(IServiceCollection services, IConfiguration configuration)
-    {
-        var expirationTimeMinutes = configuration.GetValue<uint>("Settings:Jwt:ExpirationTimeMinutes");
-        var signingKey = configuration.GetValue<string>("Settings:Jwt:SigningKey");
 
-        services.AddScoped<IAccessTokenGenerator>(option => new JwtTokenGenerator(expirationTimeMinutes, signingKey!));
-        services.AddScoped<IAccessTokenValidator>(option => new JwtTokenValidator(signingKey!));   
+    private static void AddTokens(IServiceCollection services)
+    {
+        services.AddScoped<IAccessTokenGenerator, JwtTokenGenerator>();
     }
-    
+
     private static void AddLoggedUser(IServiceCollection services) => services.AddScoped<ILoggedUser, LoggedUser>();
-    
-    private static void AddPasswordEncrypter(IServiceCollection services, IConfiguration configuration)
+
+    private static void AddOdds(IServiceCollection services) => services.AddSingleton<IOddsService, FixedOddsService>();
+
+    private static void AddPasswordHashing(IServiceCollection services)
+        => services.AddScoped<IPasswordHasher, IdentityPasswordHasher>();
+
+    private static void AddExternalServices(IServiceCollection services)
     {
-        var additionalKey = configuration.GetValue<string>("Settings:Password:AdditionalKey");
-        
-        services.AddScoped<IPasswordEncrypter>(options => new Sha512Encrypter(additionalKey!));
+        services.AddMemoryCache();
+        services.AddHttpClient<IFootballApiService, FootballApiService>((provider, client) =>
+        {
+            FootballApiOptions options = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
+
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
     }
 
-    private static void AddExternalServices(this IServiceCollection services, IConfiguration configuration)
+    private static void AddOptions(IServiceCollection services, IConfiguration configuration)
     {
-        var baseUrl = configuration["Settings:FootballApi:BaseUrl"];
-        
-        services.AddHttpClient<IFootballApiService, FootballApiService>(client =>
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetRequiredSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<FootballApiOptions>()
+            .Bind(configuration.GetRequiredSection(FootballApiOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        if (configuration.IsUnitTestEnvironment() is false)
         {
-            client.BaseAddress = new Uri(baseUrl!);
-        });
-        
+            services.AddOptions<DatabaseOptions>()
+                .Bind(configuration.GetRequiredSection(DatabaseOptions.SectionName))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+        }
     }
 }
-

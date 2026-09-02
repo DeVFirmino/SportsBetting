@@ -1,5 +1,4 @@
 using FluentAssertions;
-using Moq;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Entities;
@@ -8,97 +7,134 @@ using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
-using Domain = SportsBetting.Domain;
+using UserEntity = SportsBetting.Domain.Entities.User;
+using WalletEntity = SportsBetting.Domain.Entities.Wallet;
 
 namespace UseCase.Test.Wallet;
 
-public class DepositUseCaseTests
+public sealed class DepositUseCaseTests
 {
     [Fact]
-    public async Task ShouldCreateWalletWithDepositedBalanceWhenWalletDoesNotExist()
+    public async Task ShouldAddAmountToWalletWhenDepositIsValid()
     {
-        // Arrange
-        var user = User();
-        Domain.Entities.Wallet? createdWallet = null;
-        var writeRepository = new Mock<IWalletWriteOnlyRepository>();
-        writeRepository.Setup(repository => repository.AddAsync(
-                It.IsAny<Domain.Entities.Wallet>(),
-                It.IsAny<CancellationToken>()))
-            .Callback<Domain.Entities.Wallet, CancellationToken>((wallet, _) => createdWallet = wallet)
-            .Returns(Task.CompletedTask);
-        var useCase = CreateUseCase(user, null, writeRepository: writeRepository);
+        TestContext context = CreateContext(balance: 100m);
 
-        // Act
-        await useCase.Execute(new DepositRequest { Amount = 75m }, CancellationToken.None);
+        await context.UseCase.Execute(new DepositRequest { Amount = 25m }, CancellationToken.None);
 
-        // Assert
-        createdWallet.Should().NotBeNull();
-        createdWallet!.UserId.Should().Be(user.Id);
-        createdWallet.Balance.Should().Be(75m);
+        context.Wallet!.Balance.Should().Be(125m);
     }
 
     [Fact]
-    public async Task ShouldAddAmountToBalanceWhenWalletExists()
+    public async Task ShouldAddEveryDepositWhenSameAmountIsSubmittedTwice()
     {
-        // Arrange
-        var wallet = new Domain.Entities.Wallet { Id = 8, UserId = 42, Balance = 100m };
-        var useCase = CreateUseCase(User(), wallet);
+        TestContext context = CreateContext(balance: 100m);
+        DepositRequest request = new() { Amount = 25m };
 
-        // Act
-        await useCase.Execute(new DepositRequest { Amount = 25.50m }, CancellationToken.None);
+        await context.UseCase.Execute(request, CancellationToken.None);
+        await context.UseCase.Execute(request, CancellationToken.None);
 
-        // Assert
-        wallet.Balance.Should().Be(125.50m);
+        context.Wallet!.Balance.Should().Be(150m);
+        context.UnitOfWork.CommitCount.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ShouldReturnWalletNotFoundWhenWalletDoesNotExist()
+    {
+        TestContext context = CreateContext(walletExists: false);
+
+        Func<Task> act = () => context.UseCase.Execute(
+            new DepositRequest { Amount = 25m },
+            CancellationToken.None);
+
+        (await act.Should().ThrowAsync<ResourceNotFoundException>())
+            .Which.Errors.Should().ContainSingle(ResourcesMessagesException.WALLET_NOT_FOUND);
     }
 
     [Theory]
     [InlineData(0)]
-    [InlineData(-10)]
+    [InlineData(-1)]
     public async Task ShouldReturnValidationErrorWhenAmountIsInvalid(decimal amount)
     {
-        // Arrange
-        var useCase = CreateUseCase(User(), null);
+        TestContext context = CreateContext();
 
-        // Act
-        Func<Task> act = () => useCase.Execute(new DepositRequest { Amount = amount }, CancellationToken.None);
+        Func<Task> act = () => context.UseCase.Execute(
+            new DepositRequest { Amount = amount },
+            CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().ContainSingle()
-            .Which.Should().Be(ResourcesMessagesException.AMOUNT_INVALID);
+        await act.Should().ThrowAsync<ErrorOnValidationException>();
+        context.UnitOfWork.CommitCount.Should().Be(0);
     }
 
-    private static DepositUseCase CreateUseCase(
-        Domain.Entities.User user,
-        Domain.Entities.Wallet? wallet,
-        Mock<IWalletWriteOnlyRepository>? writeRepository = null)
+    [Fact]
+    public async Task ShouldCommitOnceWhenDepositIsValid()
     {
-        var loggedUser = new Mock<ILoggedUser>();
-        loggedUser.Setup(service => service.GetUserAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
+        TestContext context = CreateContext();
 
-        var readRepository = new Mock<IWalletReadOnlyRepository>();
-        readRepository.Setup(repository => repository.GetByUserIdAsync(
-            user.Id,
-            It.IsAny<CancellationToken>())).ReturnsAsync(wallet!);
+        await context.UseCase.Execute(new DepositRequest { Amount = 25m }, CancellationToken.None);
 
-        var updateRepository = new Mock<IWalletUpdateOnlyRepository>();
-        if (wallet is not null)
+        context.UnitOfWork.CommitCount.Should().Be(1);
+    }
+
+    private static TestContext CreateContext(decimal balance = 100m, bool walletExists = true)
+    {
+        UserEntity user = new() { Id = 1, UserIdentifier = Guid.NewGuid() };
+        WalletEntity? wallet = walletExists
+            ? new WalletEntity { Id = 2, UserId = user.Id, Balance = balance }
+            : null;
+        UnitOfWorkStub unitOfWork = new();
+        DepositUseCase useCase = new(
+            new LoggedUserStub(user),
+            new WalletRepositoryStub(wallet),
+            unitOfWork);
+
+        return new TestContext(useCase, wallet, unitOfWork);
+    }
+
+    private sealed record TestContext(
+        DepositUseCase UseCase,
+        WalletEntity? Wallet,
+        UnitOfWorkStub UnitOfWork);
+
+    private sealed class LoggedUserStub : ILoggedUser
+    {
+        private readonly UserEntity _user;
+
+        public LoggedUserStub(UserEntity user)
         {
-            updateRepository.Setup(repository => repository.GetByIdAsync(
-                wallet.Id,
-                It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+            _user = user;
         }
 
-        var unitOfWork = new Mock<IUnitOfWork>();
-        unitOfWork.Setup(work => work.CommitAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
-
-        return new DepositUseCase(
-            (writeRepository ?? new Mock<IWalletWriteOnlyRepository>()).Object,
-            loggedUser.Object,
-            updateRepository.Object,
-            readRepository.Object,
-            unitOfWork.Object);
+        public Task<UserEntity> GetUserAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_user);
+        }
     }
 
-    private static Domain.Entities.User User() => new() { Id = 42, Email = "user@example.com" };
+    private sealed class WalletRepositoryStub : IWalletUpdateOnlyRepository
+    {
+        private readonly WalletEntity? _wallet;
+
+        public WalletRepositoryStub(WalletEntity? wallet)
+        {
+            _wallet = wallet;
+        }
+
+        public Task<WalletEntity?> GetByUserIdAsync(
+            long userId,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_wallet);
+        }
+    }
+
+    private sealed class UnitOfWorkStub : IUnitOfWork
+    {
+        public int CommitCount { get; private set; }
+
+        public Task CommitAsync(CancellationToken cancellationToken)
+        {
+            CommitCount++;
+            return Task.CompletedTask;
+        }
+    }
 }

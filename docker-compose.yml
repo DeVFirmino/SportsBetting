@@ -2,38 +2,68 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourStrongPassword123!
-      - MSSQL_PID=Developer
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
+      MSSQL_PID: Developer
     ports:
-      - "1434:1433"
+      - "${SQLSERVER_HOST_PORT:-1434}:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
     networks:
       - sportsbetting-network
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrongPassword123!" -Q "SELECT 1" -C
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\"",
+        ]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
       start_period: 30s
+
+  # Explicit deployment step: the Entity Framework Core migration bundle runs to
+  # completion before the API starts. Migrations are never applied by the API itself.
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    command:
+      - --connection
+      - Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - sportsbetting-network
+    restart: "no"
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123!;TrustServerCertificate=True;
-      - Settings__Jwt__SigningKey=YOUR_JWT_SIGNING_KEY_MIN_32_CHARACTERS
-      - Settings__Jwt__ExpirationTimeMinutes=10000
-      - Settings__FootballApi__BaseUrl=https://v3.football.api-sports.io
-      - Settings__FootballApi__ApiKey=YOUR_RAPIDAPI_KEY_HERE
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
+      Settings__Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY (at least 32 characters) in .env}
+      Settings__Jwt__Issuer: ${JWT_ISSUER:-sportsbetting-api}
+      Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
+      Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
+      Settings__FootballApi__BaseUrl: ${FOOTBALL_API_BASE_URL:-https://v3.football.api-sports.io}
+      Settings__FootballApi__ApiKey: ${FOOTBALL_API_KEY:?set FOOTBALL_API_KEY in .env}
+      Settings__FootballApi__CacheSeconds: ${FOOTBALL_API_CACHE_SECONDS:-30}
+      Settings__FootballApi__TimeoutSeconds: ${FOOTBALL_API_TIMEOUT_SECONDS:-10}
+      Settings__FootballApi__Season: ${FOOTBALL_API_SEASON:-2024}
+      Settings__FootballApi__LeagueId: ${FOOTBALL_API_LEAGUE_ID:-140}
     ports:
-      - "8080:8080"
+      - "${API_HOST_PORT:-8080}:8080"
     depends_on:
       sqlserver:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     networks:
       - sportsbetting-network
 

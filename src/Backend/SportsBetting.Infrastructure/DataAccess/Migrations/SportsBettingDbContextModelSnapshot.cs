@@ -17,7 +17,7 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.11")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -33,13 +33,6 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.Property<bool>("Active")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("BetType")
-                        .HasMaxLength(100)
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
 
@@ -51,22 +44,27 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.Property<int>("FixtureId")
                         .HasColumnType("int");
 
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("Market")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<decimal>("Odds")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("PlacedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal>("PotentialWinning")
+                    b.Property<decimal>("PotentialReturn")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("SettledAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                    b.Property<decimal>("Stake")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -76,6 +74,10 @@ namespace SportsBetting.Infrastructure.DataAccess.Migrations
                     b.HasIndex("FixtureId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Bets_UserId_IdempotencyKey");
 
                     b.ToTable("Bets", (string)null);
                 });

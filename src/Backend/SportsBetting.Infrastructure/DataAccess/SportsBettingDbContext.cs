@@ -1,21 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SportsBetting.Domain.Entities;
-using SportsBetting.Domain.Enums;
 
 namespace SportsBetting.Infrastructure.DataAccess;
 
 public sealed class SportsBettingDbContext : DbContext
 {
+    internal const string BetIdempotencyIndexName = "UX_Bets_UserId_IdempotencyKey";
+
     public SportsBettingDbContext(DbContextOptions<SportsBettingDbContext> options)
         : base(options)
     {
     }
 
     public DbSet<User> Users => Set<User>();
-
     public DbSet<Wallet> Wallets => Set<Wallet>();
-
     public DbSet<Bet> Bets => Set<Bet>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -69,10 +68,7 @@ public sealed class SportsBettingDbContext : DbContext
         bet.ToTable("Bets");
         bet.HasKey(entity => entity.Id);
 
-        bet.Property(entity => entity.FixtureId)
-            .IsRequired();
-
-        bet.Property(entity => entity.Amount)
+        bet.Property(entity => entity.Stake)
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
@@ -80,7 +76,7 @@ public sealed class SportsBettingDbContext : DbContext
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
-        bet.Property(entity => entity.PotentialWinning)
+        bet.Property(entity => entity.PotentialReturn)
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
@@ -88,12 +84,13 @@ public sealed class SportsBettingDbContext : DbContext
             .HasMaxLength(255)
             .IsRequired();
 
-        bet.Property(entity => entity.BetType)
-            .HasMaxLength(100)
+        bet.Property(entity => entity.Market)
+            .HasConversion<string>()
+            .HasMaxLength(20)
             .IsRequired();
 
-        bet.Property(entity => entity.Status)
-            .HasDefaultValue(BetStatus.Pending)
+        bet.Property(entity => entity.IdempotencyKey)
+            .HasMaxLength(128)
             .IsRequired();
 
         bet.HasOne(entity => entity.User)
@@ -103,5 +100,8 @@ public sealed class SportsBettingDbContext : DbContext
 
         bet.HasIndex(entity => entity.UserId);
         bet.HasIndex(entity => entity.FixtureId);
+        bet.HasIndex(entity => new { entity.UserId, entity.IdempotencyKey })
+            .HasDatabaseName(BetIdempotencyIndexName)
+            .IsUnique();
     }
 }

@@ -1,5 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SportsBetting.API.Attributes;
+using System.ComponentModel.DataAnnotations;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
@@ -9,50 +10,47 @@ using SportsBetting.Communication.Responses;
 namespace SportsBetting.API.Controllers;
 
 [ApiController]
-[Route("Bet")]
+[Route("bets")]
+[Authorize]
 public sealed class BetController : ControllerBase
 {
-    [HttpPost("place-bet")]
+    [HttpPost]
     [ProducesResponseType(typeof(BetResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [AuthenticatedUser]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> PlaceBet(
         [FromServices] IPlaceBetUseCase useCase,
         [FromBody] PlaceBetRequest request,
+        [FromHeader(Name = "Idempotency-Key"), Required] string idempotencyKey,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(request, cancellationToken);
-        
-        return Created(string.Empty, result);
+        BetResponse result = await useCase.Execute(request, idempotencyKey, cancellationToken);
+
+        return CreatedAtAction(nameof(GetBetById), new { id = result.Id }, result);
     }
 
-    [HttpGet("get-bets")]
+    [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<BetResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [AuthenticatedUser]
     public async Task<IActionResult> GetUserBets(
         [FromServices] IGetUserBetsUseCase useCase,
         [FromQuery] GetUserBetsRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(request, cancellationToken);
-        
-        if (result.TotalCount == 0)
-            return NoContent();
-        
+        PagedResponse<BetResponse> result = await useCase.Execute(request, cancellationToken);
+
         return Ok(result);
     }
-    
-    [HttpGet("{id}")]
+
+    [HttpGet("{id:long}")]
     [ProducesResponseType(typeof(BetResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [AuthenticatedUser]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBetById(
         [FromServices] IGetBetByIdUseCase useCase,
         [FromRoute] long id,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(id, cancellationToken);
+        BetResponse result = await useCase.Execute(id, cancellationToken);
+
         return Ok(result);
     }
 }
