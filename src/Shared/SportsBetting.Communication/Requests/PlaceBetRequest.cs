@@ -1,10 +1,12 @@
+using SportsBetting.Communication.Enums;
+
 namespace SportsBetting.Communication.Requests;
 
 public sealed class PlaceBetRequest
 {
     public int FixtureId { get; set; }
 
-    public decimal Amount { get; set; }
+    public decimal Stake { get; set; }
 
-    public string? BetType { get; set; }
+    public BettingMarket? Market { get; set; }
 }

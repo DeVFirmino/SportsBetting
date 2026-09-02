@@ -48,17 +48,15 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ConnectionStrings__DefaultConnection: Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
       Settings__Jwt__SigningKey: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY (at least 32 characters) in .env}
-      # Compose publishes the API port directly, so no proxy is trusted here. A deployment that
-      # fronts the API with a reverse proxy declares it, e.g.:
-      # Settings__ForwardedHeaders__KnownNetworks__0: 10.0.0.0/8
-      # Settings__ForwardedHeaders__KnownProxies__0: 203.0.113.5
       Settings__Jwt__Issuer: ${JWT_ISSUER:-sportsbetting-api}
       Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
       Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
       Settings__FootballApi__BaseUrl: ${FOOTBALL_API_BASE_URL:-https://v3.football.api-sports.io}
       Settings__FootballApi__ApiKey: ${FOOTBALL_API_KEY:?set FOOTBALL_API_KEY in .env}
       Settings__FootballApi__CacheSeconds: ${FOOTBALL_API_CACHE_SECONDS:-30}
-      Settings__FootballApi__RetryDelayMilliseconds: ${FOOTBALL_API_RETRY_DELAY_MS:-500}
+      Settings__FootballApi__TimeoutSeconds: ${FOOTBALL_API_TIMEOUT_SECONDS:-10}
+      Settings__FootballApi__Season: ${FOOTBALL_API_SEASON:-2024}
+      Settings__FootballApi__LeagueId: ${FOOTBALL_API_LEAGUE_ID:-140}
     ports:
       - "${API_HOST_PORT:-8080}:8080"
     depends_on:

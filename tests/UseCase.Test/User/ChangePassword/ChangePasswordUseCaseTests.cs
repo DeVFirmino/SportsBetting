@@ -57,7 +57,7 @@ public class ChangePasswordUseCaseTests
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
+        exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
         PasswordHasherBuilder.Build().Verify(user, user.Password, "correct-password")
             .Should().BeTrue();
     }
@@ -80,7 +80,7 @@ public class ChangePasswordUseCaseTests
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
+        exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
     }
 
     private static ChangePasswordUseCase CreateUseCase(Domain.Entities.User user)

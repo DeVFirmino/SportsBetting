@@ -5,23 +5,22 @@ using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
- 
+
 [ApiController]
-[Route("Login")]
-public sealed class LoginController : ControllerBase
+[Route("tokens")]
+public sealed class TokenController : ControllerBase
 {
     [HttpPost]
+    [EnableRateLimiting("tokens")]
     [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [EnableRateLimiting("login")]
-    public async Task<IActionResult> Login(
+    public async Task<IActionResult> Create(
         [FromServices] IDoLoginUseCase useCase,
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request, cancellationToken);
-        
+        AuthenticatedUserResponse response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 }

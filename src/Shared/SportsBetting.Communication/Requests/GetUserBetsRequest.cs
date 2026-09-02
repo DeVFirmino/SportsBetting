@@ -13,7 +13,6 @@ public sealed class GetUserBetsRequest
         set => _pageSize = value > MaxPageSize ? MaxPageSize : (value < 1 ? 10 : value);
     }
 
-    public string? Status { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 }

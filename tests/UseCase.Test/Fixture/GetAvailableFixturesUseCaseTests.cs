@@ -23,7 +23,7 @@ public class GetAvailableFixturesUseCaseTests
             AwayWinOdds = 4.1m
         };
         var service = new Mock<IFootballApiService>();
-        service.Setup(api => api.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([fixture]);
+        service.Setup(api => api.GetFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([fixture]);
         var useCase = new GetAvailableFixturesUseCase(service.Object);
 
         // Act
@@ -38,7 +38,7 @@ public class GetAvailableFixturesUseCaseTests
     {
         // Arrange
         var service = new Mock<IFootballApiService>();
-        service.Setup(api => api.GetUpcomingFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
+        service.Setup(api => api.GetFixturesAsync(It.IsAny<CancellationToken>())).ReturnsAsync([]);
         var useCase = new GetAvailableFixturesUseCase(service.Object);
 
         // Act

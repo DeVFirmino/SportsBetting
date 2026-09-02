@@ -14,73 +14,73 @@ namespace WebApi.Test.User.Register;
 
 public class RegisterUserTest : SportsBettingClassFixture
 {
-     private readonly string method = "user/register";
-     
-     public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
-     
-     [Fact]
-     public async Task ShouldRegisterUserWhenRequestIsValid()
-     {
-          var request = RegisterUserRequestBuilder.Build();
+    private readonly string method = "/users";
 
-          var response = await DoPost(method, request);
+    public RegisterUserTest(CustomWebApplicationFactory factory) : base(factory) { }
 
-          response.StatusCode.Should().Be(HttpStatusCode.Created);
+    [Fact]
+    public async Task ShouldRegisterUserWhenRequestIsValid()
+    {
+        var request = RegisterUserRequestBuilder.Build();
 
-          await using var responseBody = await response.Content.ReadAsStreamAsync();
-          
-          var responseData = await JsonDocument.ParseAsync(responseBody);
-          
-          responseData.RootElement.GetProperty("name").GetString().Should().Be(request.Name);
-          responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrEmpty();
+        var response = await DoPost(method, request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        responseData.RootElement.GetProperty("name").GetString().Should().Be(request.Name);
+        responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrEmpty();
 
 
-     }
-     
-     [Theory]
-     [InlineData("en-US")]
-     public async Task ShouldReturnBadRequestWhenNameIsEmpty(string culture)
-     {
-          var request = RegisterUserRequestBuilder.Build();
-          request.Name = string.Empty;
-          
-          var response = await DoPost(method, request, culture);
-          
-          response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-          
-          await using var responseBody = await response.Content.ReadAsStreamAsync();
-          
-          var responseData = await JsonDocument.ParseAsync(responseBody);
+    }
 
-          var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
-          
-          var expectedMessage = ResourcesMessagesException.ResourceManager.GetString("NAME_EMPTY", new CultureInfo(culture));
-          
-          errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
-     }
+    [Theory]
+    [InlineData("en-US")]
+    public async Task ShouldReturnBadRequestWhenNameIsEmpty(string culture)
+    {
+        var request = RegisterUserRequestBuilder.Build();
+        request.Name = string.Empty;
 
-     [Fact]
-     public async Task ShouldAnswerWithTheErrorContractWhenNameIsNotAString()
-     {
-          var request = RegisterUserRequestBuilder.Build();
+        var response = await DoPost(method, request, culture);
 
-          var response = await DoPost(method, new
-          {
-               name = 12345,
-               email = request.Email,
-               password = request.Password
-          });
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-          response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        await using var responseBody = await response.Content.ReadAsStreamAsync();
 
-          await using var responseBody = await response.Content.ReadAsStreamAsync();
+        var responseData = await JsonDocument.ParseAsync(responseBody);
 
-          var responseData = await JsonDocument.ParseAsync(responseBody);
+        var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
 
-          // The whole API answers failures with one shape: "errors" as a list of messages.
-          // A body that fails model binding must not fall back to a different contract.
-          var errors = responseData.RootElement.GetProperty("errors");
-          errors.ValueKind.Should().Be(JsonValueKind.Array);
-          errors.EnumerateArray().Should().NotBeEmpty();
-     }
+        var expectedMessage = ResourcesMessagesException.ResourceManager.GetString("NAME_EMPTY", new CultureInfo(culture));
+
+        errors.Should().ContainSingle().And.Contain(error => error.GetString()!.Equals(expectedMessage));
+    }
+
+    [Fact]
+    public async Task ShouldAnswerWithTheErrorContractWhenNameIsNotAString()
+    {
+        var request = RegisterUserRequestBuilder.Build();
+
+        var response = await DoPost(method, new
+        {
+            name = 12345,
+            email = request.Email,
+            password = request.Password
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        await using var responseBody = await response.Content.ReadAsStreamAsync();
+
+        var responseData = await JsonDocument.ParseAsync(responseBody);
+
+        // The whole API answers failures with one shape: "errors" as a list of messages.
+        // A body that fails model binding must not fall back to a different contract.
+        var errors = responseData.RootElement.GetProperty("errors");
+        errors.ValueKind.Should().Be(JsonValueKind.Array);
+        errors.EnumerateArray().Should().NotBeEmpty();
+    }
 }

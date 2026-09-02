@@ -9,13 +9,13 @@ using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
- 
- 
+
+
 [ApiController]
-[Route("User")]
+[Route("users")]
 public sealed class UserController : ControllerBase
 {
-    [HttpPost("register")]
+    [HttpPost]
     [ProducesResponseType(typeof(AuthenticatedUserResponse), StatusCodes.Status201Created)]
     [EnableRateLimiting("registration")]
     public async Task<IActionResult> Register(
@@ -23,11 +23,11 @@ public sealed class UserController : ControllerBase
         [FromBody] RegisterUserRequest request,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request, cancellationToken);
-        return Created(string.Empty, response);
+        AuthenticatedUserResponse response = await useCase.Execute(request, cancellationToken);
+        return Created("/users/me", response);
     }
 
-    [HttpGet]
+    [HttpGet("me")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [Authorize]
 
@@ -36,12 +36,12 @@ public sealed class UserController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await useCase.Execute(cancellationToken);
-        
+
         return Ok(result);
     }
-    
 
-    [HttpPut]
+
+    [HttpPut("me")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [Authorize]
@@ -51,11 +51,11 @@ public sealed class UserController : ControllerBase
         CancellationToken cancellationToken)
     {
         await useCase.Execute(request, cancellationToken);
-        
+
         return NoContent();
     }
-    
-    [HttpPut("change-password")]
+
+    [HttpPut("me/password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [Authorize]
@@ -65,7 +65,7 @@ public sealed class UserController : ControllerBase
         CancellationToken cancellationToken)
     {
         await useCase.Execute(request, cancellationToken);
-        
+
         return NoContent();
     }
 }

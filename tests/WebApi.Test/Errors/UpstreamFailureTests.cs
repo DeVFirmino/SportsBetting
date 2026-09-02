@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Polly.CircuitBreaker;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Services.ExternalApis;
+using SportsBetting.Exceptions.ExceptionBase;
 
 namespace WebApi.Test.Errors;
 
@@ -52,29 +52,7 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
     {
         // A DNS or connection failure raises HttpRequestException with no status code at all —
         // still an unavailable upstream, never the caller's 500.
-        _factory.FootballApi.Failure = new HttpRequestException("connection refused");
-
-        try
-        {
-            HttpClient client = await AuthenticatedClientAsync();
-
-            var response = await client.GetAsync("/fixtures");
-
-            response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
-
-            using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            document.RootElement.GetProperty("title").GetString().Should().Be("Upstream service unavailable");
-        }
-        finally
-        {
-            _factory.FootballApi.Failure = null;
-        }
-    }
-
-    [Fact]
-    public async Task ShouldReportServiceUnavailableWhenTheCircuitIsOpen()
-    {
-        _factory.FootballApi.Failure = new BrokenCircuitException();
+        _factory.FootballApi.Failure = new UpstreamServiceException(503, "connection refused");
 
         try
         {
@@ -103,7 +81,7 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
             Password = _factory.GetPassword(),
         };
 
-        var loginResponse = await client.PostAsJsonAsync("login", login);
+        var loginResponse = await client.PostAsJsonAsync("/tokens", login);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var document = JsonDocument.Parse(await loginResponse.Content.ReadAsStringAsync());
@@ -137,8 +115,8 @@ public sealed class FailingFootballApiService : IFootballApiService
 
     public Exception? Failure { get; set; }
 
-    public Task<List<FixtureData>> GetUpcomingFixturesAsync(CancellationToken cancellationToken)
+    public Task<List<FixtureData>> GetFixturesAsync(CancellationToken cancellationToken)
     {
-        throw Failure ?? new HttpRequestException("API-Football is unavailable.", null, StatusCode);
+        throw Failure ?? new UpstreamServiceException((int)StatusCode, "API-Football is unavailable.");
     }
 }

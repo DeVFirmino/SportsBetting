@@ -62,7 +62,7 @@ public class UpdateUserUseCaseTests
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().Contain(ResourcesMessagesException.EMAIL_ALREADY_REGISTERED);
+        exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_ALREADY_REGISTERED);
         user.Email.Should().Be("current@example.com");
     }
 
@@ -78,7 +78,7 @@ public class UpdateUserUseCaseTests
 
         // Assert
         var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
-        exception.Which.ErrorMessage.Should().BeEquivalentTo(
+        exception.Which.Errors.Should().BeEquivalentTo(
             ResourcesMessagesException.NAME_EMPTY,
             ResourcesMessagesException.EMAIL_EMPTY);
     }
