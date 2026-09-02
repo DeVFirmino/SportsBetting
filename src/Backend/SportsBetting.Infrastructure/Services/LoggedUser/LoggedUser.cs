@@ -24,7 +24,7 @@ public sealed class LoggedUser : ILoggedUser
     {
         string identifier = _httpContextAccessor.HttpContext?.User.FindFirstValue(JwtRegisteredClaimNames.Sub)
             ?? throw new InvalidOperationException("Authenticated user claim is missing.");
-        
+
         var userIdentifier = Guid.Parse(identifier);
 
         // A token can outlive the account it names. Treating that as "not authenticated" keeps a
@@ -32,5 +32,5 @@ public sealed class LoggedUser : ILoggedUser
         return await _dbContext.Users.AsNoTracking()
             .FirstOrDefaultAsync(user => user.Active && user.UserIdentifier == userIdentifier, cancellationToken)
             ?? throw new InvalidLoginException();
-    }   
+    }
 }

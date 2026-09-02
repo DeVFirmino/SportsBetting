@@ -16,6 +16,6 @@ public sealed class AutoMapping : Profile
         CreateMap<Domain.Entities.Bet, BetResponse>()
             .ForMember(
                 destination => destination.Market,
-                options => options.MapFrom(source => source.Market.ToString()));
+                options => options.MapFrom(source => (Communication.Enums.BettingMarket)source.Market));
     }
 }

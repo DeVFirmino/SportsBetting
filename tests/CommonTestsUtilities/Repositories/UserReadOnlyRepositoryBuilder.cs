@@ -6,8 +6,8 @@ namespace SportsBetting.Tests.Common.Repositories;
 
 public class UserReadOnlyRepositoryBuilder
 {
-    private readonly Mock<IUserReadOnlyRepository> _repository; 
-    
+    private readonly Mock<IUserReadOnlyRepository> _repository;
+
     public UserReadOnlyRepositoryBuilder()
     {
         _repository = new Mock<IUserReadOnlyRepository>();
@@ -19,7 +19,7 @@ public class UserReadOnlyRepositoryBuilder
             email,
             It.IsAny<CancellationToken>())).ReturnsAsync(true);
     }
-    
+
     public void GetByEmailAsync(User user)
     {
         _repository.Setup(r => r.GetByEmailAsync(
@@ -30,6 +30,6 @@ public class UserReadOnlyRepositoryBuilder
     {
         return _repository.Object;
     }
-    
+
 
 }

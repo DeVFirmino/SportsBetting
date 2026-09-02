@@ -24,7 +24,7 @@ public sealed class BetEndpointTests
         BetResponse? bet = await response.Content.ReadFromJsonAsync<BetResponse>();
         bet.Should().NotBeNull();
         response.Headers.Location!.AbsolutePath.Should().Be($"/bets/{bet!.Id}");
-        bet.Market.Should().Be("HomeWin");
+        bet.Market.Should().Be(BettingMarket.HomeWin);
     }
 
     [Fact]

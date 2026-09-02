@@ -16,7 +16,7 @@ namespace Integration.Test;
 /// <summary>
 /// One SQL Server container shared by the collection. The schema comes from the versioned Entity
 /// Framework Core migrations rather than <c>EnsureCreated</c>, so the rowversion column and the
-/// filtered unique indexes behind concurrency and idempotency are the ones a deployment produces.
+/// unique index behind concurrency and idempotency are the ones a deployment produces.
 /// </summary>
 public sealed class SqlServerFixture : IAsyncLifetime
 {

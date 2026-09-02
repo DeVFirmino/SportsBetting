@@ -8,7 +8,7 @@ namespace SportsBetting.Infrastructure.DataAccess.Repositories;
 public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepository, IUserUpdateOnlyRepository
 {
     private readonly SportsBettingDbContext _context;
-    
+
     public UserRepository(SportsBettingDbContext context)
     {
         _context = context;
@@ -19,7 +19,7 @@ public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepo
 
     public async Task<bool> ExistsActiveUserWithEmailAsync(string email, CancellationToken cancellationToken)
     {
-       return await _context.Users.AnyAsync(u => u.Email.Equals(email) && u.Active, cancellationToken);
+        return await _context.Users.AnyAsync(u => u.Email.Equals(email) && u.Active, cancellationToken);
     }
 
     public async Task<bool> ExistsActiveUserWithIdentifierAsync(
@@ -30,7 +30,7 @@ public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepo
             .Users.AnyAsync(user => user
                 .UserIdentifier.Equals(userIdentifier) && user
                 .Active, cancellationToken);
-        
+
     }
     public async Task<User?> GetByEmailAsync(
         string email,
@@ -40,7 +40,7 @@ public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepo
             .Users
             .FirstOrDefaultAsync(u => u.Active && u.Email
                 .Equals(email), cancellationToken);
-     }
+    }
 
     public async Task<User> GetByIdAsync(long id, CancellationToken cancellationToken)
     {
@@ -50,5 +50,5 @@ public sealed class UserRepository : IUserReadOnlyRepository, IUserWriteOnlyRepo
     public void Update(User user)
     {
         _context.Users.Update(user);
-     }
+    }
 }
