@@ -1,31 +1,27 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SportsBetting.Domain.Entities;
-using SportsBetting.Domain.Enums;
 
 namespace SportsBetting.Infrastructure.DataAccess;
 
 public sealed class SportsBettingDbContext : DbContext
 {
+    internal const string BetIdempotencyIndexName = "UX_Bets_UserId_IdempotencyKey";
+
     public SportsBettingDbContext(DbContextOptions<SportsBettingDbContext> options)
         : base(options)
     {
     }
 
     public DbSet<User> Users => Set<User>();
-
     public DbSet<Wallet> Wallets => Set<Wallet>();
-
     public DbSet<Bet> Bets => Set<Bet>();
-
-    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ConfigureUser(modelBuilder.Entity<User>());
         ConfigureWallet(modelBuilder.Entity<Wallet>());
         ConfigureBet(modelBuilder.Entity<Bet>());
-        ConfigureWalletTransaction(modelBuilder.Entity<WalletTransaction>());
     }
 
     private static void ConfigureUser(EntityTypeBuilder<User> user)
@@ -72,10 +68,7 @@ public sealed class SportsBettingDbContext : DbContext
         bet.ToTable("Bets");
         bet.HasKey(entity => entity.Id);
 
-        bet.Property(entity => entity.FixtureId)
-            .IsRequired();
-
-        bet.Property(entity => entity.Amount)
+        bet.Property(entity => entity.Stake)
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
@@ -83,7 +76,7 @@ public sealed class SportsBettingDbContext : DbContext
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
-        bet.Property(entity => entity.PotentialWinning)
+        bet.Property(entity => entity.PotentialReturn)
             .HasColumnType("decimal(18,2)")
             .IsRequired();
 
@@ -91,16 +84,14 @@ public sealed class SportsBettingDbContext : DbContext
             .HasMaxLength(255)
             .IsRequired();
 
-        bet.Property(entity => entity.BetType)
-            .HasMaxLength(100)
+        bet.Property(entity => entity.Market)
+            .HasConversion<string>()
+            .HasMaxLength(20)
             .IsRequired();
 
-        bet.Property(entity => entity.Status)
-            .HasDefaultValue(BetStatus.Pending)
+        bet.Property(entity => entity.IdempotencyKey)
+            .HasMaxLength(128)
             .IsRequired();
-
-        bet.Property(entity => entity.ClientRequestId)
-            .HasMaxLength(128);
 
         bet.HasOne(entity => entity.User)
             .WithMany()
@@ -109,51 +100,8 @@ public sealed class SportsBettingDbContext : DbContext
 
         bet.HasIndex(entity => entity.UserId);
         bet.HasIndex(entity => entity.FixtureId);
-        bet.HasIndex(entity => new { entity.UserId, entity.ClientRequestId })
-            .IsUnique()
-            .HasFilter("[ClientRequestId] IS NOT NULL");
-    }
-
-    private static void ConfigureWalletTransaction(EntityTypeBuilder<WalletTransaction> transaction)
-    {
-        transaction.ToTable("WalletTransactions");
-        transaction.HasKey(entity => entity.Id);
-
-        transaction.Property(entity => entity.Type)
-            .HasMaxLength(50)
-            .HasConversion<string>()
-            .IsRequired();
-
-        transaction.Property(entity => entity.Amount)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
-
-        transaction.Property(entity => entity.BalanceAfter)
-            .HasColumnType("decimal(18,2)")
-            .IsRequired();
-
-        transaction.Property(entity => entity.OccurredAt)
-            .IsRequired();
-
-        transaction.Property(entity => entity.ClientRequestId)
-            .HasMaxLength(128);
-
-        // BalanceAfter is a wallet balance, so the entry is keyed to the wallet it describes and
-        // the ledger can be reconciled against it.
-        transaction.HasOne(entity => entity.Wallet)
-            .WithMany()
-            .HasForeignKey(entity => entity.WalletId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        transaction.HasOne(entity => entity.Bet)
-            .WithMany()
-            .HasForeignKey(entity => entity.BetId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        transaction.HasIndex(entity => entity.WalletId);
-        transaction.HasIndex(entity => entity.BetId);
-        transaction.HasIndex(entity => new { entity.WalletId, entity.ClientRequestId })
-            .IsUnique()
-            .HasFilter("[ClientRequestId] IS NOT NULL");
+        bet.HasIndex(entity => new { entity.UserId, entity.IdempotencyKey })
+            .HasDatabaseName(BetIdempotencyIndexName)
+            .IsUnique();
     }
 }

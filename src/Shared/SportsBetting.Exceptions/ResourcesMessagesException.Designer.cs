@@ -121,9 +121,9 @@ namespace SportsBetting.Exceptions {
             get { return ResourceManager.GetString("WALLET_NOT_FOUND", resourceCulture); }
         }
         
-        public static string BET_AMOUNT_GREATER_THAN_ZERO
+        public static string BET_STAKE_GREATER_THAN_ZERO
         {
-            get { return ResourceManager.GetString("BET_AMOUNT_GREATER_THAN_ZERO", resourceCulture); }
+            get { return ResourceManager.GetString("BET_STAKE_GREATER_THAN_ZERO", resourceCulture); }
         }
         
         public static string BET_ODDS_INVALID
@@ -136,14 +136,19 @@ namespace SportsBetting.Exceptions {
             get { return ResourceManager.GetString("BET_EVENT_NAME_REQUIRED", resourceCulture); }
         }
         
-        public static string BET_TYPE_REQUIRED
+        public static string BETTING_MARKET_REQUIRED
         {
-            get { return ResourceManager.GetString("BET_TYPE_REQUIRED", resourceCulture); }
+            get { return ResourceManager.GetString("BETTING_MARKET_REQUIRED", resourceCulture); }
         }
         
         public static string IDEMPOTENCY_KEY_REUSED
         {
             get { return ResourceManager.GetString("IDEMPOTENCY_KEY_REUSED", resourceCulture); }
+        }
+
+        public static string IDEMPOTENCY_KEY_REQUIRED
+        {
+            get { return ResourceManager.GetString("IDEMPOTENCY_KEY_REQUIRED", resourceCulture); }
         }
 
         public static string IDEMPOTENCY_KEY_TOO_LONG

@@ -1,14 +1,11 @@
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using SportsBetting.Application.Services.AutoMapper;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.User;
 using SportsBetting.Domain.Repositories.WalletRepository;
-using SportsBetting.Domain.Repositories.WalletTransactionRepository;
 using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Domain.Services.LoggedUser;
@@ -28,21 +25,21 @@ namespace SportsBetting.Infrastructure;
 public static class DependencyInjectionExtensions
 {
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-    { 
+    {
         AddOptions(services, configuration);
         AddPasswordHashing(services);
         AddRepositories(services);
         AddExternalServices(services);
         AddLoggedUser(services);
         AddTokens(services);
-        
+
         if (configuration.IsUnitTestEnvironment())
             return;
-        
+
         AddDbContext(services);
     }
 
-    
+
 
     private static void AddDbContext(IServiceCollection services)
     {
@@ -53,11 +50,11 @@ public static class DependencyInjectionExtensions
             options.UseSqlServer(database.DefaultConnection);
         });
     }
-    
+
     private static void AddRepositories(IServiceCollection services)
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        
+
         services.AddScoped<IUserWriteOnlyRepository, UserRepository>();
         services.AddScoped<IUserReadOnlyRepository, UserRepository>();
         services.AddScoped<IUserUpdateOnlyRepository, UserRepository>();
@@ -66,18 +63,15 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IWalletUpdateOnlyRepository, WalletRepository>();
         services.AddScoped<IBetReadOnlyRepository, BetRepository>();
         services.AddScoped<IBetWriteOnlyRepository, BetRepository>();
-        services.AddScoped<IBetUpdateOnlyRepository, BetRepository>();
-        services.AddScoped<IWalletTransactionReadOnlyRepository, WalletTransactionRepository>();
-        services.AddScoped<IWalletTransactionWriteOnlyRepository, WalletTransactionRepository>();
     }
-    
+
     private static void AddTokens(IServiceCollection services)
     {
         services.AddScoped<IAccessTokenGenerator, JwtTokenGenerator>();
     }
-    
+
     private static void AddLoggedUser(IServiceCollection services) => services.AddScoped<ILoggedUser, LoggedUser>();
-    
+
     private static void AddPasswordHashing(IServiceCollection services)
         => services.AddScoped<IPasswordHasher, IdentityPasswordHasher>();
 
@@ -89,10 +83,8 @@ public static class DependencyInjectionExtensions
             FootballApiOptions options = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
 
             client.BaseAddress = new Uri(options.BaseUrl);
-        })
-        .AddResilienceHandler("api-football", (builder, context) => FootballApiResilience.Configure(
-            builder,
-            context.ServiceProvider.GetRequiredService<IOptions<FootballApiOptions>>().Value));
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
     }
 
     private static void AddOptions(IServiceCollection services, IConfiguration configuration)

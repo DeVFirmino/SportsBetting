@@ -7,7 +7,7 @@ using SportsBetting.Communication.Responses;
 namespace SportsBetting.API.Controllers;
 
 [ApiController]
-[Route("Fixtures")]
+[Route("fixtures")]
 public sealed class FixturesController : ControllerBase
 {
     [HttpGet]
@@ -20,6 +20,6 @@ public sealed class FixturesController : ControllerBase
         var result = await useCase.Execute(cancellationToken);
         return Ok(result);
     }
-    
-    
+
+
 }

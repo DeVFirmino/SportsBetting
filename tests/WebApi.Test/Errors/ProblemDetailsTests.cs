@@ -26,7 +26,7 @@ public class ProblemDetailsTests : IClassFixture<CustomWebApplicationFactory>
             Password = "1",
         };
 
-        var response = await _httpClient.PostAsJsonAsync("user/register", request);
+        var response = await _httpClient.PostAsJsonAsync("/users", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
@@ -35,7 +35,7 @@ public class ProblemDetailsTests : IClassFixture<CustomWebApplicationFactory>
 
         root.GetProperty("status").GetInt32().Should().Be(400);
         root.GetProperty("title").GetString().Should().Be("Validation failed");
-        root.GetProperty("instance").GetString().Should().Be("/user/register");
+        root.GetProperty("instance").GetString().Should().Be("/users");
         root.GetProperty("errors").EnumerateArray().Should().NotBeEmpty();
     }
 
@@ -48,7 +48,7 @@ public class ProblemDetailsTests : IClassFixture<CustomWebApplicationFactory>
             Password = "whatever",
         };
 
-        var response = await _httpClient.PostAsJsonAsync("login", request);
+        var response = await _httpClient.PostAsJsonAsync("/tokens", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 

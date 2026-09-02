@@ -57,8 +57,8 @@
     <data name="WALLET_NOT_FOUND" xml:space="preserve">
         <value>Wallet not found.</value>
     </data>
-    <data name="BET_AMOUNT_GREATER_THAN_ZERO" xml:space="preserve">
-        <value>Amount must be greater than 0 </value>
+    <data name="BET_STAKE_GREATER_THAN_ZERO" xml:space="preserve">
+        <value>Stake must be greater than zero.</value>
     </data>
     <data name="BET_ODDS_INVALID" xml:space="preserve">
         <value>Bet should be greater than zero</value>
@@ -66,11 +66,14 @@
     <data name="BET_EVENT_NAME_REQUIRED" xml:space="preserve">
         <value>Event name is required.</value>
     </data>
-    <data name="BET_TYPE_REQUIRED" xml:space="preserve">
-        <value>Please select the bet type "HomeWin", "Draw" or "AwayWin".</value>
+    <data name="BETTING_MARKET_REQUIRED" xml:space="preserve">
+        <value>Please select the market "HomeWin", "Draw" or "AwayWin".</value>
     </data>
     <data name="IDEMPOTENCY_KEY_REUSED" xml:space="preserve">
         <value>Idempotency-Key was already used for a different request.</value>
+    </data>
+    <data name="IDEMPOTENCY_KEY_REQUIRED" xml:space="preserve">
+        <value>Idempotency-Key is required.</value>
     </data>
     <data name="IDEMPOTENCY_KEY_TOO_LONG" xml:space="preserve">
         <value>Idempotency-Key must be at most 128 characters.</value>

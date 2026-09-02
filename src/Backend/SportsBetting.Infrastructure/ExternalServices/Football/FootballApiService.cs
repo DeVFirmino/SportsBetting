@@ -1,8 +1,9 @@
 using System.Net;
-using Microsoft.Extensions.Configuration;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using SportsBetting.Domain.Services.ExternalApis;
+using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Infrastructure.ExternalServices.DTOs;
 using SportsBetting.Infrastructure.Options;
 
@@ -10,7 +11,7 @@ namespace SportsBetting.Infrastructure.ExternalServices.Football;
 
 public sealed class FootballApiService : IFootballApiService
 {
-    private const string UpcomingFixturesCacheKey = "api-football-upcoming-fixtures";
+    private const string FixturesCacheKey = "api-football-fixtures";
 
     private readonly HttpClient _httpClient;
     private readonly IMemoryCache _memoryCache;
@@ -26,73 +27,72 @@ public sealed class FootballApiService : IFootballApiService
         _options = options.Value;
     }
 
-    public async Task<List<FixtureData>> GetUpcomingFixturesAsync(CancellationToken cancellationToken)
+    public async Task<List<FixtureData>> GetFixturesAsync(CancellationToken cancellationToken)
     {
-        if (_memoryCache.TryGetValue(UpcomingFixturesCacheKey, out List<FixtureData>? cachedFixtures)
+        if (_memoryCache.TryGetValue(FixturesCacheKey, out List<FixtureData>? cachedFixtures)
             && cachedFixtures is not null)
             return cachedFixtures;
 
-        var request = new HttpRequestMessage(
-            HttpMethod.Get, "/fixtures?season=2024&league=140");
-            request.Headers.Add("x-apisports-key", _options.ApiKey);
+        using HttpRequestMessage request = new(
+            HttpMethod.Get,
+            $"/fixtures?season={_options.Season}&league={_options.LeagueId}");
+        request.Headers.Add("x-apisports-key", _options.ApiKey);
 
-            var response = await _httpClient.SendAsync(request, cancellationToken);
+        HttpResponseMessage response;
 
-            EnsureUpstreamSucceeded(response);
- 
-             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-        
-             var apiResponse = System.Text.Json.JsonSerializer.Deserialize<ApiFootballResponse<ApiFixtureDto>>(
-                 content, 
-                 new System.Text.Json.JsonSerializerOptions 
-                 { 
-                     PropertyNameCaseInsensitive = true 
-                 });
-             
-             if(apiResponse?.Response == null)
-                 return [];
-             
-             var fixtures = apiResponse.Response
-                 .Take(10)
-                 .Select(f => new FixtureData
-                 {
-                     FixtureId = f.Fixture.Id,
-                     HomeTeam = f.Teams.Home.Name,
-                     AwayTeam = f.Teams.Away.Name,
-                     Date = f.Fixture.Date,
-                     HomeWinOdds = 2.10m,
-                     DrawOdds = 3.40m,
-                     AwayWinOdds = 3.80m,
-                 })
-                 .ToList();
+        try
+        {
+            response = await _httpClient.SendAsync(request, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw new UpstreamServiceException(503, exception.Message);
+        }
+        catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested is false)
+        {
+            throw new UpstreamServiceException(503, "API-Football request timed out.");
+        }
 
-             _memoryCache.Set(
-                 UpcomingFixturesCacheKey,
-                 fixtures,
-                 TimeSpan.FromSeconds(_options.CacheSeconds));
+        using (response)
+        {
+            EnsureUpstreamSucceeded(response.StatusCode);
 
-             return fixtures;
+            ApiFootballResponse<ApiFixtureDto>? apiResponse = await response.Content
+                .ReadFromJsonAsync<ApiFootballResponse<ApiFixtureDto>>(cancellationToken);
+
+            List<FixtureData> fixtures = apiResponse?.Response?
+                .Take(10)
+                .Select(fixture => new FixtureData
+                {
+                    FixtureId = fixture.Fixture.Id,
+                    HomeTeam = fixture.Teams.Home.Name,
+                    AwayTeam = fixture.Teams.Away.Name,
+                    Date = fixture.Fixture.Date,
+                    HomeWinOdds = 2.10m,
+                    DrawOdds = 3.40m,
+                    AwayWinOdds = 3.80m,
+                })
+                .ToList() ?? [];
+
+            _memoryCache.Set(
+                FixturesCacheKey,
+                fixtures,
+                TimeSpan.FromSeconds(_options.CacheSeconds));
+
+            return fixtures;
+        }
     }
 
-    /// <summary>
-    /// A failure at API-Football is never the API caller's fault, so it is reported as a gateway
-    /// problem: 503 while the upstream is out of quota or unavailable, 502 for anything else it
-    /// answered with.
-    /// </summary>
-    private static void EnsureUpstreamSucceeded(HttpResponseMessage response)
+    private static void EnsureUpstreamSucceeded(HttpStatusCode statusCode)
     {
-        if (response.IsSuccessStatusCode)
+        if ((int)statusCode is >= 200 and < 300)
             return;
 
-        if (response.StatusCode is HttpStatusCode.TooManyRequests)
-            throw new HttpRequestException(
-                "API-Football rate limit exceeded.", null, HttpStatusCode.ServiceUnavailable);
+        if (statusCode is HttpStatusCode.TooManyRequests
+            or HttpStatusCode.ServiceUnavailable
+            or HttpStatusCode.GatewayTimeout)
+            throw new UpstreamServiceException(503, "API-Football is unavailable.");
 
-        if (response.StatusCode is HttpStatusCode.ServiceUnavailable or HttpStatusCode.GatewayTimeout)
-            throw new HttpRequestException(
-                "API-Football is unavailable.", null, HttpStatusCode.ServiceUnavailable);
-
-        throw new HttpRequestException(
-            $"API-Football answered {(int)response.StatusCode}.", null, HttpStatusCode.BadGateway);
+        throw new UpstreamServiceException(502, $"API-Football answered {(int)statusCode}.");
     }
 }

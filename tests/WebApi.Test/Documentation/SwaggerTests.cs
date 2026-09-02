@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using FluentAssertions;
 
 namespace WebApi.Test.Documentation;
@@ -22,5 +23,49 @@ public class SwaggerTests : IClassFixture<CustomWebApplicationFactory>
         var response = await _httpClient.GetAsync(path);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task ShouldDescribeTheExpectedRestOperations()
+    {
+        using JsonDocument document = JsonDocument.Parse(
+            await _httpClient.GetStringAsync("/swagger/v1/swagger.json"));
+
+        HashSet<string> actual = document.RootElement.GetProperty("paths")
+            .EnumerateObject()
+            .SelectMany(path => path.Value.EnumerateObject()
+                .Select(operation => $"{operation.Name.ToUpperInvariant()} {path.Name}"))
+            .ToHashSet();
+
+        actual.Should().BeEquivalentTo(
+        [
+            "POST /users",
+            "GET /users/me",
+            "PUT /users/me",
+            "PUT /users/me/password",
+            "POST /tokens",
+            "GET /wallet",
+            "POST /wallet/deposits",
+            "GET /fixtures",
+            "POST /bets",
+            "GET /bets",
+            "GET /bets/{id}",
+        ]);
+    }
+
+    [Fact]
+    public async Task ShouldDescribeBettingMarketAsTextChoices()
+    {
+        using JsonDocument document = JsonDocument.Parse(
+            await _httpClient.GetStringAsync("/swagger/v1/swagger.json"));
+
+        JsonElement schema = document.RootElement
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("BettingMarket");
+
+        schema.GetProperty("type").GetString().Should().Be("string");
+        schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString())
+            .Should().Equal("HomeWin", "Draw", "AwayWin");
     }
 }

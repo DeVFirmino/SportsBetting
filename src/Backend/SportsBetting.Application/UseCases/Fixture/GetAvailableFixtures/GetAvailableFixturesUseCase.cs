@@ -14,7 +14,7 @@ public sealed class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
 
     public async Task<List<FixtureResponse>> Execute(CancellationToken cancellationToken)
     {
-        var fixtures = await _footballApiService.GetUpcomingFixturesAsync(cancellationToken);
+        var fixtures = await _footballApiService.GetFixturesAsync(cancellationToken);
 
         var response = fixtures.Select(f => new FixtureResponse
         {

@@ -25,7 +25,7 @@ public sealed class RegisterUserUseCaseTests
     }
 
     [Fact]
-    public async Task ShouldPersistTheUserAndItsWalletWhenRegistrationSucceeds()
+    public async Task ShouldPersistUserAndWalletWhenRegistrationSucceeds()
     {
         string email = $"{Guid.NewGuid():N}@example.com";
 
