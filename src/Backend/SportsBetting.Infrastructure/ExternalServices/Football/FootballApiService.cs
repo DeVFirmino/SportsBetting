@@ -68,9 +68,6 @@ public sealed class FootballApiService : IFootballApiService
                     HomeTeam = fixture.Teams.Home.Name,
                     AwayTeam = fixture.Teams.Away.Name,
                     Date = fixture.Fixture.Date,
-                    HomeWinOdds = 2.10m,
-                    DrawOdds = 3.40m,
-                    AwayWinOdds = 3.80m,
                 })
                 .ToList() ?? [];
 

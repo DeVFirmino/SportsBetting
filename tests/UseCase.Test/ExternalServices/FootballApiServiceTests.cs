@@ -36,9 +36,6 @@ public class FootballApiServiceTests
             FixtureId = 321,
             HomeTeam = "Home FC",
             AwayTeam = "Away FC",
-            HomeWinOdds = (decimal?)2.10m,
-            DrawOdds = (decimal?)3.40m,
-            AwayWinOdds = (decimal?)3.80m
         });
         capturedRequest!.RequestUri!.PathAndQuery.Should().Be("/fixtures?season=2024&league=140");
         capturedRequest.Headers.GetValues("x-apisports-key").Should().ContainSingle().Which.Should().Be("test-api-key");
