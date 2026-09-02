@@ -88,9 +88,6 @@ file sealed class StaticFootballApiService : IFootballApiService
                 FixtureId = FixtureId,
                 HomeTeam = "Home FC",
                 AwayTeam = "Away FC",
-                HomeWinOdds = 2.1m,
-                DrawOdds = 3.4m,
-                AwayWinOdds = 3.8m,
             },
         ]);
     }

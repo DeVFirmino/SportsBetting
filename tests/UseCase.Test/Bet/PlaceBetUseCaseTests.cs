@@ -1,4 +1,5 @@
 using FluentAssertions;
+using SportsBetting.Infrastructure.Services.Odds;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Communication.Responses;
@@ -22,9 +23,9 @@ public sealed class PlaceBetUseCaseTests
 {
     public static TheoryData<ApiBettingMarket, BettingMarket, decimal> SupportedMarkets => new()
     {
-        { ApiBettingMarket.HomeWin, BettingMarket.HomeWin, 2.5m },
-        { ApiBettingMarket.Draw, BettingMarket.Draw, 3.2m },
-        { ApiBettingMarket.AwayWin, BettingMarket.AwayWin, 3.8m },
+        { ApiBettingMarket.HomeWin, BettingMarket.HomeWin, 2.10m },
+        { ApiBettingMarket.Draw, BettingMarket.Draw, 3.40m },
+        { ApiBettingMarket.AwayWin, BettingMarket.AwayWin, 3.80m },
     };
 
     [Theory]
@@ -45,21 +46,6 @@ public sealed class PlaceBetUseCaseTests
         context.Wallet!.Balance.Should().Be(80m);
         context.Bets.Persisted.Should().NotBeNull();
         context.UnitOfWork.CommitCount.Should().Be(1);
-    }
-
-    [Fact]
-    public async Task ShouldUseEvenOddsWhenFixtureOddsAreMissing()
-    {
-        TestContext context = CreateContext(fixture: new FixtureData
-        {
-            FixtureId = 10,
-            HomeTeam = "Home FC",
-            AwayTeam = "Away FC",
-        });
-
-        BetResponse response = await context.Execute(ValidRequest(), "key-1");
-
-        response.Odds.Should().Be(1m);
     }
 
     [Fact]
@@ -192,7 +178,8 @@ public sealed class PlaceBetUseCaseTests
             bets,
             new WalletRepositoryStub(wallet),
             unitOfWork,
-            footballApi);
+            footballApi,
+            new FixedOddsService());
 
         return new TestContext(useCase, wallet, bets, unitOfWork);
     }
@@ -209,9 +196,6 @@ public sealed class PlaceBetUseCaseTests
         FixtureId = 10,
         HomeTeam = "Home FC",
         AwayTeam = "Away FC",
-        HomeWinOdds = 2.5m,
-        DrawOdds = 3.2m,
-        AwayWinOdds = 3.8m,
     };
 
     private static BetEntity StoredBet(decimal stake)

@@ -10,9 +10,9 @@ public sealed class FixtureResponse
     
     public DateTime Date { get; set; }
     
-    public decimal? HomeWinOdds { get; set; }
+    public decimal HomeWinOdds { get; set; }
     
-    public decimal? DrawOdds { get; set; }
+    public decimal DrawOdds { get; set; }
     
-    public decimal? AwayWinOdds { get; set; }
+    public decimal AwayWinOdds { get; set; }
 }

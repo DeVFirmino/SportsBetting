@@ -118,8 +118,10 @@ betting flow, not a live schedule. The integration has a configured timeout and 
 short in-memory cache. Upstream failures are exposed
 as `502` or `503` Problem Details responses.
 
-Betting odds are fixed study values owned by this application. A client chooses
-the market, but it cannot submit or override the odds.
+Betting odds are fixed study values owned by this application. `IOddsService`
+is the single place that prices a market; its `FixedOddsService` implementation
+offers every fixture at the same odds. A client chooses the market, but it
+cannot submit or override the odds.
 
 ## Project structure
 
