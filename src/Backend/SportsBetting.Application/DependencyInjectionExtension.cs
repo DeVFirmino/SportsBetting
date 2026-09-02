@@ -40,8 +40,8 @@ public static class DependencyInjectionExtension
         services.AddScoped<IPlaceBetUseCase, PlaceBetUseCase>();
         services.AddScoped<IGetAvailableFixtureUseCase, GetAvailableFixturesUseCase>();
         services.AddScoped<IChangePasswordUseCase, ChangePasswordUseCase>();
-        services.AddScoped<IGetUserBetsUseCase,  GetUserBetsUseCase>();
-        services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>(); 
+        services.AddScoped<IGetUserBetsUseCase, GetUserBetsUseCase>();
+        services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>();
     }
 
     private static void AddAutoMapper(IServiceCollection services)

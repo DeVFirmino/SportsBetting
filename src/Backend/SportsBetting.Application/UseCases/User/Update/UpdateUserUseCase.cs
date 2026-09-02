@@ -13,10 +13,10 @@ public sealed class UpdateUserUseCase : IUpdateUserUseCase
     private readonly IUserUpdateOnlyRepository _repository;
     private readonly IUserReadOnlyRepository _userReadOnlyRepository;
     private readonly IUnitOfWork _unitOfWork;
-    
-    public UpdateUserUseCase(ILoggedUser loggerUser, 
-        IUserUpdateOnlyRepository repository, 
-        IUserReadOnlyRepository userReadOnlyRepository, 
+
+    public UpdateUserUseCase(ILoggedUser loggerUser,
+        IUserUpdateOnlyRepository repository,
+        IUserReadOnlyRepository userReadOnlyRepository,
         IUnitOfWork unitOfWork)
     {
         _loggedUser = loggerUser;
@@ -31,16 +31,16 @@ public sealed class UpdateUserUseCase : IUpdateUserUseCase
 
         await Validate(request, loggedUser.Email, cancellationToken);
 
-    var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
+        var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
 
-    user.Name = request.Name;
-    user.Email = request.Email;
+        user.Name = request.Name;
+        user.Email = request.Email;
 
-    _repository.Update(user);
+        _repository.Update(user);
 
-    await _unitOfWork.CommitAsync(cancellationToken);
-}
-    
+        await _unitOfWork.CommitAsync(cancellationToken);
+    }
+
     private async Task Validate(UpdateUserRequest request, string currentEmail, CancellationToken cancellationToken)
     {
         var validator = new UpdateUserValidator();
@@ -60,7 +60,7 @@ public sealed class UpdateUserUseCase : IUpdateUserUseCase
 
             throw new ErrorOnValidationException(errorMessages);
         }
-    
-}
+
+    }
 
 }

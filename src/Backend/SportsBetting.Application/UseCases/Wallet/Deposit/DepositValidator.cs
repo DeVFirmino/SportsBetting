@@ -4,12 +4,12 @@ using SportsBetting.Exceptions;
 
 namespace SportsBetting.Application.UseCases.Wallet.Deposit;
 
-public class DepositValidator : AbstractValidator<DepositRequest>
+public sealed class DepositValidator : AbstractValidator<DepositRequest>
 {
     public DepositValidator()
     {
-        RuleFor(x => x.Amount).GreaterThan(0).WithMessage(ResourcesMessagesException.AMOUNT_INVALID);
+        RuleFor(request => request.Amount)
+            .GreaterThan(0)
+            .WithMessage(ResourcesMessagesException.AMOUNT_INVALID);
     }
-    
-     
 }

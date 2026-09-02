@@ -5,14 +5,14 @@ using Microsoft.IdentityModel.Tokens;
 using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Infrastructure.Options;
 
-namespace SportsBetting.Infrastructure.Security.Tokens.Access.Generator;    
+namespace SportsBetting.Infrastructure.Security.Tokens.Access.Generator;
 
 public sealed class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
 {
     private readonly JwtOptions _options;
 
     public JwtTokenGenerator(IOptions<JwtOptions> options)
-    { 
+    {
         _options = options.Value;
     }
 
@@ -22,7 +22,7 @@ public sealed class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
         [
             new Claim(JwtRegisteredClaimNames.Sub, userIdentifier.ToString()),
         ];
-        
+
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
@@ -35,11 +35,11 @@ public sealed class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
         };
 
         var tokenHandler = new JwtSecurityTokenHandler();
-        
+
         var securityToken = tokenHandler.CreateToken(tokenDescriptor);
-        
+
         return tokenHandler.WriteToken(securityToken);
     }
 
-      
+
 }
