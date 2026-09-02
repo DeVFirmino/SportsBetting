@@ -44,9 +44,9 @@ public sealed class FootballApiService : IFootballApiService
         {
             response = await _httpClient.SendAsync(request, cancellationToken);
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
-            throw new UpstreamServiceException(503, exception.Message);
+            throw new UpstreamServiceException(503, "API-Football could not be reached.");
         }
         catch (TaskCanceledException) when (cancellationToken.IsCancellationRequested is false)
         {

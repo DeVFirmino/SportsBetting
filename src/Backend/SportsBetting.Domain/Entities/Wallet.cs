@@ -16,7 +16,6 @@ public sealed class Wallet : EntityBase
             throw new ArgumentOutOfRangeException(nameof(amount));
 
         Balance += amount;
-
     }
 
     public void Debit(decimal stake)

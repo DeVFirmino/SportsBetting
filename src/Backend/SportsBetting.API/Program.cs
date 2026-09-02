@@ -104,17 +104,6 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAngular", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
-});
-
 WebApplication app = builder.Build();
 
 app.UseSwagger();
@@ -125,7 +114,6 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAngular");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -10,7 +10,7 @@ public class UpdateUserValidator : AbstractValidator<UpdateUserRequest>
     {
         RuleFor(request => request.Name).NotEmpty().WithMessage(ResourcesMessagesException.NAME_EMPTY);
         RuleFor(request => request.Email).NotEmpty().WithMessage(ResourcesMessagesException.EMAIL_EMPTY);
-         
-        
+
+
     }
 }
