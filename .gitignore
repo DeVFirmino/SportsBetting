@@ -212,3 +212,6 @@ appsettings.*.json
 # Local Docker Compose secrets
 .env
 !.env.example
+
+# Local test-generation tooling residue
+.testagent/

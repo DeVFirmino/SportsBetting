@@ -1,5 +1,3 @@
-using SportsBetting.Domain.Enums;
-
 namespace SportsBetting.Domain.Entities;
 
 public sealed class Wallet : EntityBase
@@ -12,48 +10,23 @@ public sealed class Wallet : EntityBase
 
     public byte[] RowVersion { get; set; } = [];
 
-    /// <summary>
-    /// Credits the wallet and returns the ledger entry that records the move. The entry points at
-    /// this wallet through the navigation property, so a wallet created in the same commit still
-    /// gets a correct foreign key.
-    /// </summary>
-    public WalletTransaction Deposit(decimal amount, string? clientRequestId)
+    public void Deposit(decimal amount)
     {
         if (amount <= 0)
             throw new ArgumentOutOfRangeException(nameof(amount));
 
         Balance += amount;
 
-        return new WalletTransaction
-        {
-            Wallet = this,
-            Type = WalletTransactionType.Deposit,
-            Amount = amount,
-            BalanceAfter = Balance,
-            OccurredAt = DateTime.UtcNow,
-            ClientRequestId = clientRequestId,
-        };
     }
 
-    public WalletTransaction Debit(decimal amount, Bet bet)
+    public void Debit(decimal stake)
     {
-        if (amount <= 0)
-            throw new ArgumentOutOfRangeException(nameof(amount));
+        if (stake <= 0)
+            throw new ArgumentOutOfRangeException(nameof(stake));
 
-        if (Balance < amount)
+        if (Balance < stake)
             throw new InvalidOperationException("Insufficient balance.");
 
-        Balance -= amount;
-
-        return new WalletTransaction
-        {
-            Wallet = this,
-            Bet = bet,
-            Type = WalletTransactionType.BetDebit,
-            Amount = amount,
-            BalanceAfter = Balance,
-            OccurredAt = DateTime.UtcNow,
-            ClientRequestId = bet.ClientRequestId,
-        };
+        Balance -= stake;
     }
 }

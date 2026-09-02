@@ -18,65 +18,65 @@ public class RegisterUserCaseTest
     public async Task ShouldRegisterUserWhenRequestIsValid()
     {
         var request = RegisterUserRequestBuilder.Build();
-        
+
         var userCase = CreateUseCase();
- 
-       var result = await userCase.Execute(request, CancellationToken.None);
-       
-       result.Should().NotBeNull();
-       result.Tokens.Should().NotBeNull();
-       result.Tokens.AccessToken.Should().NotBeNullOrEmpty();
-       result.Name.Should().Be(request.Name);
-        
+
+        var result = await userCase.Execute(request, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Tokens.Should().NotBeNull();
+        result.Tokens.AccessToken.Should().NotBeNullOrEmpty();
+        result.Name.Should().Be(request.Name);
+
 
     }
-    
+
     [Fact]
     public async Task ShouldReturnErrorWhenEmailAlreadyExists()
     {
         var request = RegisterUserRequestBuilder.Build();
-        
+
         var userCase = CreateUseCase(request.Email);
-        
+
         Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
         (await act.Should().ThrowAsync<ErrorOnValidationException>())
-            .Where(e => e.ErrorMessage.Count == 1 && e.ErrorMessage.Contains(ResourcesMessagesException.EMAIL_INVALID));
+            .Where(e => e.Errors.Count == 1 && e.Errors.Contains(ResourcesMessagesException.EMAIL_ALREADY_REGISTERED));
 
 
     }
-    
+
     [Fact]
     public async Task ShouldReturnErrorWhenNameIsEmpty()
     {
         var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
-        
+
         var userCase = CreateUseCase();
-        
+
         Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
         (await act.Should().ThrowAsync<ErrorOnValidationException>())
-            .Where(e => e.ErrorMessage.Count == 1 && e.ErrorMessage.Contains(ResourcesMessagesException.NAME_EMPTY));
+            .Where(e => e.Errors.Count == 1 && e.Errors.Contains(ResourcesMessagesException.NAME_EMPTY));
 
 
     }
 
     private RegisterUserUseCase CreateUseCase(string? email = null)
     {
-          
+
 
         var mapper = MapperBuilder.Build();
         var passwordHasher = PasswordHasherBuilder.Build();
         var writeRepository = UserWriteOnlyRepositoryBuilder.Build();
         var unitOfWork = UnitOfWorkBuilder.Build();
-        var readRepositoryBuilder = new UserReadOnlyRepositoryBuilder(); 
+        var readRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
         var walletWriteOnlyRepository = WalletWriteOnlyRepositoryBuilder.Build();
 
         if (string.IsNullOrEmpty(email) == false)
             readRepositoryBuilder.ExistsActiveUserWithEmailAsync(email);
-            
+
         return new RegisterUserUseCase(writeRepository, readRepositoryBuilder.Build(), mapper, passwordHasher, unitOfWork, accessTokenGenerator, walletWriteOnlyRepository);
 
     }

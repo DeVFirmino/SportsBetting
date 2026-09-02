@@ -33,6 +33,7 @@ public class OptionsValidationTests
         jwt.ExpirationTimeMinutes.Should().Be(60);
         football.BaseUrl.Should().Be("https://football.example");
         football.CacheSeconds.Should().Be(30);
+        football.TimeoutSeconds.Should().Be(10);
     }
 
     [Theory]
@@ -43,7 +44,9 @@ public class OptionsValidationTests
     [InlineData("Settings:FootballApi:BaseUrl", "not-a-url")]
     [InlineData("Settings:FootballApi:ApiKey", "")]
     [InlineData("Settings:FootballApi:CacheSeconds", "0")]
-    [InlineData("Settings:FootballApi:RetryDelayMilliseconds", "0")]
+    [InlineData("Settings:FootballApi:TimeoutSeconds", "0")]
+    [InlineData("Settings:FootballApi:Season", "1999")]
+    [InlineData("Settings:FootballApi:LeagueId", "0")]
     public void ShouldFailOnStartWhenASettingIsInvalid(string key, string value)
     {
         // Arrange
@@ -101,6 +104,6 @@ public class OptionsValidationTests
         ["Settings:FootballApi:BaseUrl"] = "https://football.example",
         ["Settings:FootballApi:ApiKey"] = "test-api-key",
         ["Settings:FootballApi:CacheSeconds"] = "30",
-        ["Settings:FootballApi:RetryDelayMilliseconds"] = "500",
+        ["Settings:FootballApi:TimeoutSeconds"] = "10",
     };
 }
