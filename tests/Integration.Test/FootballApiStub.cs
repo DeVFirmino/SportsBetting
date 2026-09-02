@@ -31,9 +31,6 @@ public sealed class FootballApiStub : IFootballApiService
                 HomeTeam = "Home FC",
                 AwayTeam = "Away FC",
                 Date = new DateTime(2026, 9, 1, 19, 45, 0, DateTimeKind.Utc),
-                HomeWinOdds = 2.5m,
-                DrawOdds = 3.4m,
-                AwayWinOdds = 3.8m,
             },
         ];
     }

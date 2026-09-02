@@ -17,6 +17,8 @@ using SportsBetting.Infrastructure.Security.Cryptography;
 using SportsBetting.Infrastructure.Security.Tokens.Access;
 using SportsBetting.Infrastructure.Security.Tokens.Access.Generator;
 using SportsBetting.Infrastructure.Services.LoggedUser;
+using SportsBetting.Infrastructure.Services.Odds;
+using SportsBetting.Domain.Services.Odds;
 using SportsBetting.Domain.Services.ExternalApis;
 using SportsBetting.Infrastructure.Options;
 
@@ -31,6 +33,7 @@ public static class DependencyInjectionExtensions
         AddRepositories(services);
         AddExternalServices(services);
         AddLoggedUser(services);
+        AddOdds(services);
         AddTokens(services);
 
         if (configuration.IsUnitTestEnvironment())
@@ -71,6 +74,8 @@ public static class DependencyInjectionExtensions
     }
 
     private static void AddLoggedUser(IServiceCollection services) => services.AddScoped<ILoggedUser, LoggedUser>();
+
+    private static void AddOdds(IServiceCollection services) => services.AddSingleton<IOddsService, FixedOddsService>();
 
     private static void AddPasswordHashing(IServiceCollection services)
         => services.AddScoped<IPasswordHasher, IdentityPasswordHasher>();

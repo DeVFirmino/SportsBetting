@@ -8,6 +8,7 @@ using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Services.ExternalApis;
 using SportsBetting.Domain.Services.LoggedUser;
+using SportsBetting.Domain.Services.Odds;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 using ApiBettingMarket = SportsBetting.Communication.Enums.BettingMarket;
@@ -23,6 +24,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
     private readonly IWalletUpdateOnlyRepository _walletRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFootballApiService _footballApiService;
+    private readonly IOddsService _oddsService;
 
     public PlaceBetUseCase(
         ILoggedUser loggedUser,
@@ -31,7 +33,8 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         IBetWriteOnlyRepository betWriteOnlyRepository,
         IWalletUpdateOnlyRepository walletRepository,
         IUnitOfWork unitOfWork,
-        IFootballApiService footballApiService)
+        IFootballApiService footballApiService,
+        IOddsService oddsService)
     {
         _loggedUser = loggedUser;
         _mapper = mapper;
@@ -40,6 +43,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         _walletRepository = walletRepository;
         _unitOfWork = unitOfWork;
         _footballApiService = footballApiService;
+        _oddsService = oddsService;
     }
 
     public async Task<BetResponse> Execute(
@@ -66,7 +70,7 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         if (wallet.Balance < request.Stake)
             throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
 
-        decimal odds = GetOdds(market, fixture);
+        decimal odds = _oddsService.GetOdds(fixture.FixtureId).For(market);
         Domain.Entities.Bet bet = Domain.Entities.Bet.Place(
             user.Id,
             request.FixtureId,
@@ -140,17 +144,6 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
             ApiBettingMarket.HomeWin => BettingMarket.HomeWin,
             ApiBettingMarket.Draw => BettingMarket.Draw,
             ApiBettingMarket.AwayWin => BettingMarket.AwayWin,
-            _ => throw new ErrorOnValidationException([ResourcesMessagesException.BETTING_MARKET_REQUIRED]),
-        };
-    }
-
-    private static decimal GetOdds(BettingMarket market, FixtureData fixture)
-    {
-        return market switch
-        {
-            BettingMarket.HomeWin => fixture.HomeWinOdds ?? 1m,
-            BettingMarket.Draw => fixture.DrawOdds ?? 1m,
-            BettingMarket.AwayWin => fixture.AwayWinOdds ?? 1m,
             _ => throw new ErrorOnValidationException([ResourcesMessagesException.BETTING_MARKET_REQUIRED]),
         };
     }
