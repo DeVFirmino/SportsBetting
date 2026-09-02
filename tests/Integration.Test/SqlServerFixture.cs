@@ -73,6 +73,7 @@ public sealed class SqlServerFixture : IAsyncLifetime
                 ["Settings:FootballApi:BaseUrl"] = "https://football.example",
                 ["Settings:FootballApi:ApiKey"] = "test-api-key",
                 ["Settings:FootballApi:CacheSeconds"] = "30",
+                ["Settings:FootballApi:TimeoutSeconds"] = "10",
             })
             .Build();
 
@@ -102,7 +103,7 @@ public sealed class SqlServerFixture : IAsyncLifetime
     /// Creates a user, optionally with a funded wallet. Every test seeds its own so they can run
     /// in any order against the single container without seeing each other's rows.
     /// </summary>
-    public async Task<(User User, long WalletId)> SeedAsync(decimal? balance)
+    public async Task<(User User, long WalletId)> SeedAsync(decimal balance)
     {
         await using SportsBettingDbContext context = NewContext();
 
@@ -117,10 +118,7 @@ public sealed class SqlServerFixture : IAsyncLifetime
         await context.Users.AddAsync(user);
         await context.SaveChangesAsync();
 
-        if (balance is null)
-            return (user, 0);
-
-        Wallet wallet = new() { UserId = user.Id, Balance = balance.Value };
+        Wallet wallet = new() { UserId = user.Id, Balance = balance };
 
         await context.Wallets.AddAsync(wallet);
         await context.SaveChangesAsync();

@@ -24,8 +24,8 @@ public class AuthenticationTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Theory]
-    [InlineData("/bet/get-bets")]
-    [InlineData("/user")]
+    [InlineData("/bets")]
+    [InlineData("/users/me")]
     [InlineData("/wallet")]
     public async Task ShouldReturnUnauthorizedWhenNoTokenIsSupplied(string path)
     {
@@ -39,13 +39,13 @@ public class AuthenticationTests : IClassFixture<CustomWebApplicationFactory>
     {
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "not-a-token");
 
-        var response = await _httpClient.GetAsync("/user");
+        var response = await _httpClient.GetAsync("/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task ShouldAcceptTheTokenIssuedByLoginWhenCallingAProtectedEndpoint()
+    public async Task ShouldAcceptTokenIssuedByTokenEndpointWhenCallingProtectedEndpoint()
     {
         var login = new LoginRequest
         {
@@ -53,7 +53,7 @@ public class AuthenticationTests : IClassFixture<CustomWebApplicationFactory>
             Password = _factory.GetPassword(),
         };
 
-        var loginResponse = await _httpClient.PostAsJsonAsync("login", login);
+        var loginResponse = await _httpClient.PostAsJsonAsync("/tokens", login);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var document = JsonDocument.Parse(await loginResponse.Content.ReadAsStringAsync());
@@ -61,7 +61,7 @@ public class AuthenticationTests : IClassFixture<CustomWebApplicationFactory>
 
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await _httpClient.GetAsync("/user");
+        var response = await _httpClient.GetAsync("/users/me");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }

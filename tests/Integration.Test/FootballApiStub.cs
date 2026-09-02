@@ -18,7 +18,7 @@ public sealed class FootballApiStub : IFootballApiService
         _whileCalling = whileCalling;
     }
 
-    public async Task<List<FixtureData>> GetUpcomingFixturesAsync(CancellationToken cancellationToken)
+    public async Task<List<FixtureData>> GetFixturesAsync(CancellationToken cancellationToken)
     {
         if (_whileCalling is not null)
             await _whileCalling();

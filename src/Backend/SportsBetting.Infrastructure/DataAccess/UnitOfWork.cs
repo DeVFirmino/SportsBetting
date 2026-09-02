@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -21,11 +22,22 @@ public sealed class UnitOfWork : IUnitOfWork
         }
         catch (DbUpdateConcurrencyException)
         {
-            // The wallet's rowversion moved between the read and this write, so another request
-            // committed first. Translated here so callers deal with a domain exception instead
-            // of an EF one — without it the wallet's concurrency token had no effect on the
-            // response, and a lost update surfaced as a generic 500.
             throw new ConcurrencyException();
         }
+        catch (DbUpdateException exception) when (IsIdempotencyConflict(exception))
+        {
+            throw new IdempotencyConflictException();
+        }
+    }
+
+    private static bool IsIdempotencyConflict(DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException
+        {
+            Number: 2601 or 2627,
+        } sqlException
+            && sqlException.Message.Contains(
+                SportsBettingDbContext.BetIdempotencyIndexName,
+                StringComparison.Ordinal);
     }
 }

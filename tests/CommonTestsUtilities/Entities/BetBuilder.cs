@@ -12,11 +12,11 @@ public class BetBuilder
             .RuleFor(b => b.Id, f => f.Random.Long(1, 1000))
             .RuleFor(b => b.UserId, userId)
             .RuleFor(b => b.FixtureId, f => f.Random.Int(100, 999))
-            .RuleFor(b => b.Amount, f => f.Random.Decimal(10, 100))
+            .RuleFor(b => b.Stake, f => f.Random.Decimal(10, 100))
             .RuleFor(b => b.Odds, f => f.Random.Decimal(1.5m, 5.0m))
-            .RuleFor(b => b.PotentialWinning, (f, b) => b.Amount * b.Odds)
-            .RuleFor(b => b.BetType, f => BetType.HomeWin)
-            .RuleFor(b => b.Status, f => BetStatus.Pending)
+            .RuleFor(b => b.PotentialReturn, (_, b) => b.Stake * b.Odds)
+            .RuleFor(b => b.Market, _ => BettingMarket.HomeWin)
+            .RuleFor(b => b.IdempotencyKey, f => f.Random.Guid().ToString())
             .RuleFor(b => b.PlacedAt, f => f.Date.Recent())
             .RuleFor(b => b.Active, true);
 

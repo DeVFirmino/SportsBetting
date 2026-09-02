@@ -16,10 +16,14 @@ public sealed class FootballApiOptions
     [Range(1, int.MaxValue)]
     public int CacheSeconds { get; set; } = 30;
 
-    /// <summary>
-    /// Base backoff between retries. Exposed because the right pause depends on the upstream plan
-    /// this deployment is on, and a slow environment should not have to be rebuilt to widen it.
-    /// </summary>
-    [Range(1, 60_000)]
-    public int RetryDelayMilliseconds { get; set; } = 500;
+    // API-Football answers a fixed league season. The study reads one, so the fixture list is
+    // stable for demos and never depends on the current date.
+    [Range(2000, 2100)]
+    public int Season { get; set; } = 2024;
+
+    [Range(1, int.MaxValue)]
+    public int LeagueId { get; set; } = 140;
+
+    [Range(1, 60)]
+    public int TimeoutSeconds { get; set; } = 10;
 }

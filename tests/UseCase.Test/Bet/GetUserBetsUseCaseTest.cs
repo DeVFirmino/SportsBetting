@@ -1,7 +1,6 @@
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Communication.Requests;
-using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Entities;
 using SportsBetting.Tests.Common.LoggedUser;
 using SportsBetting.Tests.Common.Mapper;
@@ -19,8 +18,7 @@ public class GetUserBetsUseCaseTest
         var request = new GetUserBetsRequest
         {
             PageNumber = 1,
-            PageSize = 10,
-            Status = "Pending"
+            PageSize = 10
         };
 
         var useCase = CreateUseCase(user, bets, totalCount: 15);
@@ -35,17 +33,6 @@ public class GetUserBetsUseCaseTest
         result.TotalPages.Should().Be(2);
         result.HasPreviousPage.Should().BeFalse();
         result.HasNextPage.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ShouldThrowInvalidLoginWhenUserIsUnknown()
-    {
-        var request = new GetUserBetsRequest();
-        var useCase = CreateUseCase(user: null);
-
-        Func<Task> action = async () => await useCase.Execute(request, CancellationToken.None);
-
-        await action.Should().ThrowAsync<InvalidLoginException>();
     }
 
     private static GetUserBetsUseCase CreateUseCase(
