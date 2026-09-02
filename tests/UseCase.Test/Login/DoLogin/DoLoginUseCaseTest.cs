@@ -72,7 +72,7 @@ public class DoLoginUseCaseTest
         passwordHasher ??= PasswordHasherBuilder.Build();
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
         var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
-        if(user is not null)
+        if (user is not null)
         {
             userReadOnlyRepositoryBuilder.GetByEmailAsync(user);
         }

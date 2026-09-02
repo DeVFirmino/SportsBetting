@@ -21,18 +21,17 @@ namespace UseCase.Test.Bet;
 
 public sealed class PlaceBetUseCaseTests
 {
-    public static TheoryData<ApiBettingMarket, BettingMarket, decimal> SupportedMarkets => new()
+    public static TheoryData<ApiBettingMarket, decimal> SupportedMarkets => new()
     {
-        { ApiBettingMarket.HomeWin, BettingMarket.HomeWin, 2.10m },
-        { ApiBettingMarket.Draw, BettingMarket.Draw, 3.40m },
-        { ApiBettingMarket.AwayWin, BettingMarket.AwayWin, 3.80m },
+        { ApiBettingMarket.HomeWin, 2.10m },
+        { ApiBettingMarket.Draw, 3.40m },
+        { ApiBettingMarket.AwayWin, 3.80m },
     };
 
     [Theory]
     [MemberData(nameof(SupportedMarkets))]
     public async Task ShouldPersistBetAndDebitWalletWhenRequestIsValid(
         ApiBettingMarket requestedMarket,
-        BettingMarket expectedMarket,
         decimal expectedOdds)
     {
         TestContext context = CreateContext();
@@ -40,7 +39,7 @@ public sealed class PlaceBetUseCaseTests
 
         BetResponse response = await context.Execute(request, "key-1");
 
-        response.Market.Should().Be(expectedMarket.ToString());
+        response.Market.Should().Be(requestedMarket);
         response.Odds.Should().Be(expectedOdds);
         response.PotentialReturn.Should().Be(request.Stake * expectedOdds);
         context.Wallet!.Balance.Should().Be(80m);

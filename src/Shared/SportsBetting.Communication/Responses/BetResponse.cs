@@ -1,3 +1,5 @@
+using SportsBetting.Communication.Enums;
+
 namespace SportsBetting.Communication.Responses;
 
 public sealed class BetResponse
@@ -12,6 +14,6 @@ public sealed class BetResponse
 
     public decimal PotentialReturn { get; set; }
     public string EventName { get; set; } = string.Empty;
-    public string Market { get; set; } = string.Empty;
+    public BettingMarket Market { get; set; }
     public DateTime PlacedAt { get; set; }
 }

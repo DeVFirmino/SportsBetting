@@ -10,7 +10,6 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.API.Controllers;
 
-
 [ApiController]
 [Route("users")]
 public sealed class UserController : ControllerBase
@@ -30,16 +29,14 @@ public sealed class UserController : ControllerBase
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserProfileResponse), StatusCodes.Status200OK)]
     [Authorize]
-
     public async Task<IActionResult> GetUserProfile(
         [FromServices] IGetUserProfileUseCase useCase,
         CancellationToken cancellationToken)
     {
-        var result = await useCase.Execute(cancellationToken);
+        UserProfileResponse result = await useCase.Execute(cancellationToken);
 
         return Ok(result);
     }
-
 
     [HttpPut("me")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

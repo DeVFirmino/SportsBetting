@@ -13,13 +13,13 @@ public class RegisterUserValidatorTest
         var validator = new RegisterUserValidator();
 
         var request = RegisterUserRequestBuilder.Build();
-        
-        
+
+
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeTrue();
-    } 
-    
+    }
+
     [Fact]
     public void ShouldReturnErrorWhenNameIsEmpty()
     {
@@ -27,31 +27,31 @@ public class RegisterUserValidatorTest
 
         var request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
-        
+
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle().And
             .Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.NAME_EMPTY));
-    } 
-    
-    
+    }
+
+
     [Fact]
     public void ShouldReturnErrorWhenEmailIsEmpty()
-        {
+    {
         var validator = new RegisterUserValidator();
 
         var request = RegisterUserRequestBuilder.Build();
         request.Email = string.Empty;
-        
+
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
-        
+
         result.Errors.Should().ContainSingle().And
             .Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.EMAIL_EMPTY));
-    } 
-    
+    }
+
     [Fact]
     public void ShouldReturnErrorWhenEmailIsInvalid()
     {
@@ -59,15 +59,15 @@ public class RegisterUserValidatorTest
 
         var request = RegisterUserRequestBuilder.Build();
         request.Email = "email.com";
-        
+
         var result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
-        
+
         result.Errors.Should().ContainSingle().And
             .Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.EMAIL_INVALID));
-    } 
-    
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
@@ -77,16 +77,16 @@ public class RegisterUserValidatorTest
     public void ShouldReturnErrorWhenPasswordIsInvalid(int passwordLength)
     {
         var validator = new RegisterUserValidator();
-        
+
         var request = RegisterUserRequestBuilder.Build(passwordLength);
-        
+
         var result = validator.Validate(request);
-        
+
         result.IsValid.Should().BeFalse();
-        
+
         result.Errors.Should().ContainSingle()
             .And.Contain(e => e.ErrorMessage.Equals(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID));
     }
-    
-    
+
+
 }
