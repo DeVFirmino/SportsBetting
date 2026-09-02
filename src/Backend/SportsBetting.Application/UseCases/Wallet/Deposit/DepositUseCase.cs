@@ -2,79 +2,49 @@ using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Services.LoggedUser;
+using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.Application.UseCases.Wallet.Deposit;
 
-
-
 public sealed class DepositUseCase : IDepositUseCase
 {
-    
-    private readonly IWalletWriteOnlyRepository _walletWriteOnlyRepository;
-    private readonly IWalletUpdateOnlyRepository _walletUpdateOnlyRepository;
-    private readonly IWalletReadOnlyRepository _walletReadOnlyRepository;
-    private readonly ILoggedUser _loggedUser; 
+    private readonly ILoggedUser _loggedUser;
+    private readonly IWalletUpdateOnlyRepository _walletRepository;
     private readonly IUnitOfWork _unitOfWork;
-    
-    
+
     public DepositUseCase(
-        IWalletWriteOnlyRepository walletWriteOnlyRepository,
-        ILoggedUser loggedUser, 
-        IWalletUpdateOnlyRepository walletUpdateOnlyRepository, 
-        IWalletReadOnlyRepository walletReadOnlyRepository,
+        ILoggedUser loggedUser,
+        IWalletUpdateOnlyRepository walletRepository,
         IUnitOfWork unitOfWork)
     {
-        _walletWriteOnlyRepository = walletWriteOnlyRepository;
         _loggedUser = loggedUser;
-        _walletUpdateOnlyRepository = walletUpdateOnlyRepository;
-        _walletReadOnlyRepository = walletReadOnlyRepository;
+        _walletRepository = walletRepository;
         _unitOfWork = unitOfWork;
     }
 
-
-    
-    
-    
     public async Task Execute(DepositRequest request, CancellationToken cancellationToken)
     {
-        await Validate(request);
-            
-       var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
-       
-       var wallet = await _walletReadOnlyRepository.GetByUserIdAsync(loggedUser.Id, cancellationToken);
+        await Validate(request, cancellationToken);
 
-       if (wallet is null)
-       {
-           wallet = new Domain.Entities.Wallet
-           {
-               UserId = loggedUser.Id,
-               Balance = request.Amount
-           };
-           
-           await _walletWriteOnlyRepository.AddAsync(wallet, cancellationToken);
-       }
-       else
-       {
-           var walletToUpdate = await _walletUpdateOnlyRepository.GetByIdAsync(wallet.Id, cancellationToken);
-           walletToUpdate.Balance += request.Amount;
-           
-           _walletUpdateOnlyRepository.Update(walletToUpdate);
-       }
-       
-       await _unitOfWork.CommitAsync(cancellationToken);
+        Domain.Entities.User user = await _loggedUser.GetUserAsync(cancellationToken);
+        Domain.Entities.Wallet? wallet = await _walletRepository.GetByUserIdAsync(
+            user.Id,
+            cancellationToken);
+
+        if (wallet is null)
+            throw new ResourceNotFoundException(ResourcesMessagesException.WALLET_NOT_FOUND);
+
+        wallet.Deposit(request.Amount);
+        await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    private async Task Validate(DepositRequest request)
+    private static async Task Validate(DepositRequest request, CancellationToken cancellationToken)
     {
-        var validator = new DepositValidator();
-        
-        var result = await validator.ValidateAsync(request);
+        DepositValidator validator = new();
+        FluentValidation.Results.ValidationResult result = await validator.ValidateAsync(request, cancellationToken);
 
-        if (!result.IsValid)
-        {
-            var errorMessages = result.Errors.Select(error => error.ErrorMessage).ToList();
-            throw new ErrorOnValidationException(errorMessages);
-        }
+        if (result.IsValid is false)
+            throw new ErrorOnValidationException(result.Errors.Select(error => error.ErrorMessage).ToList());
     }
 }

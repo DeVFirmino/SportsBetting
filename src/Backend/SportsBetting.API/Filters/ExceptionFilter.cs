@@ -1,8 +1,6 @@
-using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using SportsBetting.Exceptions;
-using SportsBetting.Communication.Responses;
 using SportsBetting.Exceptions.ExceptionBase;
 
 namespace SportsBetting.API.Filters;
@@ -18,50 +16,45 @@ public sealed class ExceptionFilter : IExceptionFilter
 
     public void OnException(ExceptionContext context)
     {
-        if (context.Exception is SportsBettingException)
-            HandleProjectException(context);
-        else
-            HandleUnknownException(context);
+        if (context.Exception is SportsBettingException exception)
+        {
+            SetProblem(context, exception.StatusCode, exception.Title, exception.Errors);
+            return;
+        }
+
+        string correlationId = context.HttpContext.TraceIdentifier;
+        _logger.LogError(
+            context.Exception,
+            "Unhandled exception {CorrelationId} occurred on {Path}",
+            correlationId,
+            context.HttpContext.Request.Path);
+
+        SetProblem(
+            context,
+            StatusCodes.Status500InternalServerError,
+            "Unexpected error",
+            [ResourcesMessagesException.UNKNOWN_ERROR],
+            correlationId);
     }
 
-
-    private void HandleProjectException(ExceptionContext context)
+    private static void SetProblem(
+        ExceptionContext context,
+        int statusCode,
+        string title,
+        IReadOnlyList<string> errors,
+        string? correlationId = null)
     {
-        if (context.Exception is InvalidLoginException)
+        ProblemDetails problemDetails = new()
         {
+            Status = statusCode,
+            Title = title,
+            Instance = context.HttpContext.Request.Path,
+        };
+        problemDetails.Extensions["errors"] = errors;
 
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
-            context.Result = new UnauthorizedObjectResult(new ErrorResponse(context.Exception.Message));
-        }
-        
-        else if (context.Exception is ConcurrencyException)
-        {
-            // The request was valid; another write won the race for the wallet. 409 says
-            // "retry", which is what the client should do — a 400 would blame the payload.
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.Conflict;
-            context.Result = new ConflictObjectResult(new ErrorResponse(context.Exception.Message));
-        }
+        if (correlationId is not null)
+            problemDetails.Extensions["correlationId"] = correlationId;
 
-        else if (context.Exception is ErrorOnValidationException exception)
-        {
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Result = new BadRequestObjectResult(new ErrorResponse(exception.ErrorMessage));
-        }
-
-        else
-        {
-            // Without this branch an unmapped project exception left the response empty.
-            context.HttpContext.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Result = new BadRequestObjectResult(new ErrorResponse(context.Exception.Message));
-        }
+        context.Result = new ObjectResult(problemDetails) { StatusCode = statusCode };
     }
-
-    private void HandleUnknownException(ExceptionContext context)
-    {
-        _logger.LogError(context.Exception, "Unhandled exception occurred: {Message}", context.Exception.Message);
-        context.HttpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-        context.Result = new ObjectResult(new ErrorResponse(ResourcesMessagesException.UNKNOWN_ERROR));
-    }
-
-
 }

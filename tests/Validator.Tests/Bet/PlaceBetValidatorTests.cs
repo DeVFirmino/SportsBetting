@@ -1,67 +1,51 @@
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.PlaceBet;
+using SportsBetting.Communication.Enums;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
 
 namespace SportsBetting.Tests.Bet;
 
-public class PlaceBetValidatorTests
+public sealed class PlaceBetValidatorTests
 {
     [Theory]
-    [InlineData("HomeWin")]
-    [InlineData("Draw")]
-    [InlineData("AwayWin")]
-    public void ShouldBeValidWhenBetTypeIsSupported(string betType)
+    [InlineData(BettingMarket.HomeWin)]
+    [InlineData(BettingMarket.Draw)]
+    [InlineData(BettingMarket.AwayWin)]
+    public void ShouldBeValidWhenMarketIsSupported(BettingMarket market)
     {
-        // Arrange
-        var validator = new PlaceBetValidator();
-        var request = ValidRequest();
-        request.BetType = betType;
+        PlaceBetRequest request = ValidRequest();
+        request.Market = market;
 
-        // Act
-        var result = validator.Validate(request);
+        FluentValidation.Results.ValidationResult result = new PlaceBetValidator().Validate(request);
 
-        // Assert
         result.IsValid.Should().BeTrue();
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    [InlineData("DoubleChance")]
-    [InlineData("homewin")]
-    public void ShouldReturnBetTypeRequiredWhenBetTypeIsUnsupported(string? betType)
+    [Fact]
+    public void ShouldReturnMarketRequiredWhenMarketIsUnsupported()
     {
-        // Arrange
-        var validator = new PlaceBetValidator();
-        var request = ValidRequest();
-        request.BetType = betType;
+        PlaceBetRequest request = ValidRequest();
+        request.Market = (BettingMarket)999;
 
-        // Act
-        var result = validator.Validate(request);
+        FluentValidation.Results.ValidationResult result = new PlaceBetValidator().Validate(request);
 
-        // Assert
-        result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(error =>
-            error.ErrorMessage == ResourcesMessagesException.BET_TYPE_REQUIRED);
+            error.ErrorMessage == ResourcesMessagesException.BETTING_MARKET_REQUIRED);
     }
 
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void ShouldReturnAmountErrorWhenAmountIsNotPositive(decimal amount)
+    public void ShouldReturnStakeErrorWhenStakeIsNotPositive(decimal stake)
     {
-        // Arrange
-        var validator = new PlaceBetValidator();
-        var request = ValidRequest();
-        request.Amount = amount;
+        PlaceBetRequest request = ValidRequest();
+        request.Stake = stake;
 
-        // Act
-        var result = validator.Validate(request);
+        FluentValidation.Results.ValidationResult result = new PlaceBetValidator().Validate(request);
 
-        // Assert
         result.Errors.Should().ContainSingle(error =>
-            error.ErrorMessage == ResourcesMessagesException.BET_AMOUNT_GREATER_THAN_ZERO);
+            error.ErrorMessage == ResourcesMessagesException.BET_STAKE_GREATER_THAN_ZERO);
     }
 
     [Theory]
@@ -69,15 +53,11 @@ public class PlaceBetValidatorTests
     [InlineData(-10)]
     public void ShouldReturnFixtureNotFoundWhenFixtureIdIsInvalid(int fixtureId)
     {
-        // Arrange
-        var validator = new PlaceBetValidator();
-        var request = ValidRequest();
+        PlaceBetRequest request = ValidRequest();
         request.FixtureId = fixtureId;
 
-        // Act
-        var result = validator.Validate(request);
+        FluentValidation.Results.ValidationResult result = new PlaceBetValidator().Validate(request);
 
-        // Assert
         result.Errors.Should().ContainSingle(error =>
             error.ErrorMessage == ResourcesMessagesException.FIXTURE_NOT_FOUND);
     }
@@ -85,7 +65,7 @@ public class PlaceBetValidatorTests
     private static PlaceBetRequest ValidRequest() => new()
     {
         FixtureId = 123,
-        Amount = 20m,
-        BetType = "HomeWin"
+        Stake = 20m,
+        Market = BettingMarket.HomeWin,
     };
 }

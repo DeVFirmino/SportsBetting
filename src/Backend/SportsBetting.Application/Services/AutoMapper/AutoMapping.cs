@@ -4,37 +4,18 @@ using SportsBetting.Communication.Responses;
 
 namespace SportsBetting.Application.Services.AutoMapper;
 
-public class AutoMapping : Profile
+public sealed class AutoMapping : Profile
 {
-     public AutoMapping()
-     {
-          RequestToDomain();
-          DomainToResponse();
-     }
+    public AutoMapping()
+    {
+        CreateMap<RegisterUserRequest, Domain.Entities.User>(MemberList.None)
+            .ForMember(destination => destination.Password, options => options.Ignore());
 
-     
-     
-     private void RequestToDomain()
-     {
-          CreateMap<RegisterUserRequest, Domain.Entities.User>()
-               .ForMember(dest => dest.Password,
-                    opt => opt.Ignore())
-               .ForMember(dest => dest.Active, opt => opt.MapFrom(_ => true));
+        CreateMap<Domain.Entities.User, UserProfileResponse>();
 
-          CreateMap<PlaceBetRequest, Domain.Entities.Bet>()
-               .ForMember(dest => dest.Odds, opt => opt.Ignore())
-               .ForMember(dest => dest.EventName, opt => opt.Ignore())
-               .ForMember(dest => dest.BetType, opt => opt.Ignore())
-               .ForMember(dest => dest.PotentialWinning, opt => opt.Ignore());
-
-
-     }
-     
-     private void DomainToResponse()
-     {
-          CreateMap<Domain.Entities.User, UserProfileResponse>();
-          
-          CreateMap<Domain.Entities.Bet, BetResponse>();
-
-     }
+        CreateMap<Domain.Entities.Bet, BetResponse>()
+            .ForMember(
+                destination => destination.Market,
+                options => options.MapFrom(source => (Communication.Enums.BettingMarket)source.Market));
+    }
 }

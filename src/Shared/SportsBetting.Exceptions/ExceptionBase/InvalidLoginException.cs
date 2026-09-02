@@ -1,8 +1,9 @@
 namespace SportsBetting.Exceptions.ExceptionBase;
 
-public class InvalidLoginException : SportsBettingException
+public sealed class InvalidLoginException : SportsBettingException
 {
-    public InvalidLoginException() : base(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID)
+    public InvalidLoginException()
+        : base(401, "Unauthorized", [ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID])
     {
     }
 }

@@ -1,11 +1,10 @@
 using Moq;
 using SportsBetting.Domain.Entities;
-using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories.BetRepository;
 
 namespace SportsBetting.Tests.Common.Repositories;
 
-public class BetReadOnlyRepositoryBuilder
+public sealed class BetReadOnlyRepositoryBuilder
 {
     private readonly Mock<IBetReadOnlyRepository> _repository = new();
 
@@ -15,7 +14,6 @@ public class BetReadOnlyRepositoryBuilder
             It.IsAny<long>(),
             It.IsAny<int>(),
             It.IsAny<int>(),
-            It.IsAny<BetStatus?>(),
             It.IsAny<DateTime?>(),
             It.IsAny<DateTime?>(),
             It.IsAny<CancellationToken>()))

@@ -1,49 +1,56 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using SportsBetting.API.Filters;
 using SportsBetting.API.Converters;
-using SportsBetting.API.Token;
+using SportsBetting.API.Filters;
 using SportsBetting.Application;
-using SportsBetting.Communication.Responses;
-using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Infrastructure;
+using SportsBetting.Infrastructure.Options;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddControllers(options => options.Filters.Add(typeof(ExceptionFilter)))
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new StringConverter()));
 
-// Every failure the application raises goes out as ErrorResponse; without this override,
-// a body that fails model binding answered with ValidationProblemDetails instead, so a
-// client parsing "errors" as a list met an object. One contract for every 400.
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
     {
-        var errors = context.ModelState.Values
+        List<string> errors = context.ModelState.Values
             .SelectMany(entry => entry.Errors)
             .Select(error => error.ErrorMessage)
-            .Where(message => !string.IsNullOrWhiteSpace(message))
+            .Where(message => string.IsNullOrWhiteSpace(message) is false)
             .ToList();
 
-        return new BadRequestObjectResult(new ErrorResponse(errors));
+        ProblemDetails problemDetails = new()
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation failed",
+            Instance = context.HttpContext.Request.Path,
+        };
+        problemDetails.Extensions["errors"] = errors;
+
+        return new BadRequestObjectResult(problemDetails);
     };
 });
 
 builder.Services.AddEndpointsApiExplorer();
-
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = @"JWT Authorization header using the Bearer scheme.
-                      Enter 'Bearer' [space] and then your token in the text input below.
-                      Example: 'Bearer 12345abcdef'",
         Name = "Authorization",
         In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -54,42 +61,51 @@ builder.Services.AddSwaggerGen(options =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+                    Id = "Bearer",
                 },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header
             },
-            new List<string>()
-        }
+            []
+        },
     });
 });
 
 builder.Logging.AddFilter("LuckyPennySoftware.AutoMapper.License", LogLevel.None);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddScoped<ITokenProvider, HttpContextTokenValue>();
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
-builder.Services.AddAuthentication();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((bearer, jwt) =>
+    {
+        JwtOptions options = jwt.Value;
+
+        bearer.MapInboundClaims = false;
+        bearer.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = options.Issuer,
+            ValidateAudience = true,
+            ValidAudience = options.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero,
+            NameClaimType = JwtRegisteredClaimNames.Sub,
+        };
+    });
 builder.Services.AddAuthorization();
 
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddCors(options =>
+builder.Services.AddRateLimiter(options =>
 {
-    options.AddPolicy("AllowAngular", policy =>
-    {
-        policy.WithOrigins("http://localhost:4200")
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
-    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("tokens", context => PerAddressWindow(context, permitLimit: 5));
+    options.AddPolicy("registration", context => PerAddressWindow(context, permitLimit: 5));
 });
 
-var app = builder.Build();
+builder.Services.AddHttpContextAccessor();
+WebApplication app = builder.Build();
 
-// Swagger is served in every environment on purpose: the live demo is a
-// portfolio piece and the interactive docs are part of what it demonstrates.
 app.UseSwagger();
 app.UseSwaggerUI(options =>
 {
@@ -98,16 +114,24 @@ app.UseSwaggerUI(options =>
 });
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAngular");
+app.UseRateLimiter();
 app.UseAuthentication();
-
 app.UseAuthorization();
-
-
 app.MapControllers();
 
 await app.RunAsync();
 
+static RateLimitPartition<string> PerAddressWindow(HttpContext context, int permitLimit)
+{
+    string address = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    return RateLimitPartition.GetFixedWindowLimiter(address, _ => new FixedWindowRateLimiterOptions
+    {
+        PermitLimit = permitLimit,
+        Window = TimeSpan.FromMinutes(1),
+        QueueLimit = 0,
+    });
+}
 
 public partial class Program
 {
