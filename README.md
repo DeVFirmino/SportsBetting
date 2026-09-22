@@ -2,12 +2,11 @@
 
 [![CI](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml)
 
-A small sports betting API I use to practise backend development with .NET 10.
-The project focuses on one complete workflow: a user deposits funds, chooses a
-football fixture and places a bet.
+A study project in .NET: users register, log in, deposit and place bets, with
+the balance and the bet saved together.
 
-This is an educational project. It does not process real money, settle matches
-or pay winnings.
+It is educational only: it moves no real money, uses fixed odds, never settles or
+pays out a bet, and is not kept online.
 
 ## What it demonstrates
 
@@ -17,7 +16,8 @@ or pay winnings.
 - SQL Server persistence with Entity Framework Core
 - optimistic concurrency on wallet updates
 - idempotent bet placement
-- an external football API through `IHttpClientFactory`
+- an external football API through `IHttpClientFactory`, with an offline
+  fixture catalogue when no key is configured
 - unit, HTTP and SQL Server integration tests
 - Docker Compose with an explicit migration step
 
@@ -74,11 +74,15 @@ Idempotency-Key: portfolio-demo-001
 Content-Type: application/json
 
 {
-  "fixtureId": 123,
+  "fixtureId": 1001,
   "stake": 25.00,
   "market": "HomeWin"
 }
 ```
+
+Fixture `1001` is the first of the offline sample fixtures described under
+[Football data](#football-data). With an API-Football key, use an id from
+`GET /fixtures` instead.
 
 The fixture name and odds come from the server. The response includes the stake,
 odds and potential return. Repeating the same key and payload returns the first
@@ -120,6 +124,15 @@ betting flow, not a live schedule. The integration has a configured timeout and 
 short in-memory cache. Upstream failures are exposed
 as `502` or `503` Problem Details responses.
 
+Without a key, `GET /fixtures` serves five fixed sample fixtures with ids `1001`
+to `1005` instead, so the whole register, deposit and bet flow runs without an
+API-Football account. The pairings and kickoff times are illustrative, not the
+real schedule. The API logs a warning when it starts serving them. Setting
+`Settings:FootballApi:UseOfflineFixtures` to `true` forces the sample even when a
+key is set. In the `Production` environment a missing key, or the flag, stops the
+application at startup, so a deployment that lost its key fails loudly instead of
+offering sample data.
+
 Betting odds are fixed study values owned by this application. `IOddsService`
 is the single place that prices a market; its `FixedOddsService` implementation
 offers every fixture at the same odds. A client chooses the market, but it
@@ -151,10 +164,8 @@ ordinary: controller → use case → repository or external service.
 
 ## Run with Docker Compose
 
-Prerequisites:
-
-- Docker Desktop or another Docker-compatible runtime
-- an API-Football key
+Prerequisites: Docker Desktop or another Docker-compatible runtime. An
+API-Football key is optional.
 
 Create the local environment file:
 
@@ -162,7 +173,17 @@ Create the local environment file:
 cp .env.example .env
 ```
 
-Set `MSSQL_SA_PASSWORD`, `JWT_SIGNING_KEY` and `FOOTBALL_API_KEY`, then run:
+Edit `.env` and set two values of your own:
+
+- `MSSQL_SA_PASSWORD`: the password for the local SQL Server container. SQL
+  Server wants at least eight characters from three of uppercase, lowercase,
+  digits and symbols. The repository ships no password, and Compose refuses to
+  start while it is empty.
+- `JWT_SIGNING_KEY`: a random value of at least 32 characters, for example the
+  output of `openssl rand -base64 48`.
+
+Leave `FOOTBALL_API_KEY` empty to use the offline fixtures, or set it to your
+API-Football key. Then run:
 
 ```bash
 docker compose up --build
@@ -176,6 +197,41 @@ Open Swagger at <http://localhost:8080/swagger>.
 The local database port defaults to `1434`, which avoids taking the usual SQL
 Server port from an existing installation. Both published ports can be changed
 in `.env`.
+
+### Try the flow in Swagger
+
+1. `POST /users` with a name, an email and a password of at least six
+   characters.
+2. `POST /tokens` with the same email and password, and copy
+   `tokens.accessToken` from the response.
+3. Select **Authorize** and paste the token.
+4. `POST /wallet/deposits` with `{ "amount": 100 }`.
+5. `GET /fixtures` to see the fixtures and their odds.
+6. `POST /bets` with an `Idempotency-Key` header and the body from
+   [Place a bet](#place-a-bet).
+7. `GET /wallet` shows the balance after the stake, and `GET /bets` lists the bet.
+
+### Run from an IDE or with `dotnet run`
+
+The launch profile carries only settings that are not secret. The connection
+string and the signing key come from [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets),
+which stay outside the repository. With `.env` filled in as above, start SQL
+Server and apply the migrations with Compose, then run the API from source:
+
+```bash
+docker compose run --rm migrator
+
+dotnet user-secrets --project src/Backend/SportsBetting.API set \
+  "ConnectionStrings:DefaultConnection" \
+  "Server=localhost,1434;Database=SportsBetting;User Id=sa;Password=<your MSSQL_SA_PASSWORD>;TrustServerCertificate=True;"
+dotnet user-secrets --project src/Backend/SportsBetting.API set \
+  "Settings:Jwt:SigningKey" "<at least 32 random characters>"
+
+dotnet run --project src/Backend/SportsBetting.API
+```
+
+Swagger is then at <http://localhost:5055/swagger>. To call API-Football instead
+of the offline fixtures, also set `Settings:FootballApi:ApiKey` as a user secret.
 
 ## Deployment
 
