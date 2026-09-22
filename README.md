@@ -1,5 +1,7 @@
 # SportsBetting API
 
+[![CI](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml)
+
 A small sports betting API I use to practise backend development with .NET 10.
 The project focuses on one complete workflow: a user deposits funds, chooses a
 football fixture and places a bet.
@@ -175,6 +177,22 @@ The local database port defaults to `1434`, which avoids taking the usual SQL
 Server port from an existing installation. Both published ports can be changed
 in `.env`.
 
+## Deployment
+
+The API was deployed by hand to Azure Container Apps, with Azure SQL Database
+behind it, most recently in September 2026. It is not kept online, so there is
+no live demo link. The steps were:
+
+1. build the image in Azure Container Registry with `az acr build`;
+2. apply the versioned schema to Azure SQL with the Entity Framework migration
+   bundle;
+3. move the Container App to the new image with `az containerapp update`.
+
+Configuration comes from environment variables on the Container App, the same
+names Compose uses locally. CI builds and tests; it does not deploy.
+[How I containerised my API and deployed it to Azure](https://danieldias.dev/en/blog/how-i-containerised-my-api-and-deployed-it-to-azure)
+walks through the Dockerfile and the Container Apps setup.
+
 ## Build and test
 
 The repository targets the .NET 10 SDK:
@@ -192,6 +210,9 @@ Server with Testcontainers. They cover the database behaviours that matter most:
 - replaying an idempotency key does not debit twice;
 - concurrent requests with the same key create one bet;
 - concurrent requests with different keys cannot overdraw the wallet.
+
+The placement and concurrency cases are in
+[`PlaceBetUseCaseTests`](tests/Integration.Test/PlaceBetUseCaseTests.cs).
 
 Run only that suite with:
 
