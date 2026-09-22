@@ -29,9 +29,10 @@ services:
       context: .
       dockerfile: Dockerfile
       target: migrator
-    command:
-      - --connection
-      - Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
+    # The bundle builds its DbContext through SportsBettingDbContextFactory, which reads the
+    # connection from this variable and refuses to run without it.
+    environment:
+      SPORTSBETTING_EF_CONNECTION: Server=sqlserver,1433;Database=SportsBetting;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=False;
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -52,7 +53,8 @@ services:
       Settings__Jwt__Audience: ${JWT_AUDIENCE:-sportsbetting-clients}
       Settings__Jwt__ExpirationTimeMinutes: ${JWT_EXPIRATION_MINUTES:-60}
       Settings__FootballApi__BaseUrl: ${FOOTBALL_API_BASE_URL:-https://v3.football.api-sports.io}
-      Settings__FootballApi__ApiKey: ${FOOTBALL_API_KEY:?set FOOTBALL_API_KEY in .env}
+      Settings__FootballApi__ApiKey: ${FOOTBALL_API_KEY:-}
+      Settings__FootballApi__UseOfflineFixtures: ${FOOTBALL_API_USE_OFFLINE_FIXTURES:-false}
       Settings__FootballApi__CacheSeconds: ${FOOTBALL_API_CACHE_SECONDS:-30}
       Settings__FootballApi__TimeoutSeconds: ${FOOTBALL_API_TIMEOUT_SECONDS:-10}
       Settings__FootballApi__Season: ${FOOTBALL_API_SEASON:-2024}
