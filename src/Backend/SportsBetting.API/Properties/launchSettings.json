@@ -7,7 +7,10 @@
       "applicationUrl": "http://localhost:5055",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__DefaultConnection": "Server=localhost,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True;"
+        "Settings__Jwt__Issuer": "sportsbetting-api",
+        "Settings__Jwt__Audience": "sportsbetting-clients",
+        "Settings__Jwt__ExpirationTimeMinutes": "60",
+        "Settings__FootballApi__BaseUrl": "https://v3.football.api-sports.io"
       }
     },
     "SportsBetting.API: http": {
@@ -17,7 +20,10 @@
       "applicationUrl": "http://localhost:5055",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__DefaultConnection": "Server=localhost,1433;Database=SportsBetting;User Id=sa;Password=YourStrongPassword123;TrustServerCertificate=True;"
+        "Settings__Jwt__Issuer": "sportsbetting-api",
+        "Settings__Jwt__Audience": "sportsbetting-clients",
+        "Settings__Jwt__ExpirationTimeMinutes": "60",
+        "Settings__FootballApi__BaseUrl": "https://v3.football.api-sports.io"
       }
     }
   }
