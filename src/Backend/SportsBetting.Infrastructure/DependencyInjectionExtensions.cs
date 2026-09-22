@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.BetRepository;
@@ -83,12 +84,24 @@ public static class DependencyInjectionExtensions
     private static void AddExternalServices(IServiceCollection services)
     {
         services.AddMemoryCache();
-        services.AddHttpClient<IFootballApiService, FootballApiService>((provider, client) =>
+        services.AddHttpClient<FootballApiService>((provider, client) =>
         {
             FootballApiOptions options = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
 
             client.BaseAddress = new Uri(options.BaseUrl);
             client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
+        services.AddSingleton<OfflineFootballApiService>();
+
+        // Chosen when first resolved, from the bound options, so the configuration the host ends
+        // up with (appsettings, environment, user secrets) decides, not the registration order.
+        services.AddTransient<IFootballApiService>(provider =>
+        {
+            FootballApiOptions options = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
+
+            return options.ServesOfflineFixtures
+                ? provider.GetRequiredService<OfflineFootballApiService>()
+                : provider.GetRequiredService<FootballApiService>();
         });
     }
 
@@ -102,6 +115,9 @@ public static class DependencyInjectionExtensions
         services.AddOptions<FootballApiOptions>()
             .Bind(configuration.GetRequiredSection(FootballApiOptions.SectionName))
             .ValidateDataAnnotations()
+            .Validate<IHostEnvironment>(
+                (options, environment) => environment.IsProduction() is false || options.ServesOfflineFixtures is false,
+                "Settings:FootballApi:ApiKey is required in Production; the offline fixtures are for local runs.")
             .ValidateOnStart();
 
         if (configuration.IsUnitTestEnvironment() is false)

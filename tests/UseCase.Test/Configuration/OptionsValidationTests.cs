@@ -1,6 +1,8 @@
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Options;
 using SportsBetting.Infrastructure;
 using SportsBetting.Infrastructure.Options;
@@ -42,7 +44,6 @@ public class OptionsValidationTests
     [InlineData("Settings:Jwt:Audience", "")]
     [InlineData("Settings:Jwt:ExpirationTimeMinutes", "0")]
     [InlineData("Settings:FootballApi:BaseUrl", "not-a-url")]
-    [InlineData("Settings:FootballApi:ApiKey", "")]
     [InlineData("Settings:FootballApi:CacheSeconds", "0")]
     [InlineData("Settings:FootballApi:TimeoutSeconds", "0")]
     [InlineData("Settings:FootballApi:Season", "1999")]
@@ -81,13 +82,66 @@ public class OptionsValidationTests
         validate.Should().Throw<OptionsValidationException>();
     }
 
-    private static ServiceProvider BuildProvider(Dictionary<string, string?> settings)
+    [Fact]
+    public void ShouldStartWithoutApiKeyWhenEnvironmentIsNotProduction()
+    {
+        // Arrange
+        Dictionary<string, string?> settings = ValidSettings();
+        settings["Settings:FootballApi:ApiKey"] = string.Empty;
+
+        ServiceProvider provider = BuildProvider(settings, Environments.Development);
+
+        // Act
+        Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
+
+        // Assert
+        validate.Should().NotThrow();
+    }
+
+    [Fact]
+    public void ShouldFailOnStartWhenApiKeyIsMissingInProduction()
+    {
+        // Arrange
+        Dictionary<string, string?> settings = ValidSettings();
+        settings["Settings:FootballApi:ApiKey"] = string.Empty;
+
+        ServiceProvider provider = BuildProvider(settings, Environments.Production);
+
+        // Act
+        Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
+
+        // Assert
+        // A deployment that lost its key must stop, not quietly offer the sample fixtures.
+        validate.Should().Throw<OptionsValidationException>()
+            .Which.Message.Should().Contain("ApiKey is required in Production");
+    }
+
+    [Fact]
+    public void ShouldFailOnStartWhenOfflineFixturesAreForcedInProduction()
+    {
+        // Arrange
+        Dictionary<string, string?> settings = ValidSettings();
+        settings["Settings:FootballApi:UseOfflineFixtures"] = "true";
+
+        ServiceProvider provider = BuildProvider(settings, Environments.Production);
+
+        // Act
+        Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
+
+        // Assert
+        validate.Should().Throw<OptionsValidationException>();
+    }
+
+    private static ServiceProvider BuildProvider(
+        Dictionary<string, string?> settings,
+        string environmentName = "Development")
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(settings)
             .Build();
 
         ServiceCollection services = new();
+        services.AddSingleton<IHostEnvironment>(new HostingEnvironment { EnvironmentName = environmentName });
         services.AddInfrastructure(configuration);
 
         return services.BuildServiceProvider();
