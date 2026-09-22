@@ -18,6 +18,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private SportsBetting.Domain.Entities.User _user = default!;
     private string _password = string.Empty;
 
+    // Most suites pin the fixture feed to one static fixture; the offline suite keeps the
+    // application's own choice so it exercises the registration a local run gets.
+    protected virtual bool ReplacesFootballApi => true;
+
 
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -39,8 +43,11 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                     options.UseInternalServiceProvider(provider);
                 });
 
-                services.RemoveAll<IFootballApiService>();
-                services.AddSingleton<IFootballApiService, StaticFootballApiService>();
+                if (ReplacesFootballApi)
+                {
+                    services.RemoveAll<IFootballApiService>();
+                    services.AddSingleton<IFootballApiService, StaticFootballApiService>();
+                }
 
                 var serviceProvider = services.BuildServiceProvider();
 
