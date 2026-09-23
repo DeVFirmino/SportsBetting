@@ -232,7 +232,9 @@ dotnet run --project src/Backend/SportsBetting.API
 ```
 
 Swagger is then at <http://localhost:5055/swagger>. To call API-Football instead
-of the offline fi## Deployment
+of the offline fixtures, also set `Settings:FootballApi:ApiKey` as a user secret.
+
+## Deployment
 
 The demo is online since 23 September 2026:
 [Swagger](https://sportsbetting-api.nicewave-b8afa4cf.westeurope.azurecontainerapps.io/swagger/index.html).
@@ -270,9 +272,6 @@ bet id, and the wallet balance was 75.
 Configuration comes from environment variables on the Container App, the same
 names Compose uses locally. CI builds and tests; it does not deploy.
 [How I containerised my API and deployed it to Azure](https://danieldias.dev/en/blog/how-i-containerised-my-api-and-deployed-it-to-azure)
-walks through the Dockerfile and the Container Apps setup.
-
-zure)
 walks through the Dockerfile and the Container Apps setup.
 
 ## Build and test
