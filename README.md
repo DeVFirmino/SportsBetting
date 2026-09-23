@@ -5,8 +5,9 @@
 A study project in .NET: users register, log in, deposit and place bets, with
 the balance and the bet saved together.
 
-It is educational only: it moves no real money, uses fixed odds, never settles or
-pays out a bet, and is not kept online.
+It is educational only: it moves no real money, uses fixed odds and never settles
+or pays out a bet. A demo is online on Azure and scales to zero when idle; see
+[Deployment](#deployment).
 
 ## What it demonstrates
 
@@ -235,14 +236,38 @@ of the offline fixtures, also set `Settings:FootballApi:ApiKey` as a user secret
 
 ## Deployment
 
-The API was deployed by hand to Azure Container Apps, with Azure SQL Database
-behind it, most recently in September 2026. It is not kept online, so there is
-no live demo link. The steps were:
+The demo is online since 23 September 2026:
+[Swagger](https://sportsbetting-api.nicewave-b8afa4cf.westeurope.azurecontainerapps.io/swagger/index.html).
+It runs on Azure Container Apps in West Europe, with Azure SQL Database behind it.
 
-1. build the image in Azure Container Registry with `az acr build`;
-2. apply the versioned schema to Azure SQL with the Entity Framework migration
-   bundle;
-3. move the Container App to the new image with `az containerapp update`.
+Two things make it slow after a quiet spell:
+
+- the Container App scales to zero, so the first request after idle takes about
+  10 seconds;
+- the database is Azure SQL serverless on the free offer and pauses after 60
+  minutes idle, so the first request after a pause can take up to a minute and may
+  fail once while the database resumes.
+
+The demo does not call API-Football. It runs with `ASPNETCORE_ENVIRONMENT=Demo`
+and serves the offline fixture catalogue, fixtures `1001` to `1005`, because
+`Production` requires an API-Football key and none is configured.
+
+It was deployed by hand with the `az` CLI, into the resource group
+`sportsbetting-rg`:
+
+1. build the runtime and migrator targets of the Dockerfile in Azure Container
+   Registry (`danielfirmino.azurecr.io`) with `az acr build`;
+2. run a Container Apps job that applies the Entity Framework migration bundle to
+   Azure SQL, with the connection string in `SPORTSBETTING_EF_CONNECTION`;
+3. create the Container App with `az containerapp create`, with the connection
+   string and the JWT signing key stored as Container App secrets.
+
+The running image is `sportsbetting-api:v16`, built from `develop` at `23192b1`.
+On 23 September 2026 the flow was checked over HTTPS: register returned `201`,
+login issued a token, a deposit returned `204`, `GET /fixtures` listed the five
+offline fixtures, `POST /bets` returned `201` for a stake of 25 with a potential
+return of 52.5, replaying it with the same `Idempotency-Key` returned the same
+bet id, and the wallet balance was 75.
 
 Configuration comes from environment variables on the Container App, the same
 names Compose uses locally. CI builds and tests; it does not deploy.
