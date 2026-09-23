@@ -1,7 +1,9 @@
 using FluentAssertions;
 using SportsBetting.Application.UseCases.User.Login.DoLogin;
 using SportsBetting.Communication.Requests;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Security.Cryptography;
+using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Tests.Common.Cryptography;
@@ -17,11 +19,11 @@ public class DoLoginUseCaseTest
     [Fact]
     public async Task ShouldReturnTokensWhenCredentialsAreValid()
     {
-        (var user, var password) = UserBuilder.Build();
+        (SportsBetting.Domain.Entities.User? user, var password) = UserBuilder.Build();
 
-        var userCase = CreateUseCase(user);
+        DoLoginUseCase userCase = CreateUseCase(user);
 
-        var result = await userCase.Execute(new LoginRequest
+        AuthenticatedUserResponse result = await userCase.Execute(new LoginRequest
         {
             Email = user.Email,
             Password = password
@@ -38,9 +40,9 @@ public class DoLoginUseCaseTest
     [Fact]
     public async Task ShouldThrowInvalidLoginWhenCredentialsAreInvalid()
     {
-        var request = LoginRequestBuilder.Build();
+        LoginRequest request = LoginRequestBuilder.Build();
 
-        var useCase = CreateUseCase();
+        DoLoginUseCase useCase = CreateUseCase();
 
         Func<Task> action = async () => await useCase.Execute(request, CancellationToken.None);
 
@@ -51,10 +53,10 @@ public class DoLoginUseCaseTest
     [Fact]
     public async Task ShouldPayTheHashingCostWhenTheUserDoesNotExist()
     {
-        var request = LoginRequestBuilder.Build();
+        LoginRequest request = LoginRequestBuilder.Build();
         var hasherBuilder = new PasswordHasherMockBuilder();
 
-        var useCase = CreateUseCase(passwordHasher: hasherBuilder.Build());
+        DoLoginUseCase useCase = CreateUseCase(passwordHasher: hasherBuilder.Build());
 
         Func<Task> action = () => useCase.Execute(request, CancellationToken.None);
 
@@ -71,7 +73,7 @@ public class DoLoginUseCaseTest
     {
         passwordHasher ??= PasswordHasherBuilder.Build();
         var userReadOnlyRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
-        var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
+        IAccessTokenGenerator accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
         if (user is not null)
         {
             userReadOnlyRepositoryBuilder.GetByEmailAsync(user);

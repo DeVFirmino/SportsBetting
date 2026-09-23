@@ -1,5 +1,6 @@
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.GetBetsById;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Enums;
 using SportsBetting.Domain.Repositories.BetRepository;
 using SportsBetting.Domain.Services.LoggedUser;
@@ -28,7 +29,7 @@ public sealed class GetBetByIdUseCaseTests
         bet.Id = 11;
         GetBetByIdUseCase useCase = CreateUseCase(bet);
 
-        var result = await useCase.Execute(bet.Id, CancellationToken.None);
+        BetResponse result = await useCase.Execute(bet.Id, CancellationToken.None);
 
         result.Id.Should().Be(bet.Id);
         result.EventName.Should().Be(bet.EventName);

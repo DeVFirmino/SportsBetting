@@ -17,7 +17,7 @@ public sealed class GetUserProfileUseCase : IGetUserProfileUseCase
     }
     public async Task<UserProfileResponse> Execute(CancellationToken cancellationToken)
     {
-        var user = await _loggedUser.GetUserAsync(cancellationToken);
+        Domain.Entities.User user = await _loggedUser.GetUserAsync(cancellationToken);
 
         return _mapper.Map<UserProfileResponse>(user);
     }

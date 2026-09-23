@@ -59,16 +59,22 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
 
         Domain.Entities.Bet? replay = await FindByIdempotencyKey(user.Id, key, cancellationToken);
         if (replay is not null)
+        {
             return Replay(replay, request, market);
+        }
 
         FixtureData fixture = await GetFixture(request.FixtureId, cancellationToken);
         Domain.Entities.Wallet? wallet = await _walletRepository.GetByUserIdAsync(user.Id, cancellationToken);
 
         if (wallet is null)
+        {
             throw new ResourceNotFoundException(ResourcesMessagesException.WALLET_NOT_FOUND);
+        }
 
         if (wallet.Balance < request.Stake)
+        {
             throw new ErrorOnValidationException([ResourcesMessagesException.INSUFFICIENT_BALANCE]);
+        }
 
         decimal odds = _oddsService.GetOdds(fixture.FixtureId).For(market);
         Domain.Entities.Bet bet = Domain.Entities.Bet.Place(
@@ -94,7 +100,9 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
             Domain.Entities.Bet? winner = await FindByIdempotencyKey(user.Id, key, cancellationToken);
 
             if (winner is null)
+            {
                 throw;
+            }
 
             return Replay(winner, request, market);
         }
@@ -112,7 +120,9 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
             && bet.Market == market;
 
         if (sameRequest is false)
+        {
             throw new IdempotencyConflictException();
+        }
 
         return _mapper.Map<BetResponse>(bet);
     }
@@ -154,6 +164,8 @@ public sealed class PlaceBetUseCase : IPlaceBetUseCase
         FluentValidation.Results.ValidationResult result = await validator.ValidateAsync(request, cancellationToken);
 
         if (result.IsValid is false)
+        {
             throw new ErrorOnValidationException(result.Errors.Select(error => error.ErrorMessage).ToList());
+        }
     }
 }

@@ -33,7 +33,9 @@ public sealed class DepositUseCase : IDepositUseCase
             cancellationToken);
 
         if (wallet is null)
+        {
             throw new ResourceNotFoundException(ResourcesMessagesException.WALLET_NOT_FOUND);
+        }
 
         wallet.Deposit(request.Amount);
         await _unitOfWork.CommitAsync(cancellationToken);
@@ -45,6 +47,8 @@ public sealed class DepositUseCase : IDepositUseCase
         FluentValidation.Results.ValidationResult result = await validator.ValidateAsync(request, cancellationToken);
 
         if (result.IsValid is false)
+        {
             throw new ErrorOnValidationException(result.Errors.Select(error => error.ErrorMessage).ToList());
+        }
     }
 }

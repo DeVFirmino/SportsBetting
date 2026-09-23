@@ -38,7 +38,9 @@ public static class DependencyInjectionExtensions
         AddTokens(services);
 
         if (configuration.IsUnitTestEnvironment())
+        {
             return;
+        }
 
         AddDbContext(services);
     }

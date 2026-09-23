@@ -1,6 +1,8 @@
+using AutoMapper;
 using FluentAssertions;
 using SportsBetting.Application.UseCases.Bet.GetUserBets;
 using SportsBetting.Communication.Requests;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Tests.Common.Entities;
 using SportsBetting.Tests.Common.LoggedUser;
 using SportsBetting.Tests.Common.Mapper;
@@ -13,17 +15,17 @@ public class GetUserBetsUseCaseTest
     [Fact]
     public async Task ShouldReturnPagedBetsWhenUserIsLoggedIn()
     {
-        (var user, _) = UserBuilder.Build();
-        var bets = BetBuilder.Collection(5, user.Id);
+        (SportsBetting.Domain.Entities.User? user, _) = UserBuilder.Build();
+        List<SportsBetting.Domain.Entities.Bet> bets = BetBuilder.Collection(5, user.Id);
         var request = new GetUserBetsRequest
         {
             PageNumber = 1,
             PageSize = 10
         };
 
-        var useCase = CreateUseCase(user, bets, totalCount: 15);
+        GetUserBetsUseCase useCase = CreateUseCase(user, bets, totalCount: 15);
 
-        var result = await useCase.Execute(request, CancellationToken.None);
+        PagedResponse<BetResponse> result = await useCase.Execute(request, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.Items.Should().HaveCount(5);
@@ -40,7 +42,7 @@ public class GetUserBetsUseCaseTest
         List<SportsBetting.Domain.Entities.Bet>? bets = null,
         int totalCount = 0)
     {
-        var mapper = MapperBuilder.Build();
+        IMapper mapper = MapperBuilder.Build();
         var loggedUserBuilder = new LoggedUserBuilder();
         var repositoryBuilder = new BetReadOnlyRepositoryBuilder();
 

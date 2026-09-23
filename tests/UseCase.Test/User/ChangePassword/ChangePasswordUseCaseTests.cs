@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentAssertions.Specialized;
 using Moq;
 using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Communication.Requests;
@@ -18,23 +19,20 @@ public class ChangePasswordUseCaseTests
     [Fact]
     public async Task ShouldChangePasswordWhenCurrentPasswordIsCorrect()
     {
-        // Arrange
-        var passwordHasher = PasswordHasherBuilder.Build();
+        IPasswordHasher passwordHasher = PasswordHasherBuilder.Build();
         var user = new Domain.Entities.User
         {
             Id = 7,
         };
         user.Password = passwordHasher.Hash(user, "current-password");
-        var useCase = CreateUseCase(user);
+        ChangePasswordUseCase useCase = CreateUseCase(user);
 
-        // Act
         await useCase.Execute(new ChangePasswordRequest
         {
             Password = "current-password",
             NewPassword = "new-password"
         }, CancellationToken.None);
 
-        // Assert
         PasswordHasherBuilder.Build().Verify(user, user.Password, "new-password")
             .Should().BeTrue();
     }
@@ -42,21 +40,18 @@ public class ChangePasswordUseCaseTests
     [Fact]
     public async Task ShouldReturnInvalidCredentialsWhenCurrentPasswordIsIncorrect()
     {
-        // Arrange
-        var passwordHasher = PasswordHasherBuilder.Build();
+        IPasswordHasher passwordHasher = PasswordHasherBuilder.Build();
         var user = new Domain.Entities.User { Id = 7 };
         user.Password = passwordHasher.Hash(user, "correct-password");
-        var useCase = CreateUseCase(user);
+        ChangePasswordUseCase useCase = CreateUseCase(user);
 
-        // Act
         Func<Task> act = () => useCase.Execute(new ChangePasswordRequest
         {
             Password = "wrong-password",
             NewPassword = "new-password"
         }, CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        ExceptionAssertions<ErrorOnValidationException> exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
         PasswordHasherBuilder.Build().Verify(user, user.Password, "correct-password")
             .Should().BeTrue();
@@ -65,21 +60,18 @@ public class ChangePasswordUseCaseTests
     [Fact]
     public async Task ShouldReturnValidationErrorWhenNewPasswordIsTooShort()
     {
-        // Arrange
-        var passwordHasher = PasswordHasherBuilder.Build();
+        IPasswordHasher passwordHasher = PasswordHasherBuilder.Build();
         var user = new Domain.Entities.User { Id = 7 };
         user.Password = passwordHasher.Hash(user, "current-password");
-        var useCase = CreateUseCase(user);
+        ChangePasswordUseCase useCase = CreateUseCase(user);
 
-        // Act
         Func<Task> act = () => useCase.Execute(new ChangePasswordRequest
         {
             Password = "current-password",
             NewPassword = "12345"
         }, CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        ExceptionAssertions<ErrorOnValidationException> exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
     }
 

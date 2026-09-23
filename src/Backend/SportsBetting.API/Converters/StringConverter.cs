@@ -11,7 +11,9 @@ public partial class StringConverter : JsonConverter<string>
         var value = reader.GetString()?.Trim();
 
         if (value is null)
+        {
             return null;
+        }
 
         return RemoveExtraWhiteSpaces().Replace(value, " ");
     }

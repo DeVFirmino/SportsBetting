@@ -84,6 +84,8 @@ public sealed class RegisterUserUseCase : IRegisterUserUseCase
         }
 
         if (result.IsValid is false)
+        {
             throw new ErrorOnValidationException(result.Errors.Select(error => error.ErrorMessage).ToList());
+        }
     }
 }

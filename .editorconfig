@@ -1,0 +1,17 @@
+root = true
+
+[*.cs]
+csharp_style_namespace_declarations = file_scoped:error
+dotnet_style_namespace_match_folder = true:error
+csharp_prefer_braces = true:error
+# 'always' would demand a redundant 'public' on interface members, which are
+# public by definition; this value asks for the modifier everywhere it can
+# actually be ambiguous.
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:error
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:warning
+dotnet_style_readonly_field = true:error
+csharp_prefer_static_local_function = true:suggestion
+
+# No synchronisation context to avoid in ASP.NET Core, so ConfigureAwait is noise.
+dotnet_diagnostic.CA2007.severity = none
