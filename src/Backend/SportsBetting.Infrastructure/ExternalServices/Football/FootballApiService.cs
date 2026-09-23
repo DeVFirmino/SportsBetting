@@ -31,7 +31,9 @@ public sealed class FootballApiService : IFootballApiService
     {
         if (_memoryCache.TryGetValue(FixturesCacheKey, out List<FixtureData>? cachedFixtures)
             && cachedFixtures is not null)
+        {
             return cachedFixtures;
+        }
 
         using HttpRequestMessage request = new(
             HttpMethod.Get,
@@ -83,12 +85,16 @@ public sealed class FootballApiService : IFootballApiService
     private static void EnsureUpstreamSucceeded(HttpStatusCode statusCode)
     {
         if ((int)statusCode is >= 200 and < 300)
+        {
             return;
+        }
 
         if (statusCode is HttpStatusCode.TooManyRequests
             or HttpStatusCode.ServiceUnavailable
             or HttpStatusCode.GatewayTimeout)
+        {
             throw new UpstreamServiceException(503, "API-Football is unavailable.");
+        }
 
         throw new UpstreamServiceException(502, $"API-Football answered {(int)statusCode}.");
     }

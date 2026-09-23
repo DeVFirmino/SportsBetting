@@ -53,7 +53,9 @@ public sealed class ExceptionFilter : IExceptionFilter
         problemDetails.Extensions["errors"] = errors;
 
         if (correlationId is not null)
+        {
             problemDetails.Extensions["correlationId"] = correlationId;
+        }
 
         context.Result = new ObjectResult(problemDetails) { StatusCode = statusCode };
     }

@@ -6,6 +6,8 @@ public sealed class UpstreamServiceException : SportsBettingException
         : base(statusCode, "Upstream service unavailable", [message])
     {
         if (statusCode is not 502 and not 503)
+        {
             throw new ArgumentOutOfRangeException(nameof(statusCode));
+        }
     }
 }

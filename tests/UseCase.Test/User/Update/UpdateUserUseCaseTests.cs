@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentAssertions.Specialized;
 using Moq;
 using SportsBetting.Application.UseCases.User.Update;
 using SportsBetting.Communication.Requests;
@@ -16,15 +17,12 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ShouldUpdateNameAndEmailWhenDataIsValid()
     {
-        // Arrange
-        var user = User();
-        var useCase = CreateUseCase(user);
+        Domain.Entities.User user = User();
+        UpdateUserUseCase useCase = CreateUseCase(user);
         var request = new UpdateUserRequest { Name = "New name", Email = "new@example.com" };
 
-        // Act
         await useCase.Execute(request, CancellationToken.None);
 
-        // Assert
         user.Name.Should().Be(request.Name);
         user.Email.Should().Be(request.Email);
     }
@@ -32,16 +30,13 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ShouldUpdateProfileWhenEmailIsUnchanged()
     {
-        // Arrange
-        var user = User();
-        var useCase = CreateUseCase(user, emailAlreadyExists: true);
+        Domain.Entities.User user = User();
+        UpdateUserUseCase useCase = CreateUseCase(user, emailAlreadyExists: true);
 
-        // Act
         await useCase.Execute(
             new UpdateUserRequest { Name = "New name", Email = user.Email },
             CancellationToken.None);
 
-        // Assert
         user.Name.Should().Be("New name");
         user.Email.Should().Be("current@example.com");
     }
@@ -49,19 +44,16 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ShouldReturnValidationErrorWhenEmailBelongsToAnotherUser()
     {
-        // Arrange
-        var user = User();
-        var useCase = CreateUseCase(user, emailAlreadyExists: true);
+        Domain.Entities.User user = User();
+        UpdateUserUseCase useCase = CreateUseCase(user, emailAlreadyExists: true);
 
-        // Act
         Func<Task> act = () => useCase.Execute(new UpdateUserRequest
         {
             Name = "New name",
             Email = "registered@example.com"
         }, CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        ExceptionAssertions<ErrorOnValidationException> exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.Errors.Should().Contain(ResourcesMessagesException.EMAIL_ALREADY_REGISTERED);
         user.Email.Should().Be("current@example.com");
     }
@@ -69,15 +61,12 @@ public class UpdateUserUseCaseTests
     [Fact]
     public async Task ShouldReturnBothValidationErrorsWhenFieldsAreEmpty()
     {
-        // Arrange
-        var user = User();
-        var useCase = CreateUseCase(user);
+        Domain.Entities.User user = User();
+        UpdateUserUseCase useCase = CreateUseCase(user);
 
-        // Act
         Func<Task> act = () => useCase.Execute(new UpdateUserRequest(), CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
+        ExceptionAssertions<ErrorOnValidationException> exception = await act.Should().ThrowAsync<ErrorOnValidationException>();
         exception.Which.Errors.Should().BeEquivalentTo(
             ResourcesMessagesException.NAME_EMPTY,
             ResourcesMessagesException.EMAIL_EMPTY);

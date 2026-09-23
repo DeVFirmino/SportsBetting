@@ -1,3 +1,4 @@
+using FluentValidation.Results;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
@@ -25,11 +26,11 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
 
     public async Task Execute(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
+        Domain.Entities.User loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
         Validate(request, loggedUser);
 
-        var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
+        Domain.Entities.User user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
 
         user.Password = _passwordHasher.Hash(user, request.NewPassword);
 
@@ -40,7 +41,7 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
 
     private void Validate(ChangePasswordRequest request, Domain.Entities.User loggedUser)
     {
-        var result = new ChangePasswordValidator().Validate(request);
+        ValidationResult result = new ChangePasswordValidator().Validate(request);
 
         if (_passwordHasher.Verify(loggedUser, loggedUser.Password, request.Password) is false)
         {
@@ -49,6 +50,8 @@ public sealed class ChangePasswordUseCase : IChangePasswordUseCase
         }
 
         if (!result.IsValid)
+        {
             throw new ErrorOnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
+        }
     }
 }

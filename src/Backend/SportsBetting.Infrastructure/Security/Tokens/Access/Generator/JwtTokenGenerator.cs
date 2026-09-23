@@ -36,7 +36,7 @@ public sealed class JwtTokenGenerator : JwtTokenHandler, IAccessTokenGenerator
 
         var tokenHandler = new JwtSecurityTokenHandler();
 
-        var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+        SecurityToken securityToken = tokenHandler.CreateToken(tokenDescriptor);
 
         return tokenHandler.WriteToken(securityToken);
     }

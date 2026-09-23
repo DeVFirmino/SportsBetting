@@ -29,7 +29,9 @@ public sealed class GetBetByIdUseCase : IGetBetByIdUseCase
         Domain.Entities.Bet? bet = await _repository.GetByIdAsync(id, user.Id, cancellationToken);
 
         if (bet is null)
+        {
             throw new ResourceNotFoundException(ResourcesMessagesException.BET_NOT_FOUND);
+        }
 
         return _mapper.Map<BetResponse>(bet);
     }

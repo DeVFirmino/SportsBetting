@@ -7,7 +7,9 @@ public sealed class FixtureOdds
     public FixtureOdds(decimal homeWin, decimal draw, decimal awayWin)
     {
         if (homeWin <= 0 || draw <= 0 || awayWin <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(homeWin), "Odds must be greater than zero.");
+        }
 
         HomeWin = homeWin;
         Draw = draw;

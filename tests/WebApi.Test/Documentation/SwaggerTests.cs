@@ -20,7 +20,7 @@ public class SwaggerTests : IClassFixture<CustomWebApplicationFactory>
     [InlineData("/swagger/v1/swagger.json")]
     public async Task ShouldServeSwaggerWhenTheEnvironmentIsNotDevelopment(string path)
     {
-        var response = await _httpClient.GetAsync(path);
+        HttpResponseMessage response = await _httpClient.GetAsync(path);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }

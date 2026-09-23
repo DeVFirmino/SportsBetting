@@ -37,7 +37,7 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
 
         HttpClient client = await AuthenticatedClientAsync();
 
-        var response = await client.GetAsync("/fixtures");
+        HttpResponseMessage response = await client.GetAsync("/fixtures");
 
         response.StatusCode.Should().Be(expected);
 
@@ -58,7 +58,7 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
         {
             HttpClient client = await AuthenticatedClientAsync();
 
-            var response = await client.GetAsync("/fixtures");
+            HttpResponseMessage response = await client.GetAsync("/fixtures");
 
             response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
 
@@ -81,7 +81,7 @@ public class UpstreamFailureTests : IClassFixture<UpstreamFailureFactory>
             Password = _factory.GetPassword(),
         };
 
-        var loginResponse = await client.PostAsJsonAsync("/tokens", login);
+        HttpResponseMessage loginResponse = await client.PostAsJsonAsync("/tokens", login);
         loginResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         using var document = JsonDocument.Parse(await loginResponse.Content.ReadAsStringAsync());

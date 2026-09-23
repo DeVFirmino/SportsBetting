@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Infrastructure.Options;
 using SportsBetting.Infrastructure.ExternalServices.Football;
+using SportsBetting.Domain.Services.ExternalApis;
+using FluentAssertions.Specialized;
 
 namespace UseCase.Test.ExternalServices;
 
@@ -15,7 +17,6 @@ public class FootballApiServiceTests
     [Fact]
     public async Task ShouldMapFixturesAndSendApiKeyWhenResponseSucceeds()
     {
-        // Arrange
         HttpRequestMessage? capturedRequest = null;
         var handler = new StubHandler(request =>
         {
@@ -24,12 +25,10 @@ public class FootballApiServiceTests
                 {"response":[{"fixture":{"id":321,"date":"2026-08-20T19:45:00Z"},"teams":{"home":{"name":"Home FC"},"away":{"name":"Away FC"}}}]}
                 """);
         });
-        var service = CreateService(handler);
+        FootballApiService service = CreateService(handler);
 
-        // Act
-        var result = await service.GetFixturesAsync(CancellationToken.None);
+        List<FixtureData> result = await service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         result.Should().ContainSingle();
         result[0].Should().BeEquivalentTo(new
         {
@@ -44,7 +43,6 @@ public class FootballApiServiceTests
     [Fact]
     public async Task ShouldReturnFirstTenWhenMoreThanTenFixturesExist()
     {
-        // Arrange
         var payload = new
         {
             response = Enumerable.Range(1, 12).Select(index => new
@@ -57,12 +55,10 @@ public class FootballApiServiceTests
                 }
             })
         };
-        var service = CreateService(new StubHandler(_ => JsonResponse(JsonSerializer.Serialize(payload))));
+        FootballApiService service = CreateService(new StubHandler(_ => JsonResponse(JsonSerializer.Serialize(payload))));
 
-        // Act
-        var result = await service.GetFixturesAsync(CancellationToken.None);
+        List<FixtureData> result = await service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         result.Should().HaveCount(10);
         result.Select(item => item.FixtureId).Should().Equal(Enumerable.Range(1, 10));
     }
@@ -70,89 +66,71 @@ public class FootballApiServiceTests
     [Fact]
     public async Task ShouldReturnEmptyCollectionWhenResponseIsNull()
     {
-        // Arrange
-        var service = CreateService(new StubHandler(_ => JsonResponse("{\"response\":null}")));
+        FootballApiService service = CreateService(new StubHandler(_ => JsonResponse("{\"response\":null}")));
 
-        // Act
-        var result = await service.GetFixturesAsync(CancellationToken.None);
+        List<FixtureData> result = await service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         result.Should().BeEmpty();
     }
 
     [Fact]
     public async Task ShouldReportBadGatewayWhenTheUpstreamAnswersBadGateway()
     {
-        // Arrange
-        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
+        FootballApiService service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.BadGateway)));
 
-        // Act
         Func<Task> act = () => service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<UpstreamServiceException>();
+        ExceptionAssertions<UpstreamServiceException> exception = await act.Should().ThrowAsync<UpstreamServiceException>();
         exception.Which.StatusCode.Should().Be(502);
     }
 
     [Fact]
     public async Task ShouldReportServiceUnavailableWhenTheUpstreamAnswersServiceUnavailable()
     {
-        // Arrange
-        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
+        FootballApiService service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)));
 
-        // Act
         Func<Task> act = () => service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
-        var exception = await act.Should().ThrowAsync<UpstreamServiceException>();
+        ExceptionAssertions<UpstreamServiceException> exception = await act.Should().ThrowAsync<UpstreamServiceException>();
         exception.Which.StatusCode.Should().Be(503);
     }
 
     [Fact]
     public async Task ShouldReportServiceUnavailableWhenTheUpstreamRateLimitIsExceeded()
     {
-        // Arrange
-        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.TooManyRequests)));
+        FootballApiService service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.TooManyRequests)));
 
-        // Act
         Func<Task> act = () => service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         // A quota this API ran out of is not the caller's fault, so it is reported as an
         // unavailable upstream rather than passed through as the caller's own 429.
-        var exception = await act.Should().ThrowAsync<UpstreamServiceException>();
+        ExceptionAssertions<UpstreamServiceException> exception = await act.Should().ThrowAsync<UpstreamServiceException>();
         exception.Which.StatusCode.Should().Be(503);
     }
 
     [Fact]
     public async Task ShouldReportBadGatewayWhenTheUpstreamRejectsTheApiKey()
     {
-        // Arrange
-        var service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)));
+        FootballApiService service = CreateService(new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Forbidden)));
 
-        // Act
         Func<Task> act = () => service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         // A rejected key is a deployment problem here, not a bad request from the API's caller.
-        var exception = await act.Should().ThrowAsync<UpstreamServiceException>();
+        ExceptionAssertions<UpstreamServiceException> exception = await act.Should().ThrowAsync<UpstreamServiceException>();
         exception.Which.StatusCode.Should().Be(502);
     }
 
     [Fact]
     public async Task ShouldServeTheCachedFixturesWhenCalledAgainWithinTheCacheWindow()
     {
-        // Arrange
         var handler = new StubHandler(_ => JsonResponse("""
             {"response":[{"fixture":{"id":321,"date":"2026-08-20T19:45:00Z"},"teams":{"home":{"name":"Home FC"},"away":{"name":"Away FC"}}}]}
             """));
-        var service = CreateService(handler);
+        FootballApiService service = CreateService(handler);
 
-        // Act
-        var first = await service.GetFixturesAsync(CancellationToken.None);
-        var second = await service.GetFixturesAsync(CancellationToken.None);
+        List<FixtureData> first = await service.GetFixturesAsync(CancellationToken.None);
+        List<FixtureData> second = await service.GetFixturesAsync(CancellationToken.None);
 
-        // Assert
         first.Should().ContainSingle();
         second.Should().BeSameAs(first);
         handler.Calls.Should().Be(1);

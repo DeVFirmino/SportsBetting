@@ -1,3 +1,4 @@
+using FluentValidation.Results;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Domain.Repositories;
 using SportsBetting.Domain.Repositories.User;
@@ -27,11 +28,11 @@ public sealed class UpdateUserUseCase : IUpdateUserUseCase
 
     public async Task Execute(UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
+        Domain.Entities.User loggedUser = await _loggedUser.GetUserAsync(cancellationToken);
 
         await Validate(request, loggedUser.Email, cancellationToken);
 
-        var user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
+        Domain.Entities.User user = await _repository.GetByIdAsync(loggedUser.Id, cancellationToken);
 
         user.Name = request.Name;
         user.Email = request.Email;
@@ -45,13 +46,15 @@ public sealed class UpdateUserUseCase : IUpdateUserUseCase
     {
         var validator = new UpdateUserValidator();
 
-        var result = await validator.ValidateAsync(request);
+        ValidationResult result = await validator.ValidateAsync(request);
 
         if (!request.Email.Equals(currentEmail))
         {
             var userExist = await _userReadOnlyRepository.ExistsActiveUserWithEmailAsync(request.Email, cancellationToken);
             if (userExist)
+            {
                 result.Errors.Add(new FluentValidation.Results.ValidationFailure("email", ResourcesMessagesException.EMAIL_ALREADY_REGISTERED));
+            }
         }
 
         if (!result.IsValid)

@@ -26,12 +26,12 @@ public class ProblemDetailsTests : IClassFixture<CustomWebApplicationFactory>
             Password = "1",
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/users", request);
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync("/users", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = document.RootElement;
+        JsonElement root = document.RootElement;
 
         root.GetProperty("status").GetInt32().Should().Be(400);
         root.GetProperty("title").GetString().Should().Be("Validation failed");
@@ -48,12 +48,12 @@ public class ProblemDetailsTests : IClassFixture<CustomWebApplicationFactory>
             Password = "whatever",
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/tokens", request);
+        HttpResponseMessage response = await _httpClient.PostAsJsonAsync("/tokens", request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = document.RootElement;
+        JsonElement root = document.RootElement;
 
         root.GetProperty("status").GetInt32().Should().Be(401);
         root.GetProperty("title").GetString().Should().Be("Unauthorized");

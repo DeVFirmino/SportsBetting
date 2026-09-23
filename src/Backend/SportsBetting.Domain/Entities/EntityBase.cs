@@ -8,6 +8,5 @@ public class EntityBase
 
     public bool Active { get; set; } = true;
 
-    //DataBase from my API and not user
     public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
 }

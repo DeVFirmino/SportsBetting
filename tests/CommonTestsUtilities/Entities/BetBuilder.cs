@@ -8,7 +8,7 @@ public class BetBuilder
 {
     public static List<Bet> Collection(int count = 5, long userId = 1)
     {
-        var faker = new Faker<Bet>()
+        Faker<Bet> faker = new Faker<Bet>()
             .RuleFor(b => b.Id, f => f.Random.Long(1, 1000))
             .RuleFor(b => b.UserId, userId)
             .RuleFor(b => b.FixtureId, f => f.Random.Int(100, 999))

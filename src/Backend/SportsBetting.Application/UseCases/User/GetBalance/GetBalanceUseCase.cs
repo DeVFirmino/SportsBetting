@@ -27,7 +27,9 @@ public sealed class GetBalanceUseCase : IGetBalanceUseCase
             cancellationToken);
 
         if (wallet is null)
+        {
             throw new ResourceNotFoundException(ResourcesMessagesException.WALLET_NOT_FOUND);
+        }
 
         return new WalletBalanceResponse { Balance = wallet.Balance };
     }

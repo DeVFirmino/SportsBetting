@@ -1,4 +1,5 @@
 using FluentAssertions;
+using SportsBetting.Domain.Security.Cryptography;
 using SportsBetting.Tests.Common.Cryptography;
 using DomainUser = SportsBetting.Domain.Entities.User;
 
@@ -9,45 +10,36 @@ public class IdentityPasswordHasherTests
     [Fact]
     public void ShouldSucceedWhenTheStoredHashCameFromTheSameHasher()
     {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build();
+        IPasswordHasher hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
         var stored = hasher.Hash(user, "password123");
 
-        // Act
         var verified = hasher.Verify(user, stored, "password123");
 
-        // Assert
         verified.Should().BeTrue();
     }
 
     [Fact]
     public void ShouldProduceDifferentHashesForTheSamePasswordWhenSaltIsRandom()
     {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build();
+        IPasswordHasher hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
 
-        // Act
         var first = hasher.Hash(user, "password123");
         var second = hasher.Hash(user, "password123");
 
-        // Assert
         first.Should().NotBe(second);
     }
 
     [Fact]
     public void ShouldFailWhenTheProvidedPasswordIsWrong()
     {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build();
+        IPasswordHasher hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
         var stored = hasher.Hash(user, "password123");
 
-        // Act
         var verified = hasher.Verify(user, stored, "wrong-password");
 
-        // Assert
         verified.Should().BeFalse();
     }
 
@@ -57,14 +49,11 @@ public class IdentityPasswordHasherTests
     [InlineData("!!!!")]
     public void ShouldFailWithoutThrowingWhenTheStoredHashIsUnreadable(string stored)
     {
-        // Arrange
-        var hasher = PasswordHasherBuilder.Build();
+        IPasswordHasher hasher = PasswordHasherBuilder.Build();
         var user = new DomainUser { Email = "user@example.com" };
 
-        // Act
         var verified = hasher.Verify(user, stored, "password123");
 
-        // Assert
         verified.Should().BeFalse();
     }
 }

@@ -1,5 +1,13 @@
+using AutoMapper;
 using FluentAssertions;
 using SportsBetting.Application.UseCases.User.Register;
+using SportsBetting.Communication.Requests;
+using SportsBetting.Communication.Responses;
+using SportsBetting.Domain.Repositories;
+using SportsBetting.Domain.Repositories.User;
+using SportsBetting.Domain.Repositories.WalletRepository;
+using SportsBetting.Domain.Security.Cryptography;
+using SportsBetting.Domain.Security.Tokens;
 using SportsBetting.Exceptions;
 using SportsBetting.Exceptions.ExceptionBase;
 using SportsBetting.Infrastructure.DataAccess.Repositories;
@@ -17,11 +25,11 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task ShouldRegisterUserWhenRequestIsValid()
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
 
-        var userCase = CreateUseCase();
+        RegisterUserUseCase userCase = CreateUseCase();
 
-        var result = await userCase.Execute(request, CancellationToken.None);
+        AuthenticatedUserResponse result = await userCase.Execute(request, CancellationToken.None);
 
         result.Should().NotBeNull();
         result.Tokens.Should().NotBeNull();
@@ -34,9 +42,9 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task ShouldReturnErrorWhenEmailAlreadyExists()
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
 
-        var userCase = CreateUseCase(request.Email);
+        RegisterUserUseCase userCase = CreateUseCase(request.Email);
 
         Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
@@ -49,10 +57,10 @@ public class RegisterUserCaseTest
     [Fact]
     public async Task ShouldReturnErrorWhenNameIsEmpty()
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
 
-        var userCase = CreateUseCase();
+        RegisterUserUseCase userCase = CreateUseCase();
 
         Func<Task> act = async () => await userCase.Execute(request, CancellationToken.None);
 
@@ -66,16 +74,18 @@ public class RegisterUserCaseTest
     {
 
 
-        var mapper = MapperBuilder.Build();
-        var passwordHasher = PasswordHasherBuilder.Build();
-        var writeRepository = UserWriteOnlyRepositoryBuilder.Build();
-        var unitOfWork = UnitOfWorkBuilder.Build();
+        IMapper mapper = MapperBuilder.Build();
+        IPasswordHasher passwordHasher = PasswordHasherBuilder.Build();
+        IUserWriteOnlyRepository writeRepository = UserWriteOnlyRepositoryBuilder.Build();
+        IUnitOfWork unitOfWork = UnitOfWorkBuilder.Build();
         var readRepositoryBuilder = new UserReadOnlyRepositoryBuilder();
-        var accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
-        var walletWriteOnlyRepository = WalletWriteOnlyRepositoryBuilder.Build();
+        IAccessTokenGenerator accessTokenGenerator = JwtTokenGeneratorBuilder.Build();
+        IWalletWriteOnlyRepository walletWriteOnlyRepository = WalletWriteOnlyRepositoryBuilder.Build();
 
         if (string.IsNullOrEmpty(email) == false)
+        {
             readRepositoryBuilder.ExistsActiveUserWithEmailAsync(email);
+        }
 
         return new RegisterUserUseCase(writeRepository, readRepositoryBuilder.Build(), mapper, passwordHasher, unitOfWork, accessTokenGenerator, walletWriteOnlyRepository);
 
