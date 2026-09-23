@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentValidation.Results;
 using SportsBetting.Application.UseCases.Wallet.Deposit;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
@@ -10,14 +11,11 @@ public class DepositValidatorTests
     [Fact]
     public void ShouldBeValidWhenAmountIsPositive()
     {
-        // Arrange
         var validator = new DepositValidator();
         var request = new DepositRequest { Amount = 25.50m };
 
-        // Act
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
-        // Assert
         result.IsValid.Should().BeTrue();
     }
 
@@ -27,14 +25,11 @@ public class DepositValidatorTests
     [InlineData(-100)]
     public void ShouldReturnAmountInvalidWhenAmountIsNotPositive(decimal amount)
     {
-        // Arrange
         var validator = new DepositValidator();
         var request = new DepositRequest { Amount = amount };
 
-        // Act
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
-        // Assert
         result.Errors.Should().ContainSingle()
             .Which.ErrorMessage.Should().Be(ResourcesMessagesException.AMOUNT_INVALID);
     }

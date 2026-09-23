@@ -4,7 +4,7 @@ using SportsBetting.Domain.Services.Odds;
 
 namespace SportsBetting.Application.UseCases.Fixture.GetAvailableFixtures;
 
-public sealed class GetAvailableFixturesUseCase : IGetAvailableFixtureUseCase
+public sealed class GetAvailableFixturesUseCase : IGetAvailableFixturesUseCase
 {
     private readonly IFootballApiService _footballApiService;
     private readonly IOddsService _oddsService;

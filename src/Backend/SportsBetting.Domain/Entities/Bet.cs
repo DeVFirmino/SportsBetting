@@ -26,16 +26,24 @@ public sealed class Bet : EntityBase
         DateTime placedAt)
     {
         if (stake <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(stake));
+        }
 
         if (odds <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(odds));
+        }
 
         if (string.IsNullOrWhiteSpace(eventName))
+        {
             throw new ArgumentException("Event name is required.", nameof(eventName));
+        }
 
         if (string.IsNullOrWhiteSpace(idempotencyKey))
+        {
             throw new ArgumentException("Idempotency key is required.", nameof(idempotencyKey));
+        }
 
         return new Bet
         {

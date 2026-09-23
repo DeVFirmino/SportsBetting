@@ -316,7 +316,9 @@ public sealed class PlaceBetUseCaseTests
             CommitCount++;
 
             if (Exception is not null)
+            {
                 throw Exception;
+            }
 
             return Task.CompletedTask;
         }

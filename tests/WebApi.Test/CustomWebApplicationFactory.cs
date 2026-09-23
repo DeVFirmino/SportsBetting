@@ -29,13 +29,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment("Testing")
             .ConfigureServices(services =>
             {
-                var descriptor = services.SingleOrDefault
+                ServiceDescriptor? descriptor = services.SingleOrDefault
                     (d => d.ServiceType == typeof(DbContextOptions<SportsBettingDbContext>));
                 if (descriptor is not null)
+                {
                     services.Remove(descriptor);
+                }
 
                 //In memory db
-                var provider = services.AddEntityFrameworkInMemoryDatabase().BuildServiceProvider();
+                ServiceProvider provider = services.AddEntityFrameworkInMemoryDatabase().BuildServiceProvider();
 
                 services.AddDbContext<SportsBettingDbContext>(options =>
                 {
@@ -49,12 +51,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                     services.AddSingleton<IFootballApiService, StaticFootballApiService>();
                 }
 
-                var serviceProvider = services.BuildServiceProvider();
+                ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-                using var scope = serviceProvider.CreateScope();
+                using IServiceScope scope = serviceProvider.CreateScope();
 
-                var dbContext = scope.ServiceProvider.GetRequiredService<SportsBettingDbContext>();
-                var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+                SportsBettingDbContext dbContext = scope.ServiceProvider.GetRequiredService<SportsBettingDbContext>();
+                IPasswordHasher passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
                 dbContext.Database.EnsureDeleted();
 

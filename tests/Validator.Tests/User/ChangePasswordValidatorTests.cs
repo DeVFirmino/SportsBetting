@@ -1,23 +1,21 @@
 using FluentAssertions;
+using FluentValidation.Results;
 using SportsBetting.Application.UseCases.User.ChangePassword;
 using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
 
-namespace SportsBetting.Tests.User.ChangePassword;
+namespace SportsBetting.Tests.User;
 
 public class ChangePasswordValidatorTests
 {
     [Fact]
     public void ShouldBeValidWhenNewPasswordIsValid()
     {
-        // Arrange
         var validator = new ChangePasswordValidator();
         var request = new ChangePasswordRequest { NewPassword = "new-password" };
 
-        // Act
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
-        // Assert
         result.IsValid.Should().BeTrue();
     }
 
@@ -26,14 +24,11 @@ public class ChangePasswordValidatorTests
     [InlineData("   ")]
     public void ShouldReturnPasswordEmptyWhenNewPasswordIsEmpty(string password)
     {
-        // Arrange
         var validator = new ChangePasswordValidator();
         var request = new ChangePasswordRequest { NewPassword = password };
 
-        // Act
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
-        // Assert
         result.Errors.Should().ContainSingle()
             .Which.ErrorMessage.Should().Be(ResourcesMessagesException.PASSWORD_EMPTY);
     }
@@ -43,14 +38,11 @@ public class ChangePasswordValidatorTests
     [InlineData("12345")]
     public void ShouldReturnInvalidCredentialsWhenNewPasswordIsTooShort(string password)
     {
-        // Arrange
         var validator = new ChangePasswordValidator();
         var request = new ChangePasswordRequest { NewPassword = password };
 
-        // Act
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
-        // Assert
         result.Errors.Should().ContainSingle()
             .Which.ErrorMessage.Should().Be(ResourcesMessagesException.EMAIL_OR_PASSWORD_INVALID);
     }

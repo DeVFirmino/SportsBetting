@@ -35,13 +35,13 @@ public class DoLoginTest : SportsBettingClassFixture
             Password = _password
         };
 
-        var response = await DoPost(method, request);
+        HttpResponseMessage response = await DoPost(method, request);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        await using var responseBody = await response.Content.ReadAsStreamAsync();
+        await using Stream responseBody = await response.Content.ReadAsStreamAsync();
 
-        var responseData = await JsonDocument.ParseAsync(responseBody);
+        JsonDocument responseData = await JsonDocument.ParseAsync(responseBody);
 
         responseData.RootElement.GetProperty("name").GetString().Should().Be(_name);
         responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrEmpty();
@@ -52,17 +52,17 @@ public class DoLoginTest : SportsBettingClassFixture
     [InlineData("en-US")]
     public async Task ShouldReturnUnauthorizedWhenCredentialsAreInvalid(string culture)
     {
-        var request = LoginRequestBuilder.Build();
+        LoginRequest request = LoginRequestBuilder.Build();
 
-        var response = await DoPost(method, request, culture);
+        HttpResponseMessage response = await DoPost(method, request, culture);
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        await using var responseBody = await response.Content.ReadAsStreamAsync();
+        await using Stream responseBody = await response.Content.ReadAsStreamAsync();
 
-        var responseData = await JsonDocument.ParseAsync(responseBody);
+        JsonDocument responseData = await JsonDocument.ParseAsync(responseBody);
 
-        var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
+        JsonElement.ArrayEnumerator errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
 
         var expectedMessage = ResourcesMessagesException.ResourceManager.GetString("EMAIL_OR_PASSWORD_INVALID", new CultureInfo(culture));
 

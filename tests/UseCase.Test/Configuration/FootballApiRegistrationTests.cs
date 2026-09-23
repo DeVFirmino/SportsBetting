@@ -18,61 +18,49 @@ public class FootballApiRegistrationTests
     [Fact]
     public void ShouldResolveOfflineServiceWhenApiKeyIsMissing()
     {
-        // Arrange
         Dictionary<string, string?> settings = Settings();
         settings["Settings:FootballApi:ApiKey"] = string.Empty;
 
         ServiceProvider provider = BuildProvider(settings);
 
-        // Act
         IFootballApiService service = provider.GetRequiredService<IFootballApiService>();
 
-        // Assert
         service.Should().BeOfType<OfflineFootballApiService>();
     }
 
     [Fact]
     public void ShouldResolveOfflineServiceWhenApiKeySectionHasNoKey()
     {
-        // Arrange
         Dictionary<string, string?> settings = Settings();
         settings.Remove("Settings:FootballApi:ApiKey");
 
         ServiceProvider provider = BuildProvider(settings);
 
-        // Act
         IFootballApiService service = provider.GetRequiredService<IFootballApiService>();
 
-        // Assert
         service.Should().BeOfType<OfflineFootballApiService>();
     }
 
     [Fact]
     public void ShouldResolveApiFootballServiceWhenApiKeyIsSet()
     {
-        // Arrange
         ServiceProvider provider = BuildProvider(Settings());
 
-        // Act
         IFootballApiService service = provider.GetRequiredService<IFootballApiService>();
 
-        // Assert
         service.Should().BeOfType<FootballApiService>();
     }
 
     [Fact]
     public void ShouldResolveOfflineServiceWhenOfflineFixturesAreForced()
     {
-        // Arrange
         Dictionary<string, string?> settings = Settings();
         settings["Settings:FootballApi:UseOfflineFixtures"] = "true";
 
         ServiceProvider provider = BuildProvider(settings);
 
-        // Act
         IFootballApiService service = provider.GetRequiredService<IFootballApiService>();
 
-        // Assert
         service.Should().BeOfType<OfflineFootballApiService>();
     }
 

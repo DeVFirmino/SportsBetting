@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using SportsBetting.Application.UseCases.User.GetBalance;
+using SportsBetting.Communication.Responses;
 using SportsBetting.Domain.Repositories.WalletRepository;
 using SportsBetting.Domain.Services.LoggedUser;
 using SportsBetting.Exceptions.ExceptionBase;
@@ -13,23 +14,18 @@ public class GetBalanceUseCaseTests
     [Fact]
     public async Task ShouldReturnCurrentBalanceWhenWalletExists()
     {
-        // Arrange
-        var useCase = CreateUseCase(new Domain.Entities.Wallet { UserId = 5, Balance = 345.67m });
+        GetBalanceUseCase useCase = CreateUseCase(new Domain.Entities.Wallet { UserId = 5, Balance = 345.67m });
 
-        // Act
-        var result = await useCase.Execute(CancellationToken.None);
+        WalletBalanceResponse result = await useCase.Execute(CancellationToken.None);
 
-        // Assert
         result.Balance.Should().Be(345.67m);
     }
 
     [Fact]
     public async Task ShouldReturnWalletNotFoundWhenWalletDoesNotExist()
     {
-        // Arrange
-        var useCase = CreateUseCase(null);
+        GetBalanceUseCase useCase = CreateUseCase(null);
 
-        // Act
         Func<Task> act = () => useCase.Execute(CancellationToken.None);
 
         await act.Should().ThrowAsync<ResourceNotFoundException>();

@@ -38,7 +38,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<IDepositUseCase, DepositUseCase>();
         services.AddScoped<IGetBalanceUseCase, GetBalanceUseCase>();
         services.AddScoped<IPlaceBetUseCase, PlaceBetUseCase>();
-        services.AddScoped<IGetAvailableFixtureUseCase, GetAvailableFixturesUseCase>();
+        services.AddScoped<IGetAvailableFixturesUseCase, GetAvailableFixturesUseCase>();
         services.AddScoped<IChangePasswordUseCase, ChangePasswordUseCase>();
         services.AddScoped<IGetUserBetsUseCase, GetUserBetsUseCase>();
         services.AddScoped<IGetBetByIdUseCase, GetBetByIdUseCase>();
@@ -50,7 +50,7 @@ public static class DependencyInjectionExtension
         // application; only the Mapper itself stays scoped so resolvers can use scoped services.
         services.AddSingleton(sp =>
         {
-            var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+            ILoggerFactory loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
             return new MapperConfiguration(cfg =>
             {

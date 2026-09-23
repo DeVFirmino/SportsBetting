@@ -19,14 +19,11 @@ public class OptionsValidationTests
     [Fact]
     public void ShouldBindEveryOptionWhenConfigurationIsComplete()
     {
-        // Arrange
         ServiceProvider provider = BuildProvider(ValidSettings());
 
-        // Act
         JwtOptions jwt = provider.GetRequiredService<IOptions<JwtOptions>>().Value;
         FootballApiOptions football = provider.GetRequiredService<IOptions<FootballApiOptions>>().Value;
 
-        // Assert
         provider.GetRequiredService<IStartupValidator>().Invoking(validator => validator.Validate())
             .Should().NotThrow();
 
@@ -50,33 +47,27 @@ public class OptionsValidationTests
     [InlineData("Settings:FootballApi:LeagueId", "0")]
     public void ShouldFailOnStartWhenASettingIsInvalid(string key, string value)
     {
-        // Arrange
         Dictionary<string, string?> settings = ValidSettings();
         settings[key] = value;
 
         ServiceProvider provider = BuildProvider(settings);
 
-        // Act
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
-        // Assert
         validate.Should().Throw<OptionsValidationException>();
     }
 
     [Fact]
     public void ShouldFailOnStartWhenTheConnectionStringIsMissing()
     {
-        // Arrange
         Dictionary<string, string?> settings = ValidSettings();
         settings.Remove("InMemoryTest");
         settings["ConnectionStrings:DefaultConnection"] = string.Empty;
 
         ServiceProvider provider = BuildProvider(settings);
 
-        // Act
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
-        // Assert
         // The DbContext resolves its connection string from these options, so an empty one has to
         // stop the application at startup rather than at the first query.
         validate.Should().Throw<OptionsValidationException>();
@@ -85,32 +76,26 @@ public class OptionsValidationTests
     [Fact]
     public void ShouldStartWithoutApiKeyWhenEnvironmentIsNotProduction()
     {
-        // Arrange
         Dictionary<string, string?> settings = ValidSettings();
         settings["Settings:FootballApi:ApiKey"] = string.Empty;
 
         ServiceProvider provider = BuildProvider(settings, Environments.Development);
 
-        // Act
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
-        // Assert
         validate.Should().NotThrow();
     }
 
     [Fact]
     public void ShouldFailOnStartWhenApiKeyIsMissingInProduction()
     {
-        // Arrange
         Dictionary<string, string?> settings = ValidSettings();
         settings["Settings:FootballApi:ApiKey"] = string.Empty;
 
         ServiceProvider provider = BuildProvider(settings, Environments.Production);
 
-        // Act
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
-        // Assert
         // A deployment that lost its key must stop, not quietly offer the sample fixtures.
         validate.Should().Throw<OptionsValidationException>()
             .Which.Message.Should().Contain("ApiKey is required in Production");
@@ -119,16 +104,13 @@ public class OptionsValidationTests
     [Fact]
     public void ShouldFailOnStartWhenOfflineFixturesAreForcedInProduction()
     {
-        // Arrange
         Dictionary<string, string?> settings = ValidSettings();
         settings["Settings:FootballApi:UseOfflineFixtures"] = "true";
 
         ServiceProvider provider = BuildProvider(settings, Environments.Production);
 
-        // Act
         Action validate = () => provider.GetRequiredService<IStartupValidator>().Validate();
 
-        // Assert
         validate.Should().Throw<OptionsValidationException>();
     }
 

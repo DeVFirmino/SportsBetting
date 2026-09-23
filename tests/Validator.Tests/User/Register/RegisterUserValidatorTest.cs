@@ -1,5 +1,7 @@
 using FluentAssertions;
+using FluentValidation.Results;
 using SportsBetting.Application.UseCases.User.Register;
+using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
 using SportsBetting.Tests.Common.Requests;
 
@@ -12,10 +14,10 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
 
 
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
         result.IsValid.Should().BeTrue();
     }
@@ -25,10 +27,10 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
 
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle().And
@@ -41,10 +43,10 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
         request.Email = string.Empty;
 
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
 
@@ -57,10 +59,10 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
         request.Email = "email.com";
 
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
 
@@ -78,9 +80,9 @@ public class RegisterUserValidatorTest
     {
         var validator = new RegisterUserValidator();
 
-        var request = RegisterUserRequestBuilder.Build(passwordLength);
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build(passwordLength);
 
-        var result = validator.Validate(request);
+        ValidationResult result = validator.Validate(request);
 
         result.IsValid.Should().BeFalse();
 

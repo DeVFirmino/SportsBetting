@@ -13,7 +13,7 @@ public sealed class FixturesController : ControllerBase
     [HttpGet]
     [ProducesResponseType(typeof(List<FixtureResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAvailableFixtures(
-        [FromServices] IGetAvailableFixtureUseCase useCase,
+        [FromServices] IGetAvailableFixturesUseCase useCase,
         CancellationToken cancellationToken)
     {
         List<FixtureResponse> result = await useCase.Execute(cancellationToken);

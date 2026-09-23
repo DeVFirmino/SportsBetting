@@ -13,7 +13,9 @@ public sealed class Wallet : EntityBase
     public void Deposit(decimal amount)
     {
         if (amount <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(amount));
+        }
 
         Balance += amount;
     }
@@ -21,10 +23,14 @@ public sealed class Wallet : EntityBase
     public void Debit(decimal stake)
     {
         if (stake <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(stake));
+        }
 
         if (Balance < stake)
+        {
             throw new InvalidOperationException("Insufficient balance.");
+        }
 
         Balance -= stake;
     }

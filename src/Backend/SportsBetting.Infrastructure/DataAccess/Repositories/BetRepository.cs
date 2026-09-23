@@ -52,10 +52,14 @@ public sealed class BetRepository : IBetReadOnlyRepository, IBetWriteOnlyReposit
             .Where(bet => bet.UserId == userId && bet.Active);
 
         if (startDate.HasValue)
+        {
             query = query.Where(bet => bet.PlacedAt >= startDate.Value);
+        }
 
         if (endDate.HasValue)
+        {
             query = query.Where(bet => bet.PlacedAt <= endDate.Value);
+        }
 
         int totalCount = await query.CountAsync(cancellationToken);
         List<Bet> items = await query

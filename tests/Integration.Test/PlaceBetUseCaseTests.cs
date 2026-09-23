@@ -135,7 +135,9 @@ file sealed class CommitBarrier
     public async Task SignalAndWaitAsync()
     {
         if (Interlocked.Decrement(ref _remaining) == 0)
+        {
             _release.TrySetResult();
+        }
 
         await _release.Task.WaitAsync(TimeSpan.FromSeconds(10));
     }

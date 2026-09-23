@@ -36,7 +36,9 @@ public sealed class DoLoginUseCase : IDoLoginUseCase
         }
 
         if (_passwordHasher.Verify(user, user.Password, request.Password) is false)
+        {
             throw new InvalidLoginException();
+        }
 
         return new AuthenticatedUserResponse
         {

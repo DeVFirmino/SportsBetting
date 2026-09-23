@@ -5,6 +5,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.Testing;
+using SportsBetting.Communication.Requests;
 using SportsBetting.Exceptions;
 using SportsBetting.Tests.Common.Requests;
 
@@ -21,15 +22,15 @@ public class RegisterUserTest : SportsBettingClassFixture
     [Fact]
     public async Task ShouldRegisterUserWhenRequestIsValid()
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
 
-        var response = await DoPost(method, request);
+        HttpResponseMessage response = await DoPost(method, request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        await using var responseBody = await response.Content.ReadAsStreamAsync();
+        await using Stream responseBody = await response.Content.ReadAsStreamAsync();
 
-        var responseData = await JsonDocument.ParseAsync(responseBody);
+        JsonDocument responseData = await JsonDocument.ParseAsync(responseBody);
 
         responseData.RootElement.GetProperty("name").GetString().Should().Be(request.Name);
         responseData.RootElement.GetProperty("tokens").GetProperty("accessToken").GetString().Should().NotBeNullOrEmpty();
@@ -41,18 +42,18 @@ public class RegisterUserTest : SportsBettingClassFixture
     [InlineData("en-US")]
     public async Task ShouldReturnBadRequestWhenNameIsEmpty(string culture)
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
         request.Name = string.Empty;
 
-        var response = await DoPost(method, request, culture);
+        HttpResponseMessage response = await DoPost(method, request, culture);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        await using var responseBody = await response.Content.ReadAsStreamAsync();
+        await using Stream responseBody = await response.Content.ReadAsStreamAsync();
 
-        var responseData = await JsonDocument.ParseAsync(responseBody);
+        JsonDocument responseData = await JsonDocument.ParseAsync(responseBody);
 
-        var errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
+        JsonElement.ArrayEnumerator errors = responseData.RootElement.GetProperty("errors").EnumerateArray();
 
         var expectedMessage = ResourcesMessagesException.ResourceManager.GetString("NAME_EMPTY", new CultureInfo(culture));
 
@@ -62,9 +63,9 @@ public class RegisterUserTest : SportsBettingClassFixture
     [Fact]
     public async Task ShouldAnswerWithTheErrorContractWhenNameIsNotAString()
     {
-        var request = RegisterUserRequestBuilder.Build();
+        RegisterUserRequest request = RegisterUserRequestBuilder.Build();
 
-        var response = await DoPost(method, new
+        HttpResponseMessage response = await DoPost(method, new
         {
             name = 12345,
             email = request.Email,
@@ -73,13 +74,13 @@ public class RegisterUserTest : SportsBettingClassFixture
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
-        await using var responseBody = await response.Content.ReadAsStreamAsync();
+        await using Stream responseBody = await response.Content.ReadAsStreamAsync();
 
-        var responseData = await JsonDocument.ParseAsync(responseBody);
+        JsonDocument responseData = await JsonDocument.ParseAsync(responseBody);
 
         // The whole API answers failures with one shape: "errors" as a list of messages.
         // A body that fails model binding must not fall back to a different contract.
-        var errors = responseData.RootElement.GetProperty("errors");
+        JsonElement errors = responseData.RootElement.GetProperty("errors");
         errors.ValueKind.Should().Be(JsonValueKind.Array);
         errors.EnumerateArray().Should().NotBeEmpty();
     }
