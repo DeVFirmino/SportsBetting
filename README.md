@@ -2,12 +2,12 @@
 
 [![CI](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml)
 
+**Live demo:** [Swagger on Azure Container Apps](https://sportsbetting-api.nicewave-b8afa4cf.westeurope.azurecontainerapps.io/swagger/index.html).
+It scales to zero when idle, so the first request can take up to a minute; see
+[Deployment](#deployment).
+
 A study project in .NET: users register, log in, deposit and place bets, with
 the balance and the bet saved together.
-
-It is educational only: it moves no real money, uses fixed odds and never settles
-or pays out a bet. A demo is online on Azure and scales to zero when idle; see
-[Deployment](#deployment).
 
 ## What it demonstrates
 
