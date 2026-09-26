@@ -3,7 +3,8 @@
 [![CI](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/DeVFirmino/SportsBetting/actions/workflows/ci.yml)
 
 **Live demo:** [Swagger on Azure Container Apps](https://sportsbetting-api.nicewave-b8afa4cf.westeurope.azurecontainerapps.io/swagger/index.html).
-It scales to zero when idle, so the first request can take up to a minute; see
+It scales to zero when idle, so the first request takes about 10 seconds. If the
+database has paused too, that request can take up to a minute and fail once. See
 [Deployment](#deployment).
 
 A study project in .NET: users register, log in, deposit and place bets, with
