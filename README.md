@@ -10,6 +10,8 @@ database has paused too, that request can take up to a minute and fail once. See
 A study project in .NET: users register, log in, deposit and place bets, with
 the balance and the bet saved together.
 
+![Animation: you have €50 and tap Bet €40 twice by accident; the bet reaches the server twice but is saved once, leaving one bet and €10.](docs/how-it-works.gif)
+
 ## What it demonstrates
 
 - REST endpoints with ASP.NET Core controllers
