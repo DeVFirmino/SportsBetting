@@ -7,8 +7,9 @@ It scales to zero when idle, so the first request takes about 10 seconds. If the
 database has paused too, that request can take up to a minute and fail once. See
 [Deployment](#deployment).
 
-A study project in .NET: users register, log in, deposit and place bets, with
-the balance and the bet saved together.
+Place a bet, then submit the same request with the same idempotency key to
+inspect the saved bet and wallet balance. This .NET study project also has SQL
+Server tests for two bets competing for the same balance.
 
 ![Animation: you have €50 and tap Bet €40 twice by accident; the bet reaches the server twice but is saved once, leaving one bet and €10.](docs/how-it-works.gif)
 
